@@ -1,0 +1,386 @@
+{
+  "type": "Program",
+  "start": 0,
+  "end": 194,
+  "range": [
+    0,
+    193
+  ],
+  "body": [
+    {
+      "type": "ExpressionStatement",
+      "start": 0,
+      "end": 13,
+      "range": [
+        0,
+        13
+      ],
+      "expression": {
+        "type": "Literal",
+        "start": 0,
+        "end": 12,
+        "range": [
+          0,
+          12
+        ],
+        "value": "use strict",
+        "raw": "\"use strict\""
+      }
+    },
+    {
+      "type": "ExpressionStatement",
+      "start": 14,
+      "end": 76,
+      "range": [
+        14,
+        76
+      ],
+      "expression": {
+        "type": "CallExpression",
+        "start": 14,
+        "end": 75,
+        "range": [
+          14,
+          75
+        ],
+        "callee": {
+          "type": "MemberExpression",
+          "start": 14,
+          "end": 35,
+          "range": [
+            14,
+            35
+          ],
+          "object": {
+            "type": "Identifier",
+            "start": 14,
+            "end": 20,
+            "range": [
+              14,
+              20
+            ],
+            "name": "Object"
+          },
+          "property": {
+            "type": "Identifier",
+            "start": 21,
+            "end": 35,
+            "range": [
+              21,
+              35
+            ],
+            "name": "defineProperty"
+          },
+          "computed": false
+        },
+        "arguments": [
+          {
+            "type": "Identifier",
+            "start": 36,
+            "end": 43,
+            "range": [
+              36,
+              43
+            ],
+            "name": "exports"
+          },
+          {
+            "type": "Literal",
+            "start": 45,
+            "end": 57,
+            "range": [
+              45,
+              57
+            ],
+            "value": "__esModule",
+            "raw": "\"__esModule\""
+          },
+          {
+            "type": "ObjectExpression",
+            "start": 59,
+            "end": 74,
+            "range": [
+              59,
+              74
+            ],
+            "properties": [
+              {
+                "type": "Property",
+                "start": 61,
+                "end": 72,
+                "range": [
+                  61,
+                  72
+                ],
+                "method": false,
+                "shorthand": false,
+                "computed": false,
+                "key": {
+                  "type": "Identifier",
+                  "start": 61,
+                  "end": 66,
+                  "range": [
+                    61,
+                    66
+                  ],
+                  "name": "value"
+                },
+                "value": {
+                  "type": "Literal",
+                  "start": 68,
+                  "end": 72,
+                  "range": [
+                    68,
+                    72
+                  ],
+                  "value": true,
+                  "raw": "true"
+                },
+                "kind": "init"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "VariableDeclaration",
+      "start": 77,
+      "end": 117,
+      "range": [
+        77,
+        117
+      ],
+      "declarations": [
+        {
+          "type": "VariableDeclarator",
+          "start": 81,
+          "end": 116,
+          "range": [
+            81,
+            116
+          ],
+          "id": {
+            "type": "Identifier",
+            "start": 81,
+            "end": 89,
+            "range": [
+              81,
+              89
+            ],
+            "name": "somename"
+          },
+          "init": {
+            "type": "CallExpression",
+            "start": 92,
+            "end": 116,
+            "range": [
+              92,
+              116
+            ],
+            "callee": {
+              "type": "Identifier",
+              "start": 92,
+              "end": 99,
+              "range": [
+                92,
+                99
+              ],
+              "name": "require"
+            },
+            "arguments": [
+              {
+                "type": "Literal",
+                "start": 100,
+                "end": 115,
+                "range": [
+                  100,
+                  115
+                ],
+                "value": "./support/has",
+                "raw": "\"./support/has\""
+              }
+            ]
+          }
+        }
+      ],
+      "kind": "var"
+    },
+    {
+      "type": "VariableDeclaration",
+      "start": 119,
+      "end": 135,
+      "range": [
+        119,
+        135
+      ],
+      "declarations": [
+        {
+          "type": "VariableDeclarator",
+          "start": 123,
+          "end": 134,
+          "range": [
+            123,
+            134
+          ],
+          "id": {
+            "type": "Identifier",
+            "start": 123,
+            "end": 126,
+            "range": [
+              123,
+              126
+            ],
+            "name": "foo"
+          },
+          "init": {
+            "type": "Literal",
+            "start": 129,
+            "end": 134,
+            "range": [
+              129,
+              134
+            ],
+            "value": "foo",
+            "raw": "'foo'"
+          }
+        }
+      ],
+      "kind": "var"
+    },
+    {
+      "type": "IfStatement",
+      "start": 137,
+      "end": 193,
+      "range": [
+        137,
+        193
+      ],
+      "test": {
+        "type": "CallExpression",
+        "start": 141,
+        "end": 162,
+        "range": [
+          141,
+          162
+        ],
+        "callee": {
+          "type": "MemberExpression",
+          "start": 141,
+          "end": 157,
+          "range": [
+            141,
+            157
+          ],
+          "object": {
+            "type": "Identifier",
+            "start": 141,
+            "end": 149,
+            "range": [
+              141,
+              149
+            ],
+            "name": "somename"
+          },
+          "property": {
+            "type": "Identifier",
+            "start": 150,
+            "end": 157,
+            "range": [
+              150,
+              157
+            ],
+            "name": "default"
+          },
+          "computed": false
+        },
+        "arguments": [
+          {
+            "type": "Identifier",
+            "start": 158,
+            "end": 161,
+            "range": [
+              158,
+              161
+            ],
+            "name": "foo"
+          }
+        ]
+      },
+      "consequent": {
+        "type": "BlockStatement",
+        "start": 164,
+        "end": 193,
+        "range": [
+          164,
+          193
+        ],
+        "body": [
+          {
+            "type": "ExpressionStatement",
+            "start": 168,
+            "end": 191,
+            "range": [
+              168,
+              191
+            ],
+            "expression": {
+              "type": "CallExpression",
+              "start": 168,
+              "end": 190,
+              "range": [
+                168,
+                190
+              ],
+              "callee": {
+                "type": "MemberExpression",
+                "start": 168,
+                "end": 179,
+                "range": [
+                  168,
+                  179
+                ],
+                "object": {
+                  "type": "Identifier",
+                  "start": 168,
+                  "end": 175,
+                  "range": [
+                    168,
+                    175
+                  ],
+                  "name": "console"
+                },
+                "property": {
+                  "type": "Identifier",
+                  "start": 176,
+                  "end": 179,
+                  "range": [
+                    176,
+                    179
+                  ],
+                  "name": "log"
+                },
+                "computed": false
+              },
+              "arguments": [
+                {
+                  "type": "Literal",
+                  "start": 180,
+                  "end": 189,
+                  "range": [
+                    180,
+                    189
+                  ],
+                  "value": "has foo",
+                  "raw": "'has foo'"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "alternate": null
+    }
+  ],
+  "sourceType": "module"
+}

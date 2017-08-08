@@ -1,0 +1,44 @@
+{
+  "name": "@dojo/static-optimize-plugin",
+  "version": "2.0.0-pre",
+  "description": "A webpack plugin which allows code to be statically optimized for a particular context at bundling time.",
+  "engines": {
+    "npm": ">=3.0.0"
+  },
+  "private": true,
+  "homepage": "http://dojo.io",
+  "bugs": {
+    "url": "https://github.com/dojo/static-optimize-plugin/issues"
+  },
+  "license": "(BSD-3-Clause OR Apache-2.0)",
+  "main": "main.js",
+  "files": [
+    "dist",
+    "src",
+    "typings.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dojo/static-optimize-plugin.git"
+  },
+  "scripts": {
+    "prepublish": "grunt peerDepInstall",
+    "test": "grunt test"
+  },
+  "devDependencies": {
+    "@types/chai": "~4.0.2",
+    "@types/estree": "^0.0.37",
+    "@types/glob": "~5.0.30",
+    "@types/grunt": "~0.4.21",
+    "@types/sinon": "^2.3.3",
+    "@types/source-map": "0.5.*",
+    "codecov.io": "0.1.6",
+    "@dojo/loader": "next",
+    "grunt": "~1.0.1",
+    "grunt-dojo2": "beta1",
+    "intern": "^3.4.6",
+    "sinon": "^2.3.0",
+    "typescript": "~2.4.2",
+    "webpack": "^3.5.0"
+  }
+}

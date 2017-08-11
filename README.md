@@ -8,9 +8,75 @@ A webpack plugin which allows code to be statically optimized for a particular c
 
 ## Features
 
+For each module in a webpack build, the plugin will access the compilation, looking for code to _optimize_.  It does this by walking
+the AST structure offered by webpack, making changes to the compilation.
+
+The plugin takes a map of _static_ features,
+
+For example in a webpack configuration, the map of features would look like this:
+
+```js
+{
+    plguins: [
+        new StaticOptimizePlugin({
+            'foo': true,
+            'bar': false
+        });
+    ]
+};
+```
+
+This asserts feature `foo` is `true` and feature `bar` is `false`.  This map is then used in the features below.
+
 ### Dead Code Removal
 
+The plugin assumes that the [`@dojo/has`](https://github.com/dojo/has) API is being used in modules that are being compiled
+into a webpack bundle and attempts to rewrite calls to the `has()` API when it can see it has a statically asserted flag for
+that feature.
 
+The plugin detects structures like the following in transpiled TypeScript modules:
+
+```ts
+import has from './has';
+
+if (has('foo')) {
+    console.log('has foo');
+}
+else {
+    console.log('doesn\'t have foo');
+}
+
+const bar = has('bar') ? 'has bar' : 'doesn\'t have bar';
+```
+
+And will rewrite the code (given the static feature set above), like:
+
+```ts
+import has from './has';
+
+if (true) {
+    console.log('has foo');
+}
+else {
+    console.log('doesn\'t have foo');
+}
+
+const bar = false ? 'has bar' : 'doesn\'t have bar';
+```
+
+When this is minified via Uglify via webpack, Uglify looks for structures that can be optimised and would re-write it further to
+something like:
+
+```ts
+import has from './has';
+
+console.log('has foo');
+
+const bar = 'doesn\'t have bar';
+```
+
+Any features which are not statically asserted, are not re-written.  This allows the code to determine at run-time if the feature
+is present.
 
 ### Elided Imports
 

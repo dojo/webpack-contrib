@@ -57,13 +57,13 @@ registerSuite({
 		assert.strictEqual(compiler.plugins['compilation'].length, 2, 'injects two compilation plugins');
 		assert.strictEqual(compiler.plugins['emit'].length, 1, 'injects one emit plugin');
 		assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
-		assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: foo, bar, baz', 'should have logged properly');
+		assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: foo, bar, baz, qat', 'should have logged properly');
 		assert.strictEqual(addDependencyStub.callCount, 0, 'Should not have added a dependency');
 	}),
 
 	'static features': runPluginTest({ foo: true, bar: false }, 'ast-has', ({ addDependencyStub, logStub }) => {
 		assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
-		assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: baz', 'should have logged properly');
+		assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: baz, qat', 'should have logged properly');
 		assert.strictEqual(addDependencyStub.callCount, 3, 'Should have replaced 3 expressions');
 		assert.instanceOf(addDependencyStub.firstCall.args[0], ConstDependency);
 		assert.strictEqual((addDependencyStub.firstCall.args[0] as ConstDependency).expression, 'true', 'should be a const "true"');
@@ -89,6 +89,14 @@ registerSuite({
 	'does not import has': runPluginTest({ foo: true }, 'ast-has-no-import', ({ addDependencyStub, logStub }) => {
 		assert.isFalse(logStub.called, 'should not have been called');
 		assert.isFalse(addDependencyStub.called, 'should not have been called');
+	}),
+
+	'call in call expression': runPluginTest({ foo: true }, 'ast-has-call-in-call', ({ addDependencyStub, logStub }) => {
+		assert.isFalse(logStub.called, 'should not have been called');
+		assert.strictEqual(addDependencyStub.callCount, 1, 'should have been called once');
+		assert.instanceOf(addDependencyStub.firstCall.args[0], ConstDependency);
+		assert.strictEqual((addDependencyStub.firstCall.args[0] as ConstDependency).expression, 'true', 'should be a const "true"');
+		assert.deepEqual<any>((addDependencyStub.firstCall.args[0] as ConstDependency).range, [ 127, 147 ], 'should have proper range');
 	}),
 
 	'no module compilation'() {

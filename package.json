@@ -35,7 +35,7 @@
     "codecov.io": "0.1.6",
     "@dojo/loader": "next",
     "grunt": "~1.0.1",
-    "grunt-dojo2": "beta1",
+    "grunt-dojo2": "latest",
     "intern": "^3.4.6",
     "sinon": "^2.3.0",
     "typescript": "~2.4.2",

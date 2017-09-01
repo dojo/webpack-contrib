@@ -1,6 +1,6 @@
 {
   "name": "@dojo/static-optimize-plugin",
-  "version": "2.0.0-beta2.2",
+  "version": "2.0.0-pre",
   "description": "A webpack plugin which allows code to be statically optimized for a particular context at bundling time.",
   "engines": {
     "npm": ">=3.0.0"

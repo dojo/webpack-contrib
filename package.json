@@ -33,7 +33,7 @@
     "@types/sinon": "^2.3.3",
     "@types/source-map": "0.5.*",
     "codecov.io": "0.1.6",
-    "@dojo/loader": "next",
+    "@dojo/loader": "beta2",
     "grunt": "~1.0.1",
     "grunt-dojo2": "latest",
     "intern": "^3.4.6",

@@ -1,5 +1,13 @@
 module.exports = function (grunt) {
 	require('grunt-dojo2').initConfig(grunt, {
-		/* any custom configuration goes here */
+		staticDefinitionFiles: [ '**/*.d.ts', '**/*.html', '**/*.md', '**/*.json' ],
+		copy: {
+			'staticDefinitionFiles-dev': {
+				expand: true,
+				cwd: 'src',
+				src: [ '**/*.md', '**/*.json' ],
+				dest: '<%= devDirectory %>/src/'
+			}
+		}
 	});
 };

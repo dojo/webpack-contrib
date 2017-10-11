@@ -26,17 +26,20 @@
     "test": "grunt test"
   },
   "devDependencies": {
+    "@dojo/interfaces": "~0.1.0",
+    "@dojo/loader": "~0.1.0",
     "@types/chai": "~4.0.2",
     "@types/estree": "^0.0.37",
     "@types/glob": "~5.0.30",
     "@types/grunt": "~0.4.21",
+    "@types/mockery": "^1.4.29",
     "@types/sinon": "^2.3.3",
     "@types/source-map": "0.5.*",
     "codecov.io": "0.1.6",
-    "@dojo/loader": "~0.1.0",
     "grunt": "~1.0.1",
     "grunt-dojo2": "latest",
     "intern": "^3.4.6",
+    "mockery": "^2.1.0",
     "sinon": "^2.3.0",
     "typescript": "~2.4.2",
     "webpack": "^3.5.0"

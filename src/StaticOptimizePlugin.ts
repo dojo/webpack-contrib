@@ -1,8 +1,8 @@
 import * as Compiler from 'webpack/lib/Compiler';
 import { Identifier, Program, VariableDeclaration } from 'estree';
 import walk from './util/walk';
+import getFeatures, { Features } from './getFeatures';
 import ConstDependency = require('webpack/lib/dependencies/ConstDependency');
-import NormalModule = require('webpack/lib/NormalModule');
 import NullFactory = require('webpack/lib/NullFactory');
 
 export interface StaticHasFeatures {
@@ -14,8 +14,13 @@ const HAS_MID = /\/has$/;
 export default class HasPlugin {
 	private _features: StaticHasFeatures;
 
-	constructor(features: StaticHasFeatures) {
-		this._features = features;
+	constructor(features?: StaticHasFeatures | Features, isRunningInNode = true) {
+		if (!features || Array.isArray(features) || typeof features === 'string') {
+			this._features = getFeatures(features, isRunningInNode);
+		}
+		else {
+			this._features = features;
+		}
 	}
 
 	public apply(compiler: Compiler) {

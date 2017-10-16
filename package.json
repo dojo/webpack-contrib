@@ -25,6 +25,10 @@
     "prepublish": "grunt peerDepInstall",
     "test": "grunt test"
   },
+  "dependencies": {
+    "loader-utils": "^1.1.0",
+    "recast": "^0.12.7"
+  },
   "devDependencies": {
     "@dojo/interfaces": "~0.1.0",
     "@dojo/loader": "~0.1.0",

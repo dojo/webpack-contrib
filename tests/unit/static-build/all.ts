@@ -1,2 +1,2 @@
 import './getFeatures';
-import './StaticOptimizePlugin';
+import './loader';

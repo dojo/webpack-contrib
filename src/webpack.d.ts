@@ -32,6 +32,18 @@ declare module 'webpack-sources/lib/ConcatSource' {
 	export = ConcatSource;
 }
 
+declare module 'webpack-sources/lib/RawSource' {
+	import * as Source from 'webpack-sources/lib/Source';
+
+	class RawSource extends Source {
+		constructor(value: string);
+	}
+
+	namespace RawSource {}
+
+	export = RawSource;
+}
+
 declare module 'webpack-sources/lib/Source' {
 	import * as crypto from 'crypto';
 
@@ -51,6 +63,19 @@ declare module 'webpack-sources/lib/Source' {
 	}
 
 	export = Source;
+}
+
+declare module 'webpack-sources/lib/SourceMapSource' {
+	import * as Source from 'webpack-sources/lib/Source';
+	import * as sourceMap from 'source-map';
+
+	class SourceMapSource extends Source {
+		constructor(value: string, name?: string, sourceMap?: string, originalSource?: string, innerSourceMap?: string);
+	}
+
+	namespace SourceMapSource {}
+
+	export = SourceMapSource;
 }
 
 declare module 'webpack' {
@@ -147,6 +172,7 @@ declare module 'webpack/lib/webpack' {
 			webpack: boolean;
 
 			async(): (error?: Error | null, content?: string | Buffer, sourceMap?: any) => void;
+			callback(error?: Error | null, content?: string | Buffer, sourceMap?: any, ast?: any): void;
 			cacheable(flag?: boolean): void;
 			emitWarning(warning: string): void;
 			emitError(error: string): void;
@@ -351,6 +377,7 @@ declare module 'webpack/lib/Compilation' {
 	import Tapable = require('tapable');
 	import MainTemplate = require('webpack/lib/MainTemplate');
 	import Module = require('webpack/lib/Module');
+	import NormalModule = require('webpack/lib/NormalModule');
 	import Chunk = require('webpack/lib/Chunk');
 	import Source = require('webpack-sources/lib/Source');
 	import ModuleTemplate = require('webpack/lib/ModuleTemplate');
@@ -361,6 +388,7 @@ declare module 'webpack/lib/Compilation' {
 		dependencyFactories: Map<typeof Dependency, any>;
 		dependencyTemplates: Map<typeof Dependency, any>;
 		mainTemplate: MainTemplate;
+		modules: NormalModule[];
 		moduleTemplate: ModuleTemplate;
 
 		constructor(compiler: Compiler);
@@ -372,6 +400,7 @@ declare module 'webpack/lib/Compilation' {
 		plugin(name: 'normal-module-loader', fn: (this: Compilation, loaderContext: any, module: Module) => void): void;
 		plugin(name: 'seal', fn: (this: Compilation) => void): void;
 		plugin(name: 'optimize', fn: (this: Compilation) => void): void;
+		plugin(name: 'optimize-chunks-basic', fn: (this: Compilation, chunks: Chunk[]) => void): void;
 		plugin(name: 'optimize-tree', fn: (this: Compilation, chunks: Chunk[], modules: Module[], callback: (error?: Error) => void) => void): void;
 		plugin(name: 'optimize-modules', fn: (this: Compilation, modules: Module[]) => any): void;
 		plugin(name: 'after-optimize-modules', fn: (this: Compilation, modules: Module[]) => void): void;
@@ -402,6 +431,8 @@ declare module 'webpack/lib/Compilation' {
 		plugin(name: 'module-asset', fn: (this: Compilation, module: Module, file: string) => void): void;
 		plugin(name: 'chunk-asset', fn: (this: Compilation, chunk: Chunk, file: string) => void): void;
 		plugin(name: 'need-additional-pass', fn: (this: Compilation) => boolean): void;
+
+		rebuildModule(module: Module, callback: (error: Error) => void): void;
 	}
 
 	export = Compilation;
@@ -464,9 +495,24 @@ declare module 'webpack/lib/Compiler' {
 declare module 'webpack/lib/ContextModuleFactory' {
 	import Tapable = require('tapable');
 	import Parser = require('webpack/lib/Parser');
+	import Dependency = require('webpack/lib/Dependency');
 
 	class ContextModuleFactory extends Tapable {
+		plugin(name: 'before-resolve', fn: ContextModuleFactory.BeforeHandler): void;
 		plugin(name: 'parser', fn: (this: ContextModuleFactory, parser: Parser, options: any) => void): void;
+	}
+
+	namespace ContextModuleFactory {
+		interface BeforeData {
+			contextInfo?: any;
+			context: string;
+			dependencies?: Dependency[];
+			request: string;
+		}
+
+		type BeforeHandler = (this: ContextModuleFactory, current: BeforeData, callback: Callback<BeforeData>) => void;
+
+		type Callback<T> = (error?: Error | null, nextValue?: T) => void;
 	}
 
 	export = ContextModuleFactory;
@@ -528,7 +574,9 @@ declare module 'webpack/lib/Dependency' {
 	class Dependency {
 		static compare(a: any, b: any): boolean;
 
+		loc?: any;
 		module: Module;
+		range?: [ number, number ];
 
 		isEqualResource(): boolean;
 		getReference(): { module: Module; importedNames: boolean; } | null;

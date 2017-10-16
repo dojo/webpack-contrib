@@ -1,4 +1,2 @@
-export * from './static-build/StaticOptimizePlugin';
-import StaticOptimizePlugin from './static-build/StaticOptimizePlugin';
-
-export default StaticOptimizePlugin;
+export { default as staticOptimizeLoader } from './static-build/loader';
+export * from './static-build/loader';

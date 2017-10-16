@@ -79,7 +79,7 @@ registerSuite({
 
 	'getFeatures': {
 		before() {
-			mockModule = new MockModule('../../src/StaticOptimizePlugin');
+			mockModule = new MockModule('../../src/static-build/StaticOptimizePlugin');
 			mockModule.dependencies([ './getFeatures' ]);
 			mockGetFeatures = mockModule.getMock('./getFeatures');
 			mockGetFeatures.default = sandbox.stub().returns({ foo: true, bar: false });

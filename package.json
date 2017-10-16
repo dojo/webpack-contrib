@@ -1,7 +1,7 @@
 {
-  "name": "@dojo/static-optimize-plugin",
-  "version": "0.1.1-pre",
-  "description": "A webpack plugin which allows code to be statically optimized for a particular context at bundling time.",
+  "name": "@dojo/webpack-contrib",
+  "version": "0.1.0-pre",
+  "description": "Webpack loaders and plugins used by the Dojo 2 build process",
   "engines": {
     "npm": ">=3.0.0"
   },
@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/dojo/static-optimize-plugin.git"
+    "url": "https://github.com/dojo/webpack-contrib.git"
   },
   "scripts": {
     "prepublish": "grunt peerDepInstall",

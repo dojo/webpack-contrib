@@ -1,7 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { Program } from 'estree';
-import walk from '../../../src/util/walk';
+import walk from '../../../src/static-build/util/walk';
 
 function getAst(name: string): Program {
 	return (require as any).nodeRequire((require as any).toUrl(`../../support/fixtures/${name}.json`));

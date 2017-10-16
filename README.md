@@ -1,8 +1,13 @@
-# @dojo/static-optimize-plugin
+# @dojo/webpack-contrib
 
-[![Build Status](https://travis-ci.org/dojo/static-optimize-plugin.svg?branch=master)](https://travis-ci.org/dojo/static-optimize-plugin)
-[![codecov](https://codecov.io/gh/dojo/static-optimize-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/dojo/static-optimize-plugin)
-[![npm version](https://badge.fury.io/js/%40dojo%2Fstatic-optimize-plugin.svg)](http://badge.fury.io/js/%40dojo%2Fstatic-optimize-plugin)
+[![Build Status](https://travis-ci.org/dojo/webpack-contrib.svg?branch=master)](https://travis-ci.org/dojo/webpack-contrib)
+[![codecov](https://codecov.io/gh/dojo/webpack-contrib/branch/master/graph/badge.svg)](https://codecov.io/gh/dojo/webpack-contrib)
+[![npm version](https://badge.fury.io/js/%40dojo%2Fwebpack-contrib.svg)](http://badge.fury.io/js/%40dojo%2Fwebpack-contrib)
+
+This is the home for custom Webpack plugins and loaders used in the Dojo 2 build process
+
+# static-optimize-plugin
+
 
 A webpack plugin which allows code to be statically optimized for a particular context at bundling time.
 

@@ -16,8 +16,13 @@ export interface StaticHasFeatures {
 
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
+const HAS_MID_SNIFF = /require\(["'][^,"']+\/has["']\)/;
+const HAS_PRAGMA_SNIFF = /^\s*['"]\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*['"]\s*;\s*$/m;
 
 export default function (this: LoaderContext, content: string, sourceMap?: { file: '' }) {
+	if (!(HAS_MID_SNIFF.test(content) || HAS_PRAGMA_SNIFF.test(content))) {
+		return content;
+	}
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
 	const { features: featuresOption, isRunningInNode } = options;

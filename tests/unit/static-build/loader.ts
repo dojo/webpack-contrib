@@ -41,8 +41,8 @@ registerSuite({
 
 	beforeEach() {
 		mockGetFeatures.default = sandbox.stub().returns({ foo: true, bar: false });
-		mockRecast.parse.callsFake((...args: any[]) => recast.parse(...args));
-		mockRecast.print.callsFake((...args: any[]) => recast.print(...args));
+		mockRecast.parse = sandbox.stub().callsFake((...args: any[]) => recast.parse(...args));
+		mockRecast.print = sandbox.stub().callsFake((...args: any[]) => recast.print(...args));
 	},
 
 	afterEach() {
@@ -58,7 +58,7 @@ registerSuite({
 		mockLoaderUtils.getOptions.returns({
 			features: {}
 		});
-		assert.deepEqual(loader(code)!.replace(/\r\n/g, '\n'), code);
+		assert.equal(loader(code)!.replace(/\r\n/g, '\n'), code);
 	},
 
 	'static features'() {
@@ -71,7 +71,7 @@ registerSuite({
 			callback: sandbox.stub()
 		};
 		const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
-		assert.deepEqual(resultCode, loadCode('static-has-qat-true'));
+		assert.equal(resultCode, loadCode('static-has-qat-true'));
 		assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
 		assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
 		assert.strictEqual(logStub.secondCall.args[ 0 ], 'Dynamic features: foo, bar, baz', 'should have logged properly');
@@ -103,7 +103,7 @@ registerSuite({
 		const modifiedCode = recast.print(modifiedAst).code.replace(/\r\n/g, '\n');
 		const sourceMapOptions = mockRecast.print.firstCall.args[1];
 
-		assert.deepEqual(modifiedCode, loadCode('static-has-qat-true'), 'Should have passed modified ast to print');
+		assert.equal(modifiedCode, loadCode('static-has-qat-true'), 'Should have passed modified ast to print');
 		assert.deepEqual(sourceMapOptions, { sourceMapName: file }, 'Should have passed source map file to print');
 
 		assert.isTrue(mockRecastUtil.composeSourceMaps.calledOnce, 'Should have called composeSourceMaps');
@@ -133,7 +133,7 @@ registerSuite({
 			callback: sandbox.stub()
 		};
 		const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
-		assert.deepEqual(resultCode, loadCode('static-has-foo-true-bar-false'));
+		assert.equal(resultCode, loadCode('static-has-foo-true-bar-false'));
 		assert.strictEqual(mockGetFeatures.default.callCount, 1, 'should have called getFeatures');
 		assert.deepEqual(mockGetFeatures.default.firstCall.args, [ [ 'static' ], undefined ]);
 		assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
@@ -145,10 +145,17 @@ registerSuite({
 		mockLoaderUtils.getOptions.returns({
 			features: { foo: true }
 		});
-		assert.deepEqual(
+		assert.equal(
 			loader(code)!.replace(/\r\n/g, '\n'),
 			loadCode('no-import-foo-true'),
 			'Should not replace has calls, but should still support has pragma if has was not imported'
 		);
+	},
+
+	'should not parse a module that does not contain has pragmas or a possible call to require has'() {
+		const code = loadCode('should-not-parse');
+		assert.equal(loader(code), code, 'Should not have modified code');
+		assert.isFalse(mockRecast.parse.called, 'Should not have called parse');
+		assert.isFalse(mockRecast.print.called, 'Should not have called print');
 	}
 });

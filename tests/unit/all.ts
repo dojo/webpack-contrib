@@ -1,4 +1,3 @@
-import './getFeatures';
 import './main';
-import './StaticOptimizePlugin';
+import './static-build/all';
 import './util/all';

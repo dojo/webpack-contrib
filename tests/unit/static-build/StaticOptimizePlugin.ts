@@ -2,15 +2,15 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { Program } from 'estree';
 import * as sinon from 'sinon';
-import MockModule from '../support/MockModule';
-import Compilation = require('../support/webpack/Compilation');
-import Compiler = require('../support/webpack/Compiler');
+import MockModule from '../../support/MockModule';
+import Compilation = require('../../support/webpack/Compilation');
+import Compiler = require('../../support/webpack/Compiler');
 import ConstDependency = require('webpack/lib/dependencies/ConstDependency');
 import NormalModule = require('webpack/lib/NormalModule');
-import _StaticOptimizePlugin from '../../src/static-build/StaticOptimizePlugin';
+import _StaticOptimizePlugin from '../../../src/static-build/StaticOptimizePlugin';
 
 function getAst(name: string): Program {
-	return (require as any).nodeRequire((require as any).toUrl(`../support/fixtures/${name}.json`));
+	return (require as any).nodeRequire((require as any).toUrl(`../../support/fixtures/${name}.json`));
 }
 
 interface CallbackArgs {

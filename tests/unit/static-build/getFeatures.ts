@@ -1,7 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { stub } from 'sinon';
-import getFeatures from '../../src/static-build/getFeatures';
+import getFeatures from '../../../src/static-build/getFeatures';
 
 registerSuite({
 	name: 'getFeatures',
@@ -74,7 +74,12 @@ registerSuite({
 	},
 
 	'should use require if running in node (returns empty set in browser)'() {
-		getFeatures('ie11');
-		assert.deepEqual(getFeatures('ie11'), {});
+		const logStub = stub(console, 'log');
+		const features = getFeatures('ie11');
+		logStub.restore();
+		assert.deepEqual(features, {});
+		assert.isTrue(logStub.calledOnce, 'log should have been called');
+		assert.strictEqual(logStub.lastCall.args[0], 'Cannot resolve feature set:');
+		assert.strictEqual(logStub.lastCall.args[1], 'ie11');
 	}
 });

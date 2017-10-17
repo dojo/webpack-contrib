@@ -57,8 +57,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
 				const hasPragma = HAS_PRAGMA.exec(node.expression.value);
 				if (hasPragma) {
-					const negate = hasPragma[1];
-					const flag = hasPragma[2];
+					const [ , negate, flag ] = hasPragma;
 					comment = ` ${negate}has('${flag}')`;
 					if (flag in features) {
 						elideNextImport = negate ? !features[flag] : features[flag];

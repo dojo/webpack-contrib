@@ -205,6 +205,9 @@ declare module 'webpack/lib/webpack' {
 		interface Plugin {
 			apply(compiler?: WebpackCompiler): void;
 		}
+		interface RawSourceMap {
+			file: string;
+		}
 		interface Resolve {
 			alias?: { [key: string]: string; };
 			aliasFields?: string[];

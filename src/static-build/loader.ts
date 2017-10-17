@@ -1,7 +1,8 @@
 import getFeatures from './getFeatures';
-import { LoaderContext } from 'webpack/lib/webpack';
-const { getOptions } = require('loader-utils');
+import { LoaderContext, RawSourceMap } from 'webpack/lib/webpack';
 import * as recast from 'recast';
+
+const { getOptions } = require('loader-utils');
 const types = recast.types;
 const namedTypes = types.namedTypes;
 const builders = types.builders;
@@ -19,17 +20,28 @@ const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
 const HAS_MID_SNIFF = /require\(["'][^,"']+\/has["']\)/;
 const HAS_PRAGMA_SNIFF = /^\s*['"]\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*['"]\s*;\s*$/m;
 
-export default function (this: LoaderContext, content: string, sourceMap?: { file: '' }) {
+/**
+ * Checks code for usage of has pragmas or other calls to @dojo/has and optimizes them out based on the flags or
+ * feature sets specified statically. This loader should act on JavaScript, so it should run after the compiler
+ * if using TypeScript
+ * @param content The JavaScript code to optimize
+ * @param sourceMap Optional Source map for the code. If provided it will be updated to reflect the optimizations made
+ */
+export default function loader(this: LoaderContext, content: string, sourceMap?: RawSourceMap): string | void {
 	if (!(HAS_MID_SNIFF.test(content) || HAS_PRAGMA_SNIFF.test(content))) {
 		return content;
 	}
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
 	const { features: featuresOption, isRunningInNode } = options;
-	const args = (sourceMap && sourceMap.file && {
+	const parseOptions = (sourceMap && {
 		sourceFileName: sourceMap.file
 	}) || undefined;
+	const dynamicFlags = new Set<string>();
+	const ast = recast.parse(content, parseOptions);
 	let features: StaticHasFeatures;
+	let elideNextImport = false;
+	let hasIdentifier: string | undefined;
 
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption, isRunningInNode);
@@ -37,11 +49,7 @@ export default function (this: LoaderContext, content: string, sourceMap?: { fil
 	else {
 		features = featuresOption;
 	}
-	const dynamicFlags = new Set<string>();
-	const ast = recast.parse(content, args);
 
-	let elideNextImport = false;
-	let hasIdentifier: string | undefined;
 	types.visit(ast, {
 		visitExpressionStatement(path) {
 			const { node, parentPath, name } = path;

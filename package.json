@@ -26,6 +26,7 @@
     "test": "grunt test"
   },
   "dependencies": {
+    "@dojo/shim": "^0.1.0",
     "loader-utils": "^1.1.0",
     "recast": "^0.12.7"
   },
@@ -45,6 +46,8 @@
     "intern": "4.0.2",
     "mockery": "^2.1.0",
     "sinon": "^2.3.0",
+    "ts-loader": "2.3.1",
+    "typed-css-modules": "0.2.0",
     "typescript": "~2.4.2",
     "webpack": "^3.5.0"
   }

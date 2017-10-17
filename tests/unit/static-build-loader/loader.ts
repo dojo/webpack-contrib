@@ -51,6 +51,7 @@ registerSuite('static-build-loader', {
 
 	after() {
 		sandbox.restore();
+		mockModule.destroy();
 	},
 
 	tests: {

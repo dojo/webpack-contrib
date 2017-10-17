@@ -1,16 +1,16 @@
-import * as registerSuite from 'intern!object';
-import * as assert from 'intern/chai!assert';
 import { stub } from 'sinon';
 import getFeatures from '../../../src/static-build-loader/getFeatures';
 
-registerSuite({
-	name: 'getFeatures',
+const { registerSuite } = intern.getInterface('object');
+const { assert } = intern.getPlugin('chai');
+
+registerSuite('getFeatures', {
 	'no features'() {
-		assert.deepEqual(getFeatures(undefined, false), {});
+		assert.deepEqual(getFeatures(undefined), {});
 	},
 
 	'single feature set'() {
-		assert.deepEqual(getFeatures('ie11', false), {
+		assert.deepEqual(getFeatures('ie11'), {
 			'arraybuffer': true,
 			'blob': true,
 			'dom-mutationobserver': false,
@@ -48,7 +48,7 @@ registerSuite({
 	},
 
 	'two feature sets'() {
-		assert.deepEqual(getFeatures([ 'ie11', 'node' ], false), {
+		assert.deepEqual(getFeatures([ 'ie11', 'node' ]), {
 			arraybuffer: true,
 			blob: true,
 			'dom-mutationobserver': false,
@@ -65,21 +65,11 @@ registerSuite({
 
 	'not found feature set'() {
 		const logStub = stub(console, 'log');
-		const features = getFeatures([ 'ie11', 'foo' ], false);
+		const features = getFeatures([ 'ie11', 'foo' ]);
 		logStub.restore();
 		assert.deepEqual(features, { });
 		assert.isTrue(logStub.calledOnce, 'log should have been called');
 		assert.strictEqual(logStub.lastCall.args[0], 'Cannot resolve feature set:');
 		assert.strictEqual(logStub.lastCall.args[1], 'foo');
-	},
-
-	'should use require if running in node (returns empty set in browser)'() {
-		const logStub = stub(console, 'log');
-		const features = getFeatures('ie11');
-		logStub.restore();
-		assert.deepEqual(features, {});
-		assert.isTrue(logStub.calledOnce, 'log should have been called');
-		assert.strictEqual(logStub.lastCall.args[0], 'Cannot resolve feature set:');
-		assert.strictEqual(logStub.lastCall.args[1], 'ie11');
 	}
 });

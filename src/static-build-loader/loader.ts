@@ -33,7 +33,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	}
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
-	const { features: featuresOption, isRunningInNode } = options;
+	const { features: featuresOption } = options;
 	const parseOptions = (sourceMap && {
 		sourceFileName: sourceMap.file
 	}) || undefined;
@@ -44,7 +44,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	let hasIdentifier: string | undefined;
 
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
-		features = getFeatures(featuresOption, isRunningInNode);
+		features = getFeatures(featuresOption);
 	}
 	else {
 		features = featuresOption;

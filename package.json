@@ -42,7 +42,7 @@
     "codecov.io": "0.1.6",
     "grunt": "~1.0.1",
     "grunt-dojo2": "latest",
-    "intern": "^3.4.6",
+    "intern": "4.0.2",
     "mockery": "^2.1.0",
     "sinon": "^2.3.0",
     "typescript": "~2.4.2",

@@ -1,0 +1,17 @@
+{
+	"environments": [
+		{ "browserName": "node" }
+	],
+
+	"suites": [
+		"./_build/tests/unit/all.js"
+	],
+
+	"configs": {
+		"local": {
+			"coverage": [
+				"./_build/src/**/*.js"
+			]
+		}
+	}
+}

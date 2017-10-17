@@ -1,11 +1,10 @@
-import * as registerSuite from 'intern!object';
-import * as assert from 'intern/chai!assert';
+import * as loader from '../../../src/static-build-loader/index';
 
-registerSuite({
-	name: 'index',
+const { registerSuite } = intern.getInterface('object');
+const { assert } = intern.getPlugin('chai');
+
+registerSuite('index', {
 	'exists'() {
-		const loader = require('intern/browser_modules/dojo/node!../../../src/static-build-loader/index');
 		assert(loader);
 	}
-
 });

@@ -1,7 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { stub } from 'sinon';
-import getFeatures from '../../../src/static-build/getFeatures';
+import getFeatures from '../../../src/static-build-loader/getFeatures';
 
 registerSuite({
 	name: 'getFeatures',

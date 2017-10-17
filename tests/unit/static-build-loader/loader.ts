@@ -23,7 +23,7 @@ registerSuite({
 
 	before() {
 		sandbox = sinon.sandbox.create();
-		mockModule = new MockModule('../../src/static-build/loader');
+		mockModule = new MockModule('../../src/static-build-loader/loader');
 		mockModule.dependencies([
 			'./getFeatures',
 			'loader-utils',

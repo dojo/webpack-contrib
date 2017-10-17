@@ -6,7 +6,7 @@
 
 This is the home for custom Webpack plugins and loaders used in the Dojo 2 build process
 
-# static-optimize-plugin
+# static-build-loader
 
 
 A webpack loader which allows code to be statically optimized for a particular context at bundling time.
@@ -31,7 +31,7 @@ For example in a webpack configuration, the map of features would look like this
 {
     use: [
         {
-            loader: '@dojo/webpack-contrib/static-build',
+            loader: '@dojo/webpack-contrib/static-build-loader',
             options: {
                 features: {
                     'foo': true,
@@ -49,7 +49,7 @@ Alternatively a list of features can be provided that will be resolved to the ap
 {
 	use: [
 		{
-			loader: '@dojo/webpack-contrib/static-build',
+			loader: '@dojo/webpack-contrib/static-build-loader',
 			options: {
 				features: [ 'firefox', 'chrome' ]
 			}

@@ -1,2 +1,2 @@
 import './main';
-import './static-build/all';
+import './static-build-loader/all';

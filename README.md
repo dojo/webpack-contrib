@@ -9,38 +9,80 @@ This is the home for custom Webpack plugins and loaders used in the Dojo 2 build
 # static-optimize-plugin
 
 
-A webpack plugin which allows code to be statically optimized for a particular context at bundling time.
+A webpack loader which allows code to be statically optimized for a particular context at bundling time.
+This loader acts on JavaScript. Some examples show the TypeScript source, but the loader will only
+work if acting on the compiled output.
 
 ## Features
 
-For each module in a webpack build, the plugin will access the compilation, looking for code to _optimize_.  It does this by walking
-the AST structure offered by webpack, making changes to the compilation.
+The loader examines code, looking for usages of `@dojo/has` or `has pragmas` to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
 
-The plugin takes a map of _static_ features, where the key is the name of the feature and the value is either `true` if the feature
-is present in that context, otherwise `false`.
+The loader takes two options: 
+
+* features: A map of _static_ features or a feature or list of features that resolve to a similar static map 
+based on the functionality provided by the specified targets. Each key in the map is the name of the feature 
+and the value is `true` if the feature is present in that context, otherwise `false`.
+* isRunningInNode: An optional boolean parameter. If set to false this indicates that the loader will not be
+running in an environment with a Node-like require.
 
 For example in a webpack configuration, the map of features would look like this:
 
 ```js
 {
-    plguins: [
-        new StaticOptimizePlugin({
-            'foo': true,
-            'bar': false
-        });
+    use: [
+        {
+            loader: '@dojo/webpack-contrib/static-build',
+            options: {
+                features: {
+                    'foo': true,
+                    'bar': false
+                }
+            }
+        }
     ]
 };
 ```
+This asserts feature `foo` is `true` and feature `bar` is `false`.
+Alternatively a list of features can be provided that will be resolved to the appropriate map
 
-This asserts feature `foo` is `true` and feature `bar` is `false`.  This map is then used in the features below.
+```js
+{
+	use: [
+		{
+			loader: '@dojo/webpack-contrib/static-build',
+			options: {
+				features: [ 'firefox', 'chrome' ]
+			}
+		}
+	]
+}
+```
+
+### Available features
+
+When specifying a static map, any values can be used. When passing a string or list of strings, the following
+values are supported. Each value corresponds to the set of known features that the environment supports. If
+multiple features are specified, the intersection of available features will be returned.
+
+* android
+* chrome
+* edge
+* firefox
+* ie11
+* ios
+* node
+* node8
+* safari
+
+In either case, the resulting map is then used in the features below.
 
 ### Dead Code Removal
 
-The plugin assumes that the [`@dojo/has`](https://github.com/dojo/has) API is being used in modules that are being compiled
+The loader assumes that the [`@dojo/has`](https://github.com/dojo/has) API is being used in modules that are being compiled
 into a webpack bundle and attempts to rewrite calls to the `has()` API when it can see it has a statically asserted flag for
 that feature.
 
-The plugin detects structures like the following in transpiled TypeScript modules:
+The loader detects structures like the following in transpiled TypeScript modules:
 
 ```ts
 import has from './has';
@@ -85,6 +127,30 @@ Any features which are not statically asserted, are not re-written.  This allows
 is present.
 
 ### Elided Imports
+
+The loader looks for `has pragmas`, which are strings that contain a call to has for a specific feature, and 
+removes the next import found in the code. For example, given the above feature set, which has `foo = true` and
+`bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain. 
+
+```ts
+"has('foo')";
+const statementBeforeImport = 3;
+// This is the next import so it will be removed despite
+// the conetnet between it and the pragma
+import 'a';
+// The pragma can be negated to remove the import if the condition
+// is known to be false
+'!has("bar")';
+import 'b';
+'!has("foo")';
+// This import will not be removed because `foo` is not false
+import 'c';
+
+'has("baz")';
+// This import will not be removed because the value of `has('baz')`
+// is now known statically
+import 'd';
+```
 
 ## How do I use this package?
 

@@ -30,10 +30,8 @@
     "recast": "^0.12.7"
   },
   "devDependencies": {
-    "@dojo/core": "^0.1.0",
     "@dojo/interfaces": "~0.1.0",
     "@dojo/loader": "~0.1.0",
-    "@dojo/shim": "^0.1.0",
     "@types/chai": "~4.0.2",
     "@types/estree": "^0.0.37",
     "@types/glob": "~5.0.30",

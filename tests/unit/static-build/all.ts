@@ -1,2 +1,0 @@
-import './getFeatures';
-import './StaticOptimizePlugin';

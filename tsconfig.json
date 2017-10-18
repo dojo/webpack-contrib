@@ -1,23 +1,36 @@
 {
+	"version": "2.2.0",
 	"compilerOptions": {
 		"declaration": false,
-		"experimentalDecorators": true,
 		"module": "umd",
-		"moduleResolution": "node",
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"strictNullChecks": true,
 		"outDir": "_build/",
 		"removeComments": false,
 		"sourceMap": true,
-		"strict": true,
 		"target": "es6",
-		"types": [ "intern" ]
+		"moduleResolution": "node",
+		"typeRoots": [
+			"./node_modules/@types",
+			"./node_modules/intern/types"
+		],
+		"types": [ "intern" ],
+		"lib": [
+			"dom",
+			"es5",
+			"es2015.core",
+			"es2015.promise",
+			"es2015.collection",
+			"es2015.iterable",
+			"es2015.promise",
+			"es2015.symbol",
+			"es2015.symbol.wellknown"
+		]
 	},
 	"include": [
 		"./src/**/*.ts",
 		"./tests/**/*.ts"
-	],
-	"exclude": [
-		"_build",
-		"dist",
-		"node_modules"
 	]
 }
+

@@ -1,7 +1,7 @@
 import webpack = require('webpack');
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import { statSync } from 'fs';
-import { dirname, resolve } from 'path';
+import { dirname } from 'path';
 import Map from '@dojo/shim/Map';
 import '@dojo/shim/Promise';
 const DtsCreator = require('typed-css-modules');
@@ -33,6 +33,9 @@ const mTimeMap = new Map<string, Date>();
 
 function generateDTSFile(filePath: string): Promise<void> {
 	return Promise.resolve().then(() => {
+		if (!/src[\\\/]/.test(filePath)) {
+			return;
+		}
 		const { mtime } = statSync(filePath);
 		const lastMTime = mTimeMap.get(filePath);
 
@@ -44,26 +47,36 @@ function generateDTSFile(filePath: string): Promise<void> {
 	});
 }
 
-function getCssImport(node: Node): string | void {
+function getCssImport(node: Node, loaderContext: webpack.LoaderContext): Promise<string> | void {
 	if (node.kind === SyntaxKind.StringLiteral) {
 		const importPath = node.getText().replace(/\'|\"/g, '');
 		if (/\.css$/.test(importPath)) {
 			const parentFileName = node.getSourceFile().fileName;
-			return resolve(dirname(parentFileName), importPath);
+			return new Promise((resolve, reject) => {
+				loaderContext.resolve(dirname(parentFileName), importPath, (error, path) => {
+					if (error) {
+						reject(error);
+					}
+					if (!path) {
+						reject(new Error('Unable to resolve path to css file'));
+					}
+					resolve(path);
+				});
+			});
 		}
 	}
 }
 
-function traverseNode(node: Node, filePaths: string[] = []): string[] {
+function traverseNode(node: Node, filePaths: Promise<string>[], loaderContext: webpack.LoaderContext): Promise<string>[] {
 	switch (node.kind) {
 		case SyntaxKind.SourceFile:
 			forEachChild(node, (childNode: Node) => {
-				traverseNode(childNode, filePaths);
+				traverseNode(childNode, filePaths, loaderContext);
 			});
 			break;
 		case SyntaxKind.ImportDeclaration:
 			forEachChild(node, (childNode: Node) => {
-				const path = getCssImport(childNode);
+				const path = getCssImport(childNode, loaderContext);
 				path && filePaths.push(path);
 			});
 			break;
@@ -83,9 +96,9 @@ export default function (this: webpack.LoaderContext, content: string, sourceMap
 				break;
 			case 'ts':
 				const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
-				const cssFilePaths = traverseNode(sourceFile);
+				const cssFilePathPromises = traverseNode(sourceFile, [], this);
 
-				if (cssFilePaths.length) {
+				if (cssFilePathPromises.length) {
 
 					if (instanceName) {
 						const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
@@ -95,11 +108,13 @@ export default function (this: webpack.LoaderContext, content: string, sourceMap
 						}
 					}
 
-					generationPromises = cssFilePaths.map((cssFilePath) => generateDTSFile(cssFilePath));
+					generationPromises = cssFilePathPromises.map((cssFilePathPromise) => cssFilePathPromise.then(
+						(cssFilePath) => generateDTSFile(cssFilePath)
+					));
 				}
 				break;
 		}
 		return Promise.all(generationPromises);
 	})
-	.then(() => callback(null, content, sourceMap));
+	.then(() => callback(null, content, sourceMap), error => callback(error));
 }

@@ -1,2 +1,1 @@
 import './ExternalLoaderPlugin';
-import './index';

@@ -1,6 +1,6 @@
-import Compiler = require('../support/webpack/Compiler');
-import ExternalLoaderPlugin from '../../src/ExternalLoaderPlugin';
-import MockModule from '../support/MockModule';
+import Compiler = require('../../support/webpack/Compiler');
+import ExternalLoaderPlugin from '../../../src/external-loader-plugin/ExternalLoaderPlugin';
+import MockModule from '../../support/MockModule';
 import { SinonSpy } from 'sinon';
 
 const { assert } = intern.getPlugin('chai');
@@ -11,7 +11,7 @@ let Plugin: typeof ExternalLoaderPlugin;
 describe('ExternalLoaderPlugin', () => {
 
 	beforeEach(() => {
-		mockModule = new MockModule('../../src/ExternalLoaderPlugin', require);
+		mockModule = new MockModule('../../../src/external-loader-plugin/ExternalLoaderPlugin', require);
 		mockModule.dependencies([
 			'copy-webpack-plugin',
 			'html-webpack-include-assets-plugin'

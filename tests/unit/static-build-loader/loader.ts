@@ -158,6 +158,24 @@ registerSuite('static-build-loader', {
 			assert.equal(loader(code), code, 'Should not have modified code');
 			assert.isFalse(mockRecast.parse.called, 'Should not have called parse');
 			assert.isFalse(mockRecast.print.called, 'Should not have called print');
+		},
+
+		'should call callback with sourcemap in code with no pragmas or calls to has'() {
+			const code = loadCode('should-not-parse');
+			const sourceMap = { source: 'maps' };
+			mockLoaderUtils.getOptions.returns({
+				features: {}
+			});
+
+			const context = {
+				callback: sandbox.stub()
+			};
+			const result = loader.call(context, code, sourceMap);
+
+			assert.isUndefined(result, 'Should not have returned code');
+
+			assert.isTrue(context.callback.calledOnce, 'Should have called the callback once');
+			assert.deepEqual(context.callback.firstCall.args, [ null, code, sourceMap ]);
 		}
 	}
 });

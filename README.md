@@ -15,7 +15,7 @@ work if acting on the compiled output.
 
 ## Features
 
-The loader examines code, looking for usages of `@dojo/has` or `has pragmas` to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
+The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
 
 The loader takes two options: 
 
@@ -128,7 +128,7 @@ is present.
 
 ### Elided Imports
 
-The loader looks for `has pragmas`, which are strings that contain a call to has for a specific feature, and 
+The loader looks for _has pragmas_, which are strings that contain a call to has for a specific feature, and 
 removes the next import found in the code. For example, given the above feature set, which has `foo = true` and
 `bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain. 
 

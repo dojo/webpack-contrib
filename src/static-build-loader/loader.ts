@@ -17,8 +17,6 @@ export interface StaticHasFeatures {
 
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
-const HAS_MID_SNIFF = /require\(["'][^,"']+\/has["']\)/;
-const HAS_PRAGMA_SNIFF = /^\s*['"]\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*['"]\s*;\s*$/m;
 
 /**
  * Checks code for usage of has pragmas or other calls to @dojo/has and optimizes them out based on the flags or
@@ -28,7 +26,11 @@ const HAS_PRAGMA_SNIFF = /^\s*['"]\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*['"]\s*
  * @param sourceMap Optional Source map for the code. If provided it will be updated to reflect the optimizations made
  */
 export default function loader(this: LoaderContext, content: string, sourceMap?: RawSourceMap): string | void {
-	if (!(HAS_MID_SNIFF.test(content) || HAS_PRAGMA_SNIFF.test(content))) {
+	if (content.indexOf('/has') < 0 && content.indexOf('has(') < 0) {
+		if (sourceMap) {
+			this.callback(null, content, sourceMap);
+			return;
+		}
 		return content;
 	}
 	// copy features to a local scope, because `this` gets weird

@@ -7,6 +7,7 @@ import MockCompilationParams = require('./CompilationParams');
 class MockCompiler extends Pluginable {
 	applied: any[];
 	options: any;
+	callSuper?: boolean;
 
 	constructor(options?: any) {
 		super();
@@ -16,10 +17,16 @@ class MockCompiler extends Pluginable {
 				modules: [ '/root/path' ]
 			}
 		};
+		if (options && options.callSuper) {
+			this.callSuper = true;
+		}
 	}
 
 	apply(...args: any[]) {
 		this.applied = this.applied.concat(args);
+		if (this.callSuper) {
+			super.apply(...args);
+		}
 	}
 
 	mockApply(name: string, ...args: any[]) {

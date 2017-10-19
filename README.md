@@ -152,6 +152,30 @@ import 'c';
 import 'd';
 ```
 
+# external-loader-plugin
+
+External libraries that cannot be loaded normally via webpack can be included in a webpack build using this plugin.
+
+The plugin takes an options object with the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| dependencies | ExternalDep[] | No | External dependencies to load. Described in more detail below |
+| hash | boolean | Yes | Whether to use the build's hash to cache bust injected dependencies |
+| outputPath | string | Yes | Where to copy dependencies to; defaults to "externals" |
+| pathPrefix | string | Yes | Used to change the directory where files are placed(e.g. placing files in `_build` for testing) |
+
+All external dependencies specified in the `dependencies` options will be placed in `${pathPrefix}/${outputPath}`.
+Each `ExternalDep` in the `dependencies` array specifies one external dependency. Each can be a `string`, indicating a path that should be delegated to the configured loader, or an object with the following
+properties:
+
+ | Property | Type | optional | Description |
+ | -------- | ---- | -------- | ----------- |
+ | `from` | `string` | `false`  | A path relative to `node_modules` specifying the dependency location to copy into the build application. |
+ | `to` | `string` | `true` | A path that replaces `from` as the location to copy this dependency to. By default, dependencies will be copied to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` if `to` is not specified. |
+ | `name` | `string` | `true` | Indicates that this path, and any children of this path, should be loaded via the external loader |
+ | `inject` | `string, string[], or boolean` | `true` | This property indicates that this dependency defines, or includes, scripts or stylesheets that should be loaded on the page. If `inject` is set to `true`, then the file at the location specified by `to` or `from` will be loaded on the page. If this dependency is a folder, then `inject` can be set to a string or array of strings to define one or more files to inject. Each path in `inject` should be relative to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` depending on whether `to` was provided. |
+
 ## How do I use this package?
 
 TODO: Add appropriate usage and instruction guidelines

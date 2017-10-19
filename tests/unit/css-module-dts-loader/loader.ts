@@ -64,7 +64,7 @@ describe('css-module-dts-loader', () => {
 	beforeEach(() => {
 		sandbox = sinon.sandbox.create();
 		writeFile = sandbox.stub();
-		mockModule = new MockModule('../../src/loaders/css-module-dts-loader/loader');
+		mockModule = new MockModule('../../../src/css-module-dts-loader/loader', require);
 		mockModule.dependencies([
 			'typed-css-modules',
 			'ts-loader/dist/instances',
@@ -110,7 +110,7 @@ describe('css-module-dts-loader', () => {
 		mockUtils.getOptions.returns({
 			type: 'css'
 		});
-		mockFs.statSync.reset();
+		mockFs.statSync.resetHistory();
 
 		return new Promise((resolve, reject) => {
 			loaderUnderTest.call(defaultScope, cssContent);
@@ -131,7 +131,7 @@ describe('css-module-dts-loader', () => {
 		mockUtils.getOptions.returns({
 			type: 'css'
 		});
-		mockFs.statSync.reset();
+		mockFs.statSync.resetHistory();
 		mockFs.statSync.onSecondCall().returns({ mtime: new Date() });
 
 		return new Promise((resolve, reject) => {
@@ -267,7 +267,7 @@ describe('css-module-dts-loader', () => {
 		});
 
 		return new Promise((resolve, reject) => {
-			mockFs.statSync.reset();
+			mockFs.statSync.resetHistory();
 			loaderUnderTest.call({
 				async() {
 					return () => resolve();

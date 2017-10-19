@@ -8,7 +8,7 @@
   "private": true,
   "homepage": "http://dojo.io",
   "bugs": {
-    "url": "https://github.com/dojo/static-optimize-plugin/issues"
+    "url": "https://github.com/dojo/webpack-contrib/issues"
   },
   "license": "(BSD-3-Clause OR Apache-2.0)",
   "main": "main.js",

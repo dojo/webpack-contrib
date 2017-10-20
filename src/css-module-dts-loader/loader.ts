@@ -25,15 +25,16 @@ type DtsCreatorInstance = {
 type LoaderArgs = {
 	type: string;
 	instanceName?: string;
+	sourceFilesPattern?: RegExp | string;
 };
 
 const creator: DtsCreatorInstance = new DtsCreator();
 
 const mTimeMap = new Map<string, Date>();
 
-function generateDTSFile(filePath: string): Promise<void> {
+function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<void> {
 	return Promise.resolve().then(() => {
-		if (!/src[\\\/]/.test(filePath)) {
+		if (!sourceFilesRegex.test(filePath)) {
 			return;
 		}
 		const { mtime } = statSync(filePath);
@@ -86,13 +87,15 @@ function traverseNode(node: Node, filePaths: Promise<string>[], loaderContext: w
 
 export default function (this: webpack.LoaderContext, content: string, sourceMap?: string) {
 	const callback = this.async();
-	const { type = 'ts', instanceName }: LoaderArgs = getOptions(this);
+	const { type = 'ts', instanceName, sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
+	const sourceFilesRegex = typeof sourceFilesPattern === 'string' ?
+		new RegExp(sourceFilesPattern) : sourceFilesPattern;
 
 	Promise.resolve().then(() => {
 		let generationPromises: Promise<void>[] = [];
 		switch (type) {
 			case 'css':
-				generationPromises.push(generateDTSFile(this.resourcePath));
+				generationPromises.push(generateDTSFile(this.resourcePath, sourceFilesRegex));
 				break;
 			case 'ts':
 				const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
@@ -109,7 +112,7 @@ export default function (this: webpack.LoaderContext, content: string, sourceMap
 					}
 
 					generationPromises = cssFilePathPromises.map((cssFilePathPromise) => cssFilePathPromise.then(
-						(cssFilePath) => generateDTSFile(cssFilePath)
+						(cssFilePath) => generateDTSFile(cssFilePath, sourceFilesRegex)
 					));
 				}
 				break;

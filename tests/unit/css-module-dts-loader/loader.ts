@@ -317,4 +317,34 @@ describe('css-module-dts-loader', () => {
 			assert.equal(errors[1].message, 'Unable to resolve path to css file');
 		});
 	});
+
+	it('should generate a dts file for files matching the options RegExp', () => {
+		mockUtils.getOptions.returns({
+			type: 'css',
+			sourceFilesPattern: 'target'
+		});
+
+		return new Promise(resolve => {
+			loaderUnderTest.call({
+				async() {
+					return () => resolve();
+				},
+				resourcePath
+			}, cssContent);
+		}).then(() => {
+			assert.isFalse(mockDTSGenerator.create.called);
+			assert.isFalse(writeFile.called);
+			return new Promise(resolve => {
+				loaderUnderTest.call({
+					async() {
+						return () => resolve();
+					},
+					resourcePath: 'target/path'
+				}, cssContent);
+			});
+		}).then(() => {
+			assert.isTrue(mockDTSGenerator.create.calledOnce);
+			assert.isTrue(writeFile.calledOnce);
+		});
+	});
 });

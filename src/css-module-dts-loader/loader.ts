@@ -107,7 +107,7 @@ export default function (this: webpack.LoaderContext, content: string, sourceMap
 						const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
 
 						if (instanceWrapper.instance) {
-							instanceWrapper.instance.files[ this.resourcePath ] = false;
+							instanceWrapper.instance.files[this.resourcePath] = undefined;
 						}
 					}
 

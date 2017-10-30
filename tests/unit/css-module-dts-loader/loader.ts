@@ -234,7 +234,7 @@ describe('css-module-dts-loader', () => {
 				}
 			}, tsContentWithCss);
 		}).then(() => {
-			assert.isFalse(instance.files[resourcePath]);
+			assert.isUndefined(instance.files[resourcePath]);
 		});
 	});
 

@@ -41,16 +41,16 @@
     "@types/sinon": "^2.3.3",
     "@types/source-map": "0.5.*",
     "codecov.io": "0.1.6",
+    "copy-webpack-plugin": "4.0.1",
     "grunt": "~1.0.1",
     "grunt-dojo2": "latest",
+    "html-webpack-include-assets-plugin": "^1.0.2",
     "intern": "~4.1.0",
     "mockery": "^2.1.0",
     "sinon": "^2.3.0",
     "ts-loader": "2.3.1",
     "typed-css-modules": "0.2.0",
     "typescript": "~2.4.2",
-    "webpack": "^3.5.0",
-    "copy-webpack-plugin": "4.0.1",
-    "html-webpack-include-assets-plugin": "0.0.7"
+    "webpack": "^3.5.0"
   }
 }

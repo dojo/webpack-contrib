@@ -30,6 +30,10 @@ class MockNormalModule {
 	addChunk(chunk: any) {
 		this.chunks.push(chunk);
 	}
+
+	addDependency(dependency: any) {
+		this.dependencies.push(dependency);
+	}
 }
 
 export = MockNormalModule;

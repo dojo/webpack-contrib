@@ -3,13 +3,11 @@
 	"compilerOptions": {
 		"declaration": false,
 		"module": "umd",
-		"noImplicitAny": true,
-		"noImplicitThis": true,
 		"noUnusedLocals": true,
-		"strictNullChecks": true,
 		"outDir": "_build/",
 		"removeComments": false,
 		"sourceMap": true,
+		"strict": true,
 		"target": "es6",
 		"moduleResolution": "node",
 		"typeRoots": [

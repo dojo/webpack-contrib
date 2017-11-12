@@ -17,10 +17,10 @@ work if acting on the compiled output.
 
 The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
 
-The loader takes two options: 
+The loader takes two options:
 
-* features: A map of _static_ features or a feature or list of features that resolve to a similar static map 
-based on the functionality provided by the specified targets. Each key in the map is the name of the feature 
+* features: A map of _static_ features or a feature or list of features that resolve to a similar static map
+based on the functionality provided by the specified targets. Each key in the map is the name of the feature
 and the value is `true` if the feature is present in that context, otherwise `false`.
 * isRunningInNode: An optional boolean parameter. If set to false this indicates that the loader will not be
 running in an environment with a Node-like require.
@@ -128,9 +128,9 @@ is present.
 
 ### Elided Imports
 
-The loader looks for _has pragmas_, which are strings that contain a call to has for a specific feature, and 
+The loader looks for _has pragmas_, which are strings that contain a call to has for a specific feature, and
 removes the next import found in the code. For example, given the above feature set, which has `foo = true` and
-`bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain. 
+`bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain.
 
 ```ts
 "has('foo')";
@@ -175,6 +175,29 @@ properties:
  | `to` | `string` | `true` | A path that replaces `from` as the location to copy this dependency to. By default, dependencies will be copied to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` if `to` is not specified. |
  | `name` | `string` | `true` | Indicates that this path, and any children of this path, should be loaded via the external loader |
  | `inject` | `string, string[], or boolean` | `true` | This property indicates that this dependency defines, or includes, scripts or stylesheets that should be loaded on the page. If `inject` is set to `true`, then the file at the location specified by `to` or `from` will be loaded on the page. If this dependency is a folder, then `inject` can be set to a string or array of strings to define one or more files to inject. Each path in `inject` should be relative to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` depending on whether `to` was provided. |
+
+# context-injection-plugin
+
+As TypeScript down-emits `import()` to `require()`, this plugin can be used to inject all modules contained within a context into the build and ensure the down-emitted `import()` calls know where to find modules.
+
+The plugin constructor expects an object containing the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| contexts | string[] | No | Directory paths containing modules to include in the build |
+| mid | string / RegExp | No | The id for the module with the down-emitted `import()` |
+
+```ts
+// Down-emitted `import()` calls in any module with an mid containing "custom-loader" will be updated
+// to load modules found under the directory "src/lazy", throwing errors with any attempt to load
+// modules whose paths start with a different context.
+new ContextInjectionPlugin({
+	mid: /custom-loader/,
+	contexts: [
+		path.resolve(process.cwd(), './src/lazy')
+	]
+});
+```
 
 ## How do I use this package?
 

@@ -44,6 +44,23 @@ declare module 'webpack-sources/lib/RawSource' {
 	export = RawSource;
 }
 
+declare module 'webpack-sources/lib/ReplaceSource' {
+	import Source = require('webpack-sources/lib/Source');
+	import sourceMap = require('source-map');
+
+	class ReplaceSource extends Source {
+		constructor(source: Source, name?: string);
+
+		insert(position: number, value: string): void;
+		original(): Source;
+		node(options: Source.Options): sourceMap.SourceNode;
+		replace(start: number, end: number, newValue: string): void;
+		source(): string;
+	}
+
+	export = ReplaceSource;
+}
+
 declare module 'webpack-sources/lib/Source' {
 	import * as crypto from 'crypto';
 
@@ -290,6 +307,28 @@ declare module 'webpack/lib/dependencies/ConstDependency' {
 	}
 
 	export = ConstDependency;
+}
+
+declare module 'webpack/lib/dependencies/ContextDependency' {
+	import Dependency = require('webpack/lib/Dependency');
+
+	class ContextDependencyTemplate {
+		apply(dep: any, source: any): void;
+	}
+
+	class ContextDependency extends Dependency {
+		constructor(request: string, recursive: boolean, regExp: RegExp);
+
+		public request: string;
+		public userRequest: string;
+		public recursive: boolean;
+		public regExp: RegExp;
+		public async: boolean;
+
+		static Template: typeof ContextDependencyTemplate;
+	}
+
+	export = ContextDependency;
 }
 
 declare module 'webpack/lib/dependencies/NullDependency' {

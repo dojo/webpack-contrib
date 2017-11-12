@@ -112,6 +112,32 @@ describe('MemorySourcePlugin', () => {
 		});
 	});
 
+	it('should return 0 in the mock stats for unsupported process methods', () => {
+		const getgid = process.getgid;
+		const getuid = process.getuid;
+
+		(<any> process).getgid = undefined;
+		(<any> process).getuid = undefined;
+
+		const plugin = new MemorySourcePlugin(source);
+		plugin.apply(compiler);
+
+		const stats = compiler.inputFileSystem.statSync(plugin.resource);
+		assert.isFalse(statSyncStub.called, 'The original fs.statSync should not be called.');
+		assertStats(plugin.source, stats);
+
+		return createCallbackPromise((callback: NodeCallback<any>) => {
+			compiler.inputFileSystem.stat(plugin.resource, callback);
+		}).then((stats: any) => {
+			assertStats(plugin.source, stats);
+			assert.isFalse(statStub.called, 'The original fs.stat should not be called.');
+		}).catch((error) => {
+			(<any> process).getgid = getgid;
+			(<any> process).getuid = getuid;
+			throw error;
+		});
+	});
+
 	it('should return the module source', () => {
 		const plugin = new MemorySourcePlugin(source);
 		plugin.apply(compiler);

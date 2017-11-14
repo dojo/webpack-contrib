@@ -26,12 +26,13 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@dojo/shim": "^0.1.0",
+    "@dojo/has": "./tarballs/dojo-has-0.1.1-beta.1.tgz",
+    "@dojo/shim": "./tarballs/dojo-shim-0.2.3-beta.1.tgz",
     "loader-utils": "^1.1.0",
     "recast": "^0.12.7"
   },
   "devDependencies": {
-    "@dojo/loader": "~0.1.0",
+    "@dojo/loader": "./tarballs/dojo-loader-0.1.1-beta.1.tgz",
     "@types/chai": "~4.0.2",
     "@types/estree": "^0.0.37",
     "@types/glob": "~5.0.30",

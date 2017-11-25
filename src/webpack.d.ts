@@ -493,7 +493,6 @@ declare module 'webpack/lib/Compiler' {
 	import Dependency = require('webpack/lib/Dependency');
 
 	class Compiler extends Tapable {
-		inputFileSystem: any;
 		options: any;
 
 		run(callback: Compiler.Callback): void;
@@ -573,6 +572,16 @@ declare module 'webpack/lib/ContextReplacementPlugin' {
 		apply(compiler: webpack.Compiler): void;
 	}
 	export = ContextReplacementPlugin;
+}
+
+declare module 'webpack/lib/DefinePlugin' {
+	import webpack = require('webpack');
+
+	class DefinePlugin implements webpack.Plugin {
+		constructor(definitions: { [key: string]: string; });
+		apply(compiler: webpack.Compiler): void;
+	}
+	export = DefinePlugin;
 }
 
 declare module 'webpack/lib/DependenciesBlock' {

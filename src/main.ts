@@ -12,6 +12,3 @@ export * from './external-loader-plugin/ExternalLoaderPlugin';
 
 export { default as I18nPlugin } from './i18n-plugin/I18nPlugin';
 export * from './i18n-plugin/I18nPlugin';
-
-export { default as MemorySourcePlugin } from './memory-source-plugin/MemorySourcePlugin';
-export * from './memory-source-plugin/MemorySourcePlugin';

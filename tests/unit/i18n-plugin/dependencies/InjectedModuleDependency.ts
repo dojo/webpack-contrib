@@ -2,7 +2,7 @@ import ReplaceSource = require('../../../support/webpack/ReplaceSource');
 import InjectedModuleDependency from '../../../../src/i18n-plugin/dependencies/InjectedModuleDependency';
 
 const { assert } = intern.getPlugin('chai');
-const { describe, it, beforeEach, afterEach } = intern.getInterface('bdd');
+const { describe, it } = intern.getInterface('bdd');
 
 describe('InjectedModuleDependency', () => {
 	it('should inject the provided string into the source', () => {

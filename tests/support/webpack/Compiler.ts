@@ -6,7 +6,6 @@ import MockCompilationParams = require('./CompilationParams');
 
 class MockCompiler extends Pluginable {
 	applied: any[];
-	inputFileSystem: any;
 	options: any;
 	callSuper?: boolean;
 

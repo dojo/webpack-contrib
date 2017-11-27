@@ -4,7 +4,6 @@ import Pluginable from './Pluginable';
 class MockCompilation extends Pluginable {
 	dependencyFactories = new Map();
 	dependencyTemplates = new Map();
-	inputFileSystem: any = Object.create(null);
 	options: any;
 	modules: any[] = [];
 	moduleTemplate = new Pluginable();

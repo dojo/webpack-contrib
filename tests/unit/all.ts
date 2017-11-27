@@ -4,3 +4,6 @@ import './static-build-loader/all';
 import './css-module-decorator-loader/all';
 import './css-module-dts-loader/all';
 import './css-module-plugin/CssModulePlugin';
+import './i18n-plugin/dependencies/InjectedModuleDependency';
+import './i18n-plugin/I18nPlugin';
+import './i18n-plugin/templates/setLocaleData';

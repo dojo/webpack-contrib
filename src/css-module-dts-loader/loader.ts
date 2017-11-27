@@ -8,12 +8,6 @@ const DtsCreator = require('typed-css-modules');
 const { getOptions } = require('loader-utils');
 const instances = require('ts-loader/dist/instances');
 
-type TSLoaderInstances = {
-	files: {
-		[key: string]: boolean;
-	}
-};
-
 type DtsResult = {
 	writeFile(): Promise<void>;
 };

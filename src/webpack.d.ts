@@ -44,6 +44,23 @@ declare module 'webpack-sources/lib/RawSource' {
 	export = RawSource;
 }
 
+declare module 'webpack-sources/lib/ReplaceSource' {
+	import Source = require('webpack-sources/lib/Source');
+	import sourceMap = require('source-map');
+
+	class ReplaceSource extends Source {
+		constructor(...children: (string | Source)[]);
+
+		add(child: string | Source): void;
+		insert(position: number, content: string): void;
+		node(options: Source.Options): sourceMap.SourceNode;
+		original(): Source;
+		replace(start: number, end: number, content: string): void;
+	}
+
+	export = ReplaceSource;
+}
+
 declare module 'webpack-sources/lib/Source' {
 	import * as crypto from 'crypto';
 
@@ -292,6 +309,25 @@ declare module 'webpack/lib/dependencies/ConstDependency' {
 	export = ConstDependency;
 }
 
+declare module 'webpack/lib/dependencies/ModuleDependency' {
+	import Dependency = require('webpack/lib/Dependency');
+
+	class ModuleDependencyTemplate {
+		apply(dep: any, source: any): void;
+	}
+
+	class ModuleDependency extends Dependency {
+		constructor(request: string);
+
+		public request: string;
+		public userRequest: string;
+
+		static Template: typeof ModuleDependencyTemplate;
+	}
+
+	export = ModuleDependency;
+}
+
 declare module 'webpack/lib/dependencies/NullDependency' {
 	import Dependency = require('webpack/lib/Dependency');
 
@@ -307,6 +343,13 @@ declare module 'webpack/lib/dependencies/NullDependency' {
 	}
 
 	export = NullDependency;
+}
+
+declare module 'webpack/lib/dependencies/WebpackMissingModule' {
+	const module: (request: string) => string;
+	const moduleCode: (request: string) => string;
+	const promise: (request: string) => string;
+	export = { module, moduleCode, promise };
 }
 
 declare module 'webpack/lib/BannerPlugin' {
@@ -529,6 +572,16 @@ declare module 'webpack/lib/ContextReplacementPlugin' {
 		apply(compiler: webpack.Compiler): void;
 	}
 	export = ContextReplacementPlugin;
+}
+
+declare module 'webpack/lib/DefinePlugin' {
+	import webpack = require('webpack');
+
+	class DefinePlugin implements webpack.Plugin {
+		constructor(definitions: { [key: string]: string; });
+		apply(compiler: webpack.Compiler): void;
+	}
+	export = DefinePlugin;
 }
 
 declare module 'webpack/lib/DependenciesBlock' {

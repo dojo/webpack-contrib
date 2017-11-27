@@ -17,10 +17,10 @@ work if acting on the compiled output.
 
 The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
 
-The loader takes two options: 
+The loader takes two options:
 
-* features: A map of _static_ features or a feature or list of features that resolve to a similar static map 
-based on the functionality provided by the specified targets. Each key in the map is the name of the feature 
+* features: A map of _static_ features or a feature or list of features that resolve to a similar static map
+based on the functionality provided by the specified targets. Each key in the map is the name of the feature
 and the value is `true` if the feature is present in that context, otherwise `false`.
 * isRunningInNode: An optional boolean parameter. If set to false this indicates that the loader will not be
 running in an environment with a Node-like require.
@@ -128,9 +128,9 @@ is present.
 
 ### Elided Imports
 
-The loader looks for _has pragmas_, which are strings that contain a call to has for a specific feature, and 
+The loader looks for _has pragmas_, which are strings that contain a call to has for a specific feature, and
 removes the next import found in the code. For example, given the above feature set, which has `foo = true` and
-`bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain. 
+`bar = false`, the imports of `'a'` and `'b'` would be removed but `'c'` and `'d'` would remain.
 
 ```ts
 "has('foo')";
@@ -175,6 +175,39 @@ properties:
  | `to` | `string` | `true` | A path that replaces `from` as the location to copy this dependency to. By default, dependencies will be copied to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` if `to` is not specified. |
  | `name` | `string` | `true` | Indicates that this path, and any children of this path, should be loaded via the external loader |
  | `inject` | `string, string[], or boolean` | `true` | This property indicates that this dependency defines, or includes, scripts or stylesheets that should be loaded on the page. If `inject` is set to `true`, then the file at the location specified by `to` or `from` will be loaded on the page. If this dependency is a folder, then `inject` can be set to a string or array of strings to define one or more files to inject. Each path in `inject` should be relative to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` depending on whether `to` was provided. |
+
+# i18n-plugin
+
+Rather than manually set locale data within an application's entry point, that data can instead be read from a config and injected in at build time.
+
+The plugin accepts an options object with the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| cldrData | string[] | Yes | An array of paths to CLDR JSON modules that should be included in the build and registered with the i18n ecosystem. |
+| defaultLocale | string | No | The default locale. |
+| supportedLocales | string[] | Yes | An array of supported locales beyond the default. |
+| target | string | Yes | The entry point into which the i18n module should be injected. Defaults to `src/main.ts`. |
+
+A custom module is generated from the locale data, injected into the bundle, and then imported into the specified entry point. The user's locale is compared against the default locale and supported locales, and if it is supported is set as the root locale for the application. If the user's locale is not supported, then the default locale is used. For example, the user's locale will be used in the following scenarios:
+
+The user's locale can be represented by the default locale:
+
+* Default Locale: 'en'
+* Supported Locales: none
+* User's locale: 'en-US'
+
+The user's locale can be represented by one of the supported locales:
+
+* Default Locale: 'en'
+* Supported Locales: [ 'fr' ]
+* User's locale: 'fr-CA'
+
+However, in the following scenario the default locale will be used, although it still will be possible to switch between any of the supported locales at run time, since their required data will also be included in the build:
+
+* Default Locale: 'en'
+* Supported Locales: [ 'de', 'ja', 'ar' ]
+* User's locale: 'cz'
 
 ## How do I use this package?
 

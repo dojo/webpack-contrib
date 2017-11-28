@@ -26,7 +26,6 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@dojo/has": "~0.1.1",
     "@dojo/shim": "~0.2.3",
     "loader-utils": "^1.1.0",
     "recast": "^0.12.7"

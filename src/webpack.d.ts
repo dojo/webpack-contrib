@@ -346,10 +346,12 @@ declare module 'webpack/lib/dependencies/NullDependency' {
 }
 
 declare module 'webpack/lib/dependencies/WebpackMissingModule' {
-	const module: (request: string) => string;
-	const moduleCode: (request: string) => string;
-	const promise: (request: string) => string;
-	export = { module, moduleCode, promise };
+	namespace WebpackMissingModule {
+		const module: (request: string) => string;
+		const moduleCode: (request: string) => string;
+		const promise: (request: string) => string;
+	}
+	export = WebpackMissingModule;
 }
 
 declare module 'webpack/lib/BannerPlugin' {

@@ -26,13 +26,12 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@dojo/shim": "^0.1.0",
+    "@dojo/shim": "~0.2.3",
     "loader-utils": "^1.1.0",
     "recast": "^0.12.7"
   },
   "devDependencies": {
-    "@dojo/interfaces": "~0.1.0",
-    "@dojo/loader": "~0.1.0",
+    "@dojo/loader": "~0.1.1",
     "@types/chai": "~4.0.2",
     "@types/estree": "^0.0.37",
     "@types/glob": "~5.0.30",
@@ -50,7 +49,7 @@
     "sinon": "^2.3.0",
     "ts-loader": "2.3.1",
     "typed-css-modules": "0.2.0",
-    "typescript": "~2.4.2",
+    "typescript": "~2.6.1",
     "webpack": "^3.5.0"
   }
 }

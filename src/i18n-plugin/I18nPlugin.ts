@@ -4,6 +4,7 @@ import { join } from 'path';
 import Compiler = require('webpack/lib/Compiler');
 import DefinePlugin = require('webpack/lib/DefinePlugin');
 import NormalModule = require('webpack/lib/NormalModule');
+import Module = require('webpack/lib/Module');
 import InjectedModuleDependency from './dependencies/InjectedModuleDependency';
 
 export interface I18nPluginOptions {
@@ -80,8 +81,8 @@ export default class I18nPlugin {
 			compilation.dependencyFactories.set(InjectedModuleDependency as any, params.normalModuleFactory);
 			compilation.dependencyTemplates.set(InjectedModuleDependency as any, new InjectedModuleDependency.Template());
 
-			compilation.plugin('succeed-module', (module: NormalModule) => {
-				if (this.target.test(module.resource)) {
+			compilation.plugin('succeed-module', (module: Module) => {
+				if (this.target.test((module as NormalModule).resource)) {
 					const dep = new InjectedModuleDependency(join(__dirname, './templates/setLocaleData.js'));
 					module.addDependency(dep);
 				}

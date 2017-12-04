@@ -2,7 +2,7 @@
 	"version": "2.2.0",
 	"compilerOptions": {
 		"declaration": false,
-		"module": "umd",
+		"module": "commonjs",
 		"noUnusedLocals": true,
 		"outDir": "_build/",
 		"removeComments": false,

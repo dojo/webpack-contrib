@@ -25,17 +25,20 @@ export default class CssModulePlugin {
 	}
 
 	apply(compiler: Compiler) {
-		compiler.apply(new NormalModuleReplacementPlugin(/\.m\.css$/, result => {
-			if (isAbsolute(result.request)) {
-				return;
-			}
-			const requestFileName = isRelative(result.request) ?
-				resolve(result.context, result.request) : resolve(this.basePath, 'node_modules', result.request);
-			const jsFileName = requestFileName + '.js';
+		compiler.apply(
+			new NormalModuleReplacementPlugin(/\.m\.css$/, (result) => {
+				if (isAbsolute(result.request)) {
+					return;
+				}
+				const requestFileName = isRelative(result.request)
+					? resolve(result.context, result.request)
+					: resolve(this.basePath, 'node_modules', result.request);
+				const jsFileName = requestFileName + '.js';
 
-			if (existsSync(jsFileName)) {
-				result.request = result.request.replace(/\.m\.css$/, '.m.css.js');
-			}
-		}));
+				if (existsSync(jsFileName)) {
+					result.request = result.request.replace(/\.m\.css$/, '.m.css.js');
+				}
+			})
+		);
 	}
-};
+}

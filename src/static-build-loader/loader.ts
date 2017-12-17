@@ -36,9 +36,11 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
 	const { features: featuresOption } = options;
-	const parseOptions = (sourceMap && {
-		sourceFileName: sourceMap.file
-	}) || undefined;
+	const parseOptions =
+		(sourceMap && {
+			sourceFileName: sourceMap.file
+		}) ||
+		undefined;
 	const dynamicFlags = new Set<string>();
 	const ast = recast.parse(content, parseOptions);
 	let features: StaticHasFeatures;
@@ -47,8 +49,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption);
-	}
-	else {
+	} else {
 		features = featuresOption;
 	}
 
@@ -59,7 +60,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
 				const hasPragma = HAS_PRAGMA.exec(node.expression.value);
 				if (hasPragma) {
-					const [ , negate, flag ] = hasPragma;
+					const [, negate, flag] = hasPragma;
 					comment = ` ${negate}has('${flag}')`;
 					if (flag in features) {
 						elideNextImport = negate ? !features[flag] : features[flag];
@@ -67,13 +68,16 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 				}
 			}
 
-			if (namedTypes.CallExpression.check(node.expression) && namedTypes.Identifier.check(node.expression.callee)) {
+			if (
+				namedTypes.CallExpression.check(node.expression) &&
+				namedTypes.Identifier.check(node.expression.callee)
+			) {
 				if (
 					node.expression.callee.name === 'require' &&
 					node.expression.arguments.length === 1 &&
 					elideNextImport === true
 				) {
-					const [ arg ] = node.expression.arguments;
+					const [arg] = node.expression.arguments;
 					if (namedTypes.Literal.check(arg)) {
 						comment = ` elided: import '${arg.value}'`;
 						elideNextImport = false;
@@ -84,7 +88,9 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			if (comment && parentPath && typeof name !== 'undefined') {
 				const next = (Array.isArray(parentPath.value) && parentPath.value[Number(name) + 1]) || parentPath.node;
 				next.comments = [
-					...((node as any).comments || []), ...(next.comments || []), builders.commentLine(comment)
+					...((node as any).comments || []),
+					...(next.comments || []),
+					builders.commentLine(comment)
 				];
 				path.replace(null);
 				return false;
@@ -98,13 +104,17 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			const { parentPath: { node: parentNode }, node: { declarations } } = path;
 			// Get all the top level variable declarations
 			if (ast.program === parentNode && !hasIdentifier) {
-				declarations.forEach(({ id, init })	=> {
+				declarations.forEach(({ id, init }) => {
 					if (!hasIdentifier) {
 						if (namedTypes.Identifier.check(id) && init && namedTypes.CallExpression.check(init)) {
 							const { callee, arguments: args } = init;
 							if (namedTypes.Identifier.check(callee) && callee.name === 'require' && args.length === 1) {
-								const [ arg ] = args;
-								if (namedTypes.Literal.check(arg) && typeof arg.value === 'string' && HAS_MID.test(arg.value)) {
+								const [arg] = args;
+								if (
+									namedTypes.Literal.check(arg) &&
+									typeof arg.value === 'string' &&
+									HAS_MID.test(arg.value)
+								) {
 									hasIdentifier = id.name;
 								}
 							}
@@ -132,13 +142,12 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 					callee.property.name === 'default' &&
 					args.length === 1
 				) {
-					const [ arg ] = args;
+					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
 						// check to see if we have a flag that we want to statically swap
 						if (arg.value in features) {
 							path.replace(builders.literal(Boolean(features[arg.value])));
-						}
-						else {
+						} else {
 							dynamicFlags.add(arg.value);
 						}
 					}

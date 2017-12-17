@@ -34,10 +34,7 @@ describe('css-module-plugin', () => {
 	beforeEach(() => {
 		sandbox = sinon.sandbox.create();
 		mockModule = new MockModule('../../../src/css-module-plugin/CssModulePlugin', require);
-		mockModule.dependencies([
-			'fs',
-			'path'
-		]);
+		mockModule.dependencies(['fs', 'path']);
 		mockFs = mockModule.getMock('fs');
 		mockPath = mockModule.getMock('path');
 		CssModulePlugin = mockModule.getModuleUnderTest().default;
@@ -51,7 +48,11 @@ describe('css-module-plugin', () => {
 		const replacementPlugin = compiler.applied[0];
 		const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
 		assert.instanceOf(replacementPlugin, NormalModuleReplacementPlugin);
-		assert.strictEqual(replacementPlugin.resourceRegExp.toString(), '/\\.m\\.css$/', 'Regex does not match css module files');
+		assert.strictEqual(
+			replacementPlugin.resourceRegExp.toString(),
+			'/\\.m\\.css$/',
+			'Regex does not match css module files'
+		);
 		assert.equal(typeof replacementPlugin.newResource, 'function', 'Not using a function for module replacement');
 	});
 
@@ -69,7 +70,7 @@ describe('css-module-plugin', () => {
 			}
 		];
 
-		moduleInfo.forEach(moduleInfo => {
+		moduleInfo.forEach((moduleInfo) => {
 			const compiler = new Compiler({ callSuper: true });
 			runCompilation(plugin, moduleInfo, compiler);
 			assert.isFalse(mockPath.isAbsolute.called, 'Should not have checked for non-css-module request');
@@ -92,15 +93,17 @@ describe('css-module-plugin', () => {
 		const moduleInfo: ModuleInfo[] = createModuleInfo();
 
 		mockPath.isAbsolute.returns(true);
-		moduleInfo.forEach(moduleInfo => {
+		moduleInfo.forEach((moduleInfo) => {
 			const compiler = new Compiler({ callSuper: true });
 			runCompilation(plugin, moduleInfo, compiler);
 		});
 
 		assert.equal(mockPath.isAbsolute.callCount, 3, 'Should have called isAbsolute for each matching module');
-		assert.deepEqual(mockPath.isAbsolute.args, [
-			[ moduleInfo[0].request ], [ moduleInfo[1].request ], [ moduleInfo[2].request ]
-		], 'Did not pass requests to isAbsolute');
+		assert.deepEqual(
+			mockPath.isAbsolute.args,
+			[[moduleInfo[0].request], [moduleInfo[1].request], [moduleInfo[2].request]],
+			'Did not pass requests to isAbsolute'
+		);
 
 		assert.isFalse(mockPath.resolve.called, 'Should not have resolved any paths for absolute modules');
 		assert.deepEqual(moduleInfo, createModuleInfo(), 'Should not have modified requests');
@@ -127,15 +130,15 @@ describe('css-module-plugin', () => {
 		const moduleInfo: ModuleInfo[] = createModuleInfo();
 		mockFs.existsSync.returns(false);
 
-		moduleInfo.forEach(moduleInfo => {
+		moduleInfo.forEach((moduleInfo) => {
 			const compiler = new Compiler({ callSuper: true });
 			runCompilation(plugin, moduleInfo, compiler);
 		});
 
 		const expectedResolveArgs = [
-			[ 'different/base', './relative.m.css' ],
-			[ 'base/path', 'node_modules', '/absolute.m.css' ],
-			[ 'base/path', 'node_modules', '@dojo/file.m.css' ]
+			['different/base', './relative.m.css'],
+			['base/path', 'node_modules', '/absolute.m.css'],
+			['base/path', 'node_modules', '@dojo/file.m.css']
 		];
 
 		assert.equal(mockPath.isAbsolute.callCount, 3, 'Should have called isAbsolute for each matching module');
@@ -157,7 +160,11 @@ describe('css-module-plugin', () => {
 		);
 		assert.equal(mockFs.existsSync.callCount, 3, 'Should have called existsSync for the files since ');
 		expectedResolveArgs.forEach((pathSegments, i) => {
-			assert.deepEqual(mockFs.existsSync.args[i], [ path.resolve(...pathSegments) + '.js' ], 'Should have checked for existence of the corresponding JS file for the css module file');
+			assert.deepEqual(
+				mockFs.existsSync.args[i],
+				[path.resolve(...pathSegments) + '.js'],
+				'Should have checked for existence of the corresponding JS file for the css module file'
+			);
 		});
 		assert.deepEqual(moduleInfo, createModuleInfo(), 'Should not alter module info if files do not exist');
 	});
@@ -182,7 +189,7 @@ describe('css-module-plugin', () => {
 		const moduleInfo: ModuleInfo[] = createModuleInfo();
 		mockFs.existsSync.returns(true);
 
-		moduleInfo.forEach(moduleInfo => {
+		moduleInfo.forEach((moduleInfo) => {
 			const compiler = new Compiler({ callSuper: true });
 			runCompilation(plugin, moduleInfo, compiler);
 		});
@@ -190,10 +197,14 @@ describe('css-module-plugin', () => {
 		assert.equal(mockPath.isAbsolute.callCount, 3, 'Should have called isAbsolute for each matching module');
 		assert.equal(mockPath.resolve.callCount, 3, 'Should have called resolve for each non-absolute-path');
 		assert.equal(mockFs.existsSync.callCount, 3, 'Should have called existsSync for the files since ');
-		assert.deepEqual(moduleInfo, createModuleInfo().map(moduleInfo => {
-			moduleInfo.request = moduleInfo.request.replace(/\.m\.css$/, '.m.css.js');
-			return moduleInfo;
-		}), 'Should alter module info if files exist');
+		assert.deepEqual(
+			moduleInfo,
+			createModuleInfo().map((moduleInfo) => {
+				moduleInfo.request = moduleInfo.request.replace(/\.m\.css$/, '.m.css.js');
+				return moduleInfo;
+			}),
+			'Should alter module info if files exist'
+		);
 	});
 
 	afterEach(() => {

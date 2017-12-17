@@ -26,7 +26,6 @@ function applyModule(plugin: I18nPlugin, target = entryPath) {
 }
 
 describe('I18nPlugin', () => {
-
 	beforeEach(() => {
 		compiler = new Compiler();
 	});
@@ -38,7 +37,7 @@ describe('I18nPlugin', () => {
 		plugin = new I18nPlugin({ defaultLocale: 'en', target: 'src\\main.ts' });
 		assert.strictEqual(plugin.target.toString(), '/src(\\\\|\\/)main\\.ts/');
 
-		const expected = [ 'path', 'to', 'some', 'entry', 'point\\.js' ].join('(\\\\|\\/)');
+		const expected = ['path', 'to', 'some', 'entry', 'point\\.js'].join('(\\\\|\\/)');
 		plugin = new I18nPlugin({ defaultLocale: 'en', target: 'path/to/some/entry/point.js' });
 		assert.strictEqual(plugin.target.toString(), `/${expected}/`);
 	});
@@ -52,7 +51,10 @@ describe('I18nPlugin', () => {
 		compiler.mockApply('compilation', compilation, params);
 
 		assert.strictEqual(compilation.dependencyFactories.get(InjectedModuleDependency), params.normalModuleFactory);
-		assert.instanceOf(compilation.dependencyTemplates.get(InjectedModuleDependency), InjectedModuleDependency.Template);
+		assert.instanceOf(
+			compilation.dependencyTemplates.get(InjectedModuleDependency),
+			InjectedModuleDependency.Template
+		);
 	});
 
 	it(`should inject the module into the application's entry point`, () => {
@@ -81,16 +83,17 @@ describe('I18nPlugin', () => {
 		};
 		const plugin = new I18nPlugin({
 			defaultLocale: 'en',
-			supportedLocales: [ 'fr' ],
-			cldrPaths: [ '{locale}/main.json', 'supplemental.json' ]
-				.map(file => join(process.cwd(), 'tests/support/fixtures/cldr/', file))
+			supportedLocales: ['fr'],
+			cldrPaths: ['{locale}/main.json', 'supplemental.json'].map((file) =>
+				join(process.cwd(), 'tests/support/fixtures/cldr/', file)
+			)
 		});
 		applyModule(plugin);
 
 		const { definitions } = compiler.applied[0];
 		assert.deepEqual(definitions, {
 			__defaultLocale__: `'en'`,
-			__supportedLocales__: JSON.stringify([ 'fr' ]),
+			__supportedLocales__: JSON.stringify(['fr']),
 			__cldrData__: JSON.stringify(cldrData)
 		});
 	});
@@ -102,8 +105,9 @@ describe('I18nPlugin', () => {
 		};
 		const plugin = new I18nPlugin({
 			defaultLocale: 'en',
-			cldrPaths: [ '{locale}/main.json', 'supplemental.json' ]
-				.map(file => join(process.cwd(), 'tests/support/fixtures/cldr/', file))
+			cldrPaths: ['{locale}/main.json', 'supplemental.json'].map((file) =>
+				join(process.cwd(), 'tests/support/fixtures/cldr/', file)
+			)
 		});
 		applyModule(plugin);
 

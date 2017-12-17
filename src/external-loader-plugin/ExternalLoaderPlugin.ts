@@ -7,7 +7,7 @@ export type ExternalDescriptor = {
 	 * The path that will be used to load this module. This property is used to configure the build to defer to the
 	 * external loader.
 	 */
-	name?: string
+	name?: string;
 	/**
 	 * If this is a boolean, it indicates whether to inject this dependency into the application. If inject is set to
 	 * true, this dependency should be a script or stylesheet. If this dependency is a directory and contains one or
@@ -76,7 +76,8 @@ export default class ExternalLoaderPlugin {
 	apply(compiler: Compiler) {
 		const prefixPath = (path: string) => `${this._pathPrefix}${this._outputPath}/${path}`;
 
-		const toInject = this._dependencies.reduce((assets, external) => {
+		const toInject = this._dependencies.reduce(
+			(assets, external) => {
 				if (typeof external === 'string') {
 					return assets;
 				}
@@ -90,19 +91,30 @@ export default class ExternalLoaderPlugin {
 				const base = to || from;
 
 				if (Array.isArray(inject)) {
-					return assets.concat(inject.map(path => prefixPath(`${base}/${path}`)));
+					return assets.concat(inject.map((path) => prefixPath(`${base}/${path}`)));
 				}
 
 				return assets.concat(prefixPath(`${base}${typeof inject === 'string' ? `/${inject}` : ''}`));
-			}, [] as string[]);
+			},
+			[] as string[]
+		);
 
-		compiler.apply(new CopyWebpackPlugin(
-			this._dependencies.reduce((config, dependency) => (typeof dependency === 'string' || !dependency.from) ? config : config.concat([ {
-				from: `${dependency.from}`,
-				to: prefixPath(dependency.to || dependency.from)
-
-			} ]), [] as { from: string, to: string, transform?: Function }[])
-		));
+		compiler.apply(
+			new CopyWebpackPlugin(
+				this._dependencies.reduce(
+					(config, dependency) =>
+						typeof dependency === 'string' || !dependency.from
+							? config
+							: config.concat([
+									{
+										from: `${dependency.from}`,
+										to: prefixPath(dependency.to || dependency.from)
+									}
+								]),
+					[] as { from: string; to: string; transform?: Function }[]
+				)
+			)
+		);
 		compiler.apply(
 			new HtmlWebpackIncludeAssetsPlugin({
 				assets: toInject,

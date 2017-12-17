@@ -4,7 +4,7 @@ const { registerSuite } = intern.getInterface('object');
 const { assert } = intern.getPlugin('chai');
 
 registerSuite('static-build-loader index', {
-	'exists'() {
+	exists() {
 		assert(loader);
 	}
 });

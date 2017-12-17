@@ -25,26 +25,23 @@ describe('I18nPlugin template', () => {
 	}: {
 		locale?: string;
 		supportedLocales?: string[];
-		cldrData?: {}
+		cldrData?: {};
 	} = {}) {
-		(<any> global).__defaultLocale__ = locale;
-		(<any> global).__supportedLocales__ = supportedLocales;
-		(<any> global).__cldrData__ = cldrData;
+		(<any>global).__defaultLocale__ = locale;
+		(<any>global).__supportedLocales__ = supportedLocales;
+		(<any>global).__cldrData__ = cldrData;
 	}
 
 	beforeEach(() => {
 		mockModule = new MockModule('../../../../src/i18n-plugin/templates/setLocaleData', require);
-		mockModule.dependencies([
-			'@dojo/i18n/i18n',
-			'@dojo/i18n/cldr/load'
-		]);
+		mockModule.dependencies(['@dojo/i18n/i18n', '@dojo/i18n/cldr/load']);
 	});
 
 	afterEach(() => {
 		mockModule.destroy();
-		delete (<any> global).__defaultLocale__;
-		delete (<any> global).__supportedLocales__;
-		delete (<any> global).__cldrData__;
+		delete (<any>global).__defaultLocale__;
+		delete (<any>global).__supportedLocales__;
+		delete (<any>global).__cldrData__;
 	});
 
 	it('should use the default locale when the system locale is unsupported', () => {
@@ -58,7 +55,7 @@ describe('I18nPlugin template', () => {
 
 	it('should use the system locale when it is supported', () => {
 		configureMocks();
-		setLocaleData({ supportedLocales: [ 'xk' ] });
+		setLocaleData({ supportedLocales: ['xk'] });
 		mockModule.getModuleUnderTest();
 
 		const i18n = mockModule.getMock('@dojo/i18n/i18n');
@@ -75,7 +72,9 @@ describe('I18nPlugin template', () => {
 		const i18n = mockModule.getMock('@dojo/i18n/i18n');
 		const loadCldrData = mockModule.getMock('@dojo/i18n/cldr/load');
 		assert.isTrue(loadCldrData.default.calledWith(cldrData));
-		assert.isTrue(loadCldrData.default.calledBefore(i18n.switchLocale),
-			'CLDR data should be registered before the locale is switched.');
+		assert.isTrue(
+			loadCldrData.default.calledBefore(i18n.switchLocale),
+			'CLDR data should be registered before the locale is switched.'
+		);
 	});
 });

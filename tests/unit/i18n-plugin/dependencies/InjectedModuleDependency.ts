@@ -14,9 +14,7 @@ describe('InjectedModuleDependency', () => {
 		dep.module = module;
 		template.apply(dep, source);
 
-		assert.sameDeepMembers(source.insertions, [
-			[ 0, '__webpack_require__(42);\n' ]
-		]);
+		assert.sameDeepMembers(source.insertions, [[0, '__webpack_require__(42);\n']]);
 	});
 
 	it('should assign the require to the specified variable', () => {
@@ -29,9 +27,7 @@ describe('InjectedModuleDependency', () => {
 		dep.module = module;
 		template.apply(dep, source);
 
-		assert.sameDeepMembers(source.insertions, [
-			[ 0, 'var answer = __webpack_require__(42);\n' ]
-		]);
+		assert.sameDeepMembers(source.insertions, [[0, 'var answer = __webpack_require__(42);\n']]);
 	});
 
 	it('inject a missing module error without a module', () => {

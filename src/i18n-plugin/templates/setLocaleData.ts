@@ -7,8 +7,9 @@ declare const __defaultLocale__: string;
 declare const __supportedLocales__: string[];
 
 const userLocale = systemLocale.replace(/^([a-z]{2}).*/i, '$1');
-const isUserLocaleSupported = (userLocale === __defaultLocale__) ||
-	__supportedLocales__.some(function (locale: string) {
+const isUserLocaleSupported =
+	userLocale === __defaultLocale__ ||
+	__supportedLocales__.some(function(locale: string) {
 		return locale === systemLocale || locale === userLocale;
 	});
 

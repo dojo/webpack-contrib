@@ -49,7 +49,7 @@ declare module 'recast/main' {
 		}
 
 		namespace types {
-			export const namedTypes: { [ type in keyof NamedTypes ]: NamedType<NamedTypes[type]> };
+			export const namedTypes: { [type in keyof NamedTypes]: NamedType<NamedTypes[type]> };
 
 			export const builders: {
 				commentLine(comment: string, trailing?: boolean, leading?: boolean): Comment;
@@ -67,12 +67,12 @@ declare module 'recast/main' {
 
 		function parse(code: string, options?: { sourceFileName: string }): AST;
 
-		function print(ast: AST, options?: { sourceMapName: string }): { code: string, map: any };
+		function print(ast: AST, options?: { sourceMapName: string }): { code: string; map: any };
 	}
 
 	export = recast;
 }
 
 declare module 'recast/lib/util' {
-	export function composeSourceMaps(sourceMap: { file: string}, map: any): any;
+	export function composeSourceMaps(sourceMap: { file: string }, map: any): any;
 }

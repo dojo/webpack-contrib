@@ -4,7 +4,7 @@ const { registerSuite } = intern.getInterface('object');
 const { assert } = intern.getPlugin('chai');
 
 registerSuite('css-module-dts-loader index', {
-	'exists'() {
+	exists() {
 		assert(loader);
 	}
 });

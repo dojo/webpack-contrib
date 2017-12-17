@@ -11,8 +11,8 @@ registerSuite('getFeatures', {
 
 	'single feature set'() {
 		assert.deepEqual(getFeatures('ie11'), {
-			'arraybuffer': true,
-			'blob': true,
+			arraybuffer: true,
+			blob: true,
 			'dom-mutationobserver': false,
 			'es-observable': false,
 			'es2017-object': false,
@@ -30,25 +30,25 @@ registerSuite('getFeatures', {
 			'es6-symbol': false,
 			'es6-weakmap': false,
 			'es7-array': false,
-			'fetch': false,
-			'filereader': true,
-			'float32array': true,
-			'formdata': false,
+			fetch: false,
+			filereader: true,
+			float32array: true,
+			formdata: false,
 			'host-node': false,
 			'host-browser': true,
-			'microtasks': true,
+			microtasks: true,
 			'node-buffer': false,
 			'object-assign': false,
-			'postmessage': true,
-			'raf': true,
-			'setimmediate': true,
-			'xhr': true,
-			'xhr2': true
+			postmessage: true,
+			raf: true,
+			setimmediate: true,
+			xhr: true,
+			xhr2: true
 		});
 	},
 
 	'two feature sets'() {
-		assert.deepEqual(getFeatures([ 'ie11', 'node' ]), {
+		assert.deepEqual(getFeatures(['ie11', 'node']), {
 			arraybuffer: true,
 			blob: true,
 			'dom-mutationobserver': false,
@@ -65,9 +65,9 @@ registerSuite('getFeatures', {
 
 	'not found feature set'() {
 		const logStub = stub(console, 'log');
-		const features = getFeatures([ 'ie11', 'foo' ]);
+		const features = getFeatures(['ie11', 'foo']);
 		logStub.restore();
-		assert.deepEqual(features, { });
+		assert.deepEqual(features, {});
 		assert.isTrue(logStub.calledOnce, 'log should have been called');
 		assert.strictEqual(logStub.lastCall.args[0], 'Cannot resolve feature set:');
 		assert.strictEqual(logStub.lastCall.args[1], 'foo');

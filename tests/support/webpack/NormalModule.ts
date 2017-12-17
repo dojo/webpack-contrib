@@ -14,7 +14,14 @@ class MockNormalModule {
 	resource: string;
 	parser: any;
 
-	constructor(request: string, userRequest: string, rawRequest: string, loaders: string[], resource: string, parser: any) {
+	constructor(
+		request: string,
+		userRequest: string,
+		rawRequest: string,
+		loaders: string[],
+		resource: string,
+		parser: any
+	) {
 		this.isBuilt = false;
 		this.chunks = [];
 		this.dependencies = [];

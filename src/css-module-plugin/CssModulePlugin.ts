@@ -1,7 +1,7 @@
-import { Compiler } from 'webpack';
 import { existsSync } from 'fs';
 import { normalize, sep, isAbsolute, resolve } from 'path';
-import NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
+import { Compiler, NormalModuleReplacementPlugin } from 'webpack';
+import NormalModuleFactory = require('webpack/lib/NormalModuleFactory');
 
 /**
  * Test whether a module ID is relative or absolute.
@@ -26,7 +26,7 @@ export default class CssModulePlugin {
 
 	apply(compiler: Compiler) {
 		compiler.apply(
-			new NormalModuleReplacementPlugin(/\.m\.css$/, (result) => {
+			new NormalModuleReplacementPlugin(/\.m\.css$/, (result: NormalModuleFactory.BeforeData) => {
 				if (isAbsolute(result.request)) {
 					return;
 				}

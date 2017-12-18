@@ -1,4 +1,4 @@
-import Compiler = require('webpack/lib/Compiler');
+import { Compiler } from 'webpack';
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackIncludeAssetsPlugin = require('html-webpack-include-assets-plugin');
 

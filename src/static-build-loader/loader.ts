@@ -1,5 +1,5 @@
 import getFeatures from './getFeatures';
-import { LoaderContext, RawSourceMap } from 'webpack/lib/webpack';
+import { LoaderContext, RawSourceMap } from 'webpack';
 import * as recast from 'recast';
 
 const { getOptions } = require('loader-utils');

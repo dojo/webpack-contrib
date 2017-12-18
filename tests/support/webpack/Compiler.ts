@@ -1,13 +1,13 @@
 import Pluginable from './Pluginable';
-
-import WebpackCompiler = require('webpack/lib/Compiler');
-
 import MockCompilationParams = require('./CompilationParams');
+import { Compiler } from 'webpack';
 
 class MockCompiler extends Pluginable {
 	applied: any[];
-	options: any;
 	callSuper?: boolean;
+	name = '';
+	options: any;
+	outputFileSystem: any;
 
 	constructor(options?: any) {
 		super();
@@ -39,7 +39,7 @@ class MockCompiler extends Pluginable {
 
 	run(callback: Function) {}
 	runAsChild(callback: Function) {}
-	watch(options: any, handler: (error: Error | null, stats: any) => void): WebpackCompiler.Watching {
+	watch(options: Compiler.WatchOptions, handler: Compiler.Handler): Compiler.Watching {
 		return null as any;
 	}
 }

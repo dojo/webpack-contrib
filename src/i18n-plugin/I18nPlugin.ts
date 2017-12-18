@@ -1,10 +1,8 @@
 /* tslint:disable:interface-name */
 import { deepAssign } from '@dojo/core/lang';
 import { join } from 'path';
-import Compiler = require('webpack/lib/Compiler');
-import DefinePlugin = require('webpack/lib/DefinePlugin');
+import { Compiler, DefinePlugin } from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
-import Module = require('webpack/lib/Module');
 import InjectedModuleDependency from './dependencies/InjectedModuleDependency';
 
 export interface I18nPluginOptions {
@@ -86,8 +84,8 @@ export default class I18nPlugin {
 				new InjectedModuleDependency.Template()
 			);
 
-			compilation.plugin('succeed-module', (module: Module) => {
-				if (this.target.test((module as NormalModule).resource)) {
+			compilation.plugin('succeed-module', (module: NormalModule) => {
+				if (this.target.test(module.resource)) {
 					const dep = new InjectedModuleDependency(join(__dirname, './templates/setLocaleData.js'));
 					module.addDependency(dep);
 				}

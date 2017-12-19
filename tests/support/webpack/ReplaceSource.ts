@@ -3,8 +3,8 @@ import Source = require('./Source');
 class ReplaceSource {
 	private _source: Source;
 	name?: string;
-	insertions: [ number, string ][];
-	replacements: [ number, number, string ][];
+	insertions: [number, string][];
+	replacements: [number, number, string][];
 
 	constructor(source: string) {
 		this.insertions = [];
@@ -17,11 +17,11 @@ class ReplaceSource {
 	}
 
 	insert(index: number, value: string) {
-		this.insertions.push([ index, value ]);
+		this.insertions.push([index, value]);
 	}
 
 	replace(start: number, end: number, value: string) {
-		this.replacements.push([ start, end, value ]);
+		this.replacements.push([start, end, value]);
 	}
 
 	source() {

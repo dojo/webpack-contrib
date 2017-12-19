@@ -56,7 +56,7 @@ describe('css-module-dts-loader', () => {
 	function getInstance() {
 		return {
 			files: {
-				[ resourcePath ]: true
+				[resourcePath]: true
 			}
 		};
 	}
@@ -65,12 +65,7 @@ describe('css-module-dts-loader', () => {
 		sandbox = sinon.sandbox.create();
 		writeFile = sandbox.stub();
 		mockModule = new MockModule('../../../src/css-module-dts-loader/loader', require);
-		mockModule.dependencies([
-			'typed-css-modules',
-			'ts-loader/dist/instances',
-			'loader-utils',
-			'fs'
-		]);
+		mockModule.dependencies(['typed-css-modules', 'ts-loader/dist/instances', 'loader-utils', 'fs']);
 		mockDTSGenerator = mockModule.getMock('typed-css-modules');
 		mockDTSGenerator.create = sandbox.stub().returns(Promise.resolve({ writeFile }));
 		mockUtils = mockModule.getMock('loader-utils');
@@ -94,12 +89,15 @@ describe('css-module-dts-loader', () => {
 		});
 
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath
 				},
-				resourcePath
-			}, cssContent);
+				cssContent
+			);
 		}).then(() => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(writeFile.calledOnce);
@@ -114,12 +112,15 @@ describe('css-module-dts-loader', () => {
 
 		return new Promise((resolve, reject) => {
 			loaderUnderTest.call(defaultScope, cssContent);
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath
 				},
-				resourcePath
-			}, cssContent);
+				cssContent
+			);
 		}).then(() => {
 			assert.isTrue(mockFs.statSync.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
@@ -136,12 +137,15 @@ describe('css-module-dts-loader', () => {
 
 		return new Promise((resolve, reject) => {
 			loaderUnderTest.call(defaultScope, cssContent);
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath
 				},
-				resourcePath
-			}, cssContent);
+				cssContent
+			);
 		}).then(() => {
 			assert.isTrue(mockFs.statSync.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.calledTwice);
@@ -156,15 +160,18 @@ describe('css-module-dts-loader', () => {
 
 		const resolvePath = path.resolve;
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, resolvePath(context, path));
+					},
+					resourcePath
 				},
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, resolvePath(context, path));
-				},
-				resourcePath
-			}, tsContentWithCss);
+				tsContentWithCss
+			);
 		}).then(() => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
@@ -176,16 +183,19 @@ describe('css-module-dts-loader', () => {
 		mockUtils.getOptions.returns({});
 
 		const resolvePath = path.resolve;
-		return new Promise(resolve => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+		return new Promise((resolve) => {
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, resolvePath(context, path));
+					},
+					resourcePath
 				},
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, resolvePath(context, path));
-				},
-				resourcePath
-			}, tsContentWithCss);
+				tsContentWithCss
+			);
 		}).then(() => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
@@ -200,15 +210,18 @@ describe('css-module-dts-loader', () => {
 
 		const resolvePath = path.resolve;
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, resolvePath(context, path));
+					},
+					resourcePath
 				},
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, resolvePath(context, path));
-				},
-				resourcePath
-			}, tsContentWithMultipleCss);
+				tsContentWithMultipleCss
+			);
 		}).then(() => {
 			assert.isTrue(mockDTSGenerator.create.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
@@ -224,15 +237,18 @@ describe('css-module-dts-loader', () => {
 		});
 
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath,
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, path);
+					}
 				},
-				resourcePath,
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, path);
-				}
-			}, tsContentWithCss);
+				tsContentWithCss
+			);
 		}).then(() => {
 			assert.isUndefined(instance.files[resourcePath]);
 		});
@@ -246,17 +262,20 @@ describe('css-module-dts-loader', () => {
 		});
 
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath,
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, path);
+					}
 				},
-				resourcePath,
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, path);
-				}
-			}, tsContentWithCss);
+				tsContentWithCss
+			);
 		}).then(() => {
-			assert.isTrue(instance.files[ resourcePath ]);
+			assert.isTrue(instance.files[resourcePath]);
 		});
 	});
 
@@ -268,15 +287,18 @@ describe('css-module-dts-loader', () => {
 
 		return new Promise((resolve, reject) => {
 			mockFs.statSync.resetHistory();
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+						callback(null, path);
+					},
+					resourcePath
 				},
-				resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-					callback(null, path);
-				},
-				resourcePath
-			}, tsContentWithoutCss);
+				tsContentWithoutCss
+			);
 		}).then(() => {
 			assert.isFalse(mockInstances.getTypeScriptInstance.called);
 			assert.isFalse(mockFs.statSync.called);
@@ -290,27 +312,33 @@ describe('css-module-dts-loader', () => {
 		});
 
 		return Promise.all([
-			new Promise(resolve => {
-				loaderUnderTest.call({
-					async() {
-						return (error: any) => resolve(error);
+			new Promise((resolve) => {
+				loaderUnderTest.call(
+					{
+						async() {
+							return (error: any) => resolve(error);
+						},
+						resourcePath,
+						resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+							callback('error');
+						}
 					},
-					resourcePath,
-					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-						callback('error');
-					}
-				}, tsContentWithMultipleCss);
+					tsContentWithMultipleCss
+				);
 			}),
-			new Promise(resolve => {
-				loaderUnderTest.call({
-					async() {
-						return (error: any) => resolve(error);
+			new Promise((resolve) => {
+				loaderUnderTest.call(
+					{
+						async() {
+							return (error: any) => resolve(error);
+						},
+						resourcePath,
+						resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
+							callback(null, '');
+						}
 					},
-					resourcePath,
-					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-						callback(null, '');
-					}
-				}, tsContentWithMultipleCss);
+					tsContentWithMultipleCss
+				);
 			})
 		]).then((errors: any[]) => {
 			assert.equal(errors[0], 'error');
@@ -324,27 +352,35 @@ describe('css-module-dts-loader', () => {
 			sourceFilesPattern: 'target'
 		});
 
-		return new Promise(resolve => {
-			loaderUnderTest.call({
-				async() {
-					return () => resolve();
-				},
-				resourcePath
-			}, cssContent);
-		}).then(() => {
-			assert.isFalse(mockDTSGenerator.create.called);
-			assert.isFalse(writeFile.called);
-			return new Promise(resolve => {
-				loaderUnderTest.call({
+		return new Promise((resolve) => {
+			loaderUnderTest.call(
+				{
 					async() {
 						return () => resolve();
 					},
-					resourcePath: 'target/path'
-				}, cssContent);
+					resourcePath
+				},
+				cssContent
+			);
+		})
+			.then(() => {
+				assert.isFalse(mockDTSGenerator.create.called);
+				assert.isFalse(writeFile.called);
+				return new Promise((resolve) => {
+					loaderUnderTest.call(
+						{
+							async() {
+								return () => resolve();
+							},
+							resourcePath: 'target/path'
+						},
+						cssContent
+					);
+				});
+			})
+			.then(() => {
+				assert.isTrue(mockDTSGenerator.create.calledOnce);
+				assert.isTrue(writeFile.calledOnce);
 			});
-		}).then(() => {
-			assert.isTrue(mockDTSGenerator.create.calledOnce);
-			assert.isTrue(writeFile.calledOnce);
-		});
 	});
 });

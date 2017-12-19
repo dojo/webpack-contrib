@@ -42,7 +42,7 @@ export interface I18nPluginOptions {
  * @return A regular expression that matches a file path pattern
  */
 function createFilePathRegExp(path: string): RegExp {
-	const pattern = path.replace(/(\/|\\)/g, '(\\\\|\/)').replace(/\./g, '\\.');
+	const pattern = path.replace(/(\/|\\)/g, '(\\\\|/)').replace(/\./g, '\\.');
 	return new RegExp(pattern);
 }
 
@@ -71,15 +71,20 @@ export default class I18nPlugin {
 	apply(compiler: Compiler) {
 		const { defaultLocale, supportedLocales = [] } = this;
 
-		compiler.apply(new DefinePlugin({
-			__defaultLocale__: `'${defaultLocale}'`,
-			__supportedLocales__: JSON.stringify(supportedLocales),
-			__cldrData__: JSON.stringify(this._loadCldrData())
-		}));
+		compiler.apply(
+			new DefinePlugin({
+				__defaultLocale__: `'${defaultLocale}'`,
+				__supportedLocales__: JSON.stringify(supportedLocales),
+				__cldrData__: JSON.stringify(this._loadCldrData())
+			})
+		);
 
 		compiler.plugin('compilation', (compilation, params) => {
 			compilation.dependencyFactories.set(InjectedModuleDependency as any, params.normalModuleFactory);
-			compilation.dependencyTemplates.set(InjectedModuleDependency as any, new InjectedModuleDependency.Template());
+			compilation.dependencyTemplates.set(
+				InjectedModuleDependency as any,
+				new InjectedModuleDependency.Template()
+			);
 
 			compilation.plugin('succeed-module', (module: Module) => {
 				if (this.target.test((module as NormalModule).resource)) {
@@ -102,14 +107,14 @@ export default class I18nPlugin {
 		}
 
 		const { defaultLocale, supportedLocales = [] } = this;
-		const locales = [ defaultLocale, ...supportedLocales ];
+		const locales = [defaultLocale, ...supportedLocales];
 
 		return this.cldrPaths
-			.map(url => {
-				return locales.map(locale => url.replace('{locale}', locale));
+			.map((url) => {
+				return locales.map((locale) => url.replace('{locale}', locale));
 			})
 			.reduce((left, right) => left.concat(right), [])
-			.map(mid => require(mid))
+			.map((mid) => require(mid))
 			.reduce((cldrData, source) => deepAssign(cldrData, source), Object.create(null));
 	}
 }

@@ -25,9 +25,9 @@ InjectedModuleDependency.Template = class {
 	 * @param source The source to be modified
 	 */
 	apply(dep: InjectedModuleDependency, source: ReplaceSource) {
-		const content = dep.module ?
-			`__webpack_require__(${dep.module.id});` :
-			webpackMissingModule.module(dep.request);
+		const content = dep.module
+			? `__webpack_require__(${dep.module.id});`
+			: webpackMissingModule.module(dep.request);
 
 		const prefix = dep.variable ? `var ${dep.variable} = ` : '';
 		source.insert(0, `${prefix}${content}\n`);

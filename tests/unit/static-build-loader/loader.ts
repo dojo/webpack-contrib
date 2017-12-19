@@ -1,6 +1,6 @@
 import * as sinon from 'sinon';
 import { readFileSync } from 'fs';
-import { join, resolve } from  'path';
+import { join, resolve } from 'path';
 import MockModule from '../../support/MockModule';
 const recast = require('recast');
 
@@ -10,8 +10,8 @@ let logStub: sinon.SinonStub;
 let mockModule: MockModule;
 let mockLoaderUtils: { getOptions: sinon.SinonStub };
 let mockGetFeatures: { default: sinon.SinonStub };
-let mockRecastUtil: { composeSourceMaps: sinon.SinonStub};
-let mockRecast: { types: any, print: sinon.SinonStub, parse: sinon.SinonStub };
+let mockRecastUtil: { composeSourceMaps: sinon.SinonStub };
+let mockRecast: { types: any; print: sinon.SinonStub; parse: sinon.SinonStub };
 
 function loadCode(name: string) {
 	return readFileSync(join(resolve(__dirname), `../../support/fixtures/${name}.js`), 'utf8').replace(/\r\n/g, '\n');
@@ -24,12 +24,7 @@ registerSuite('static-build-loader', {
 	before() {
 		sandbox = sinon.sandbox.create();
 		mockModule = new MockModule('../../../src/static-build-loader/loader', require);
-		mockModule.dependencies([
-			'./getFeatures',
-			'loader-utils',
-			'recast/lib/util',
-			'recast'
-		]);
+		mockModule.dependencies(['./getFeatures', 'loader-utils', 'recast/lib/util', 'recast']);
 		mockGetFeatures = mockModule.getMock('./getFeatures');
 		mockLoaderUtils = mockModule.getMock('loader-utils');
 		mockRecastUtil = mockModule.getMock('recast/lib/util');
@@ -76,7 +71,11 @@ registerSuite('static-build-loader', {
 			assert.equal(resultCode, loadCode('static-has-qat-true'));
 			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
 			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
-			assert.strictEqual(logStub.secondCall.args[ 0 ], 'Dynamic features: foo, bar, baz', 'should have logged properly');
+			assert.strictEqual(
+				logStub.secondCall.args[0],
+				'Dynamic features: foo, bar, baz',
+				'should have logged properly'
+			);
 		},
 
 		'should pass to callback if a sourcemap was provided'() {
@@ -84,7 +83,8 @@ registerSuite('static-build-loader', {
 			const returnedCode = 'code';
 			mockRecast.print.reset();
 			mockRecast.print.returns({
-				map, code: returnedCode
+				map,
+				code: returnedCode
 			});
 			mockRecastUtil.composeSourceMaps.returns('map');
 			const code = loadCode('static-has-base');
@@ -110,25 +110,30 @@ registerSuite('static-build-loader', {
 
 			assert.isTrue(mockRecastUtil.composeSourceMaps.calledOnce, 'Should have called composeSourceMaps');
 			assert.deepEqual(
-				mockRecastUtil.composeSourceMaps.firstCall.args, [ { file }, map ],
+				mockRecastUtil.composeSourceMaps.firstCall.args,
+				[{ file }, map],
 				'Should have passed the sourcemap file and the updated map returned from print to composeSourceMaps'
 			);
 
 			assert.isTrue(context.callback.calledOnce, 'Should have called provided callback');
 			assert.deepEqual(
 				context.callback.firstCall.args,
-				[ null, returnedCode, map, modifiedAst ],
+				[null, returnedCode, map, modifiedAst],
 				'Should have called callback with the final code, the modified sourcemap, and the modified AST'
 			);
 			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
 			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
-			assert.strictEqual(logStub.secondCall.args[ 0 ], 'Dynamic features: foo, bar, baz', 'should have logged properly');
+			assert.strictEqual(
+				logStub.secondCall.args[0],
+				'Dynamic features: foo, bar, baz',
+				'should have logged properly'
+			);
 		},
 
 		'should delegate to getFeatures if features are passed'() {
 			const code = loadCode('static-has-base');
 			mockLoaderUtils.getOptions.returns({
-				features: [ 'static' ]
+				features: ['static']
 			});
 
 			const context = {
@@ -137,9 +142,9 @@ registerSuite('static-build-loader', {
 			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
 			assert.equal(resultCode, loadCode('static-has-foo-true-bar-false'));
 			assert.strictEqual(mockGetFeatures.default.callCount, 1, 'should have called getFeatures');
-			assert.deepEqual(mockGetFeatures.default.firstCall.args, [ [ 'static' ] ]);
+			assert.deepEqual(mockGetFeatures.default.firstCall.args, [['static']]);
 			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
-			assert.strictEqual(logStub.secondCall.args[ 0 ], 'Dynamic features: baz, qat', 'should have logged properly');
+			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: baz, qat', 'should have logged properly');
 		},
 
 		'does not import has'() {
@@ -176,7 +181,7 @@ registerSuite('static-build-loader', {
 			assert.isUndefined(result, 'Should not have returned code');
 
 			assert.isTrue(context.callback.calledOnce, 'Should have called the callback once');
-			assert.deepEqual(context.callback.firstCall.args, [ null, code, sourceMap ]);
+			assert.deepEqual(context.callback.firstCall.args, [null, code, sourceMap]);
 		}
 	}
 });

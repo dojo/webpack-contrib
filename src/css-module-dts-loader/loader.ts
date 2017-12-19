@@ -36,8 +36,7 @@ function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<vo
 
 		if (!lastMTime || mtime > lastMTime) {
 			mTimeMap.set(filePath, mtime);
-			return creator.create(filePath, false, true)
-				.then((content) => content.writeFile());
+			return creator.create(filePath, false, true).then((content) => content.writeFile());
 		}
 	});
 }
@@ -62,7 +61,11 @@ function getCssImport(node: Node, loaderContext: webpack.LoaderContext): Promise
 	}
 }
 
-function traverseNode(node: Node, filePaths: Promise<string>[], loaderContext: webpack.LoaderContext): Promise<string>[] {
+function traverseNode(
+	node: Node,
+	filePaths: Promise<string>[],
+	loaderContext: webpack.LoaderContext
+): Promise<string>[] {
 	switch (node.kind) {
 		case SyntaxKind.SourceFile:
 			forEachChild(node, (childNode: Node) => {
@@ -79,39 +82,39 @@ function traverseNode(node: Node, filePaths: Promise<string>[], loaderContext: w
 	return filePaths;
 }
 
-export default function (this: webpack.LoaderContext, content: string, sourceMap?: string) {
+export default function(this: webpack.LoaderContext, content: string, sourceMap?: string) {
 	const callback = this.async();
 	const { type = 'ts', instanceName, sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
-	const sourceFilesRegex = typeof sourceFilesPattern === 'string' ?
-		new RegExp(sourceFilesPattern) : sourceFilesPattern;
+	const sourceFilesRegex =
+		typeof sourceFilesPattern === 'string' ? new RegExp(sourceFilesPattern) : sourceFilesPattern;
 
-	Promise.resolve().then(() => {
-		let generationPromises: Promise<void>[] = [];
-		switch (type) {
-			case 'css':
-				generationPromises.push(generateDTSFile(this.resourcePath, sourceFilesRegex));
-				break;
-			case 'ts':
-				const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
-				const cssFilePathPromises = traverseNode(sourceFile, [], this);
+	Promise.resolve()
+		.then(() => {
+			let generationPromises: Promise<void>[] = [];
+			switch (type) {
+				case 'css':
+					generationPromises.push(generateDTSFile(this.resourcePath, sourceFilesRegex));
+					break;
+				case 'ts':
+					const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
+					const cssFilePathPromises = traverseNode(sourceFile, [], this);
 
-				if (cssFilePathPromises.length) {
+					if (cssFilePathPromises.length) {
+						if (instanceName) {
+							const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
 
-					if (instanceName) {
-						const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
-
-						if (instanceWrapper.instance) {
-							instanceWrapper.instance.files[this.resourcePath] = undefined;
+							if (instanceWrapper.instance) {
+								instanceWrapper.instance.files[this.resourcePath] = undefined;
+							}
 						}
-					}
 
-					generationPromises = cssFilePathPromises.map((cssFilePathPromise) => cssFilePathPromise.then(
-						(cssFilePath) => generateDTSFile(cssFilePath, sourceFilesRegex)
-					));
-				}
-				break;
-		}
-		return Promise.all(generationPromises);
-	})
-	.then(() => callback(null, content, sourceMap), error => callback(error));
+						generationPromises = cssFilePathPromises.map((cssFilePathPromise) =>
+							cssFilePathPromise.then((cssFilePath) => generateDTSFile(cssFilePath, sourceFilesRegex))
+						);
+					}
+					break;
+			}
+			return Promise.all(generationPromises);
+		})
+		.then(() => callback(null, content, sourceMap), (error) => callback(error));
 }

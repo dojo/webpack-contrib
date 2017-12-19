@@ -9,13 +9,9 @@ const { describe, it, beforeEach, afterEach } = intern.getInterface('bdd');
 let mockModule: MockModule;
 let Plugin: typeof ExternalLoaderPlugin;
 describe('ExternalLoaderPlugin', () => {
-
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/external-loader-plugin/ExternalLoaderPlugin', require);
-		mockModule.dependencies([
-			'copy-webpack-plugin',
-			'html-webpack-include-assets-plugin'
-		]);
+		mockModule.dependencies(['copy-webpack-plugin', 'html-webpack-include-assets-plugin']);
 		Plugin = mockModule.getModuleUnderTest().default;
 	});
 
@@ -33,7 +29,7 @@ describe('ExternalLoaderPlugin', () => {
 			{ from: 'abc', inject: true },
 			{ from: 'abc', to: 'def', inject: true },
 			{ from: 'abc', to: 'def', inject: 'main' },
-			{ from: 'abc', inject: [ 'one', 'two', 'three', 'four' ]},
+			{ from: 'abc', inject: ['one', 'two', 'three', 'four'] },
 			{ from: 'abc' },
 			{ to: 'ignore', name: 'no-from' }
 		];
@@ -46,14 +42,22 @@ describe('ExternalLoaderPlugin', () => {
 		];
 
 		const expectedAssets = [
-			'OUTPUT_PATH/abc', 'OUTPUT_PATH/def', 'OUTPUT_PATH/def/main', 'OUTPUT_PATH/abc/one', 'OUTPUT_PATH/abc/two',
-			'OUTPUT_PATH/abc/three', 'OUTPUT_PATH/abc/four'
+			'OUTPUT_PATH/abc',
+			'OUTPUT_PATH/def',
+			'OUTPUT_PATH/def/main',
+			'OUTPUT_PATH/abc/one',
+			'OUTPUT_PATH/abc/two',
+			'OUTPUT_PATH/abc/three',
+			'OUTPUT_PATH/abc/four'
 		];
 
 		function test(outputPath: string) {
-			const expectedCopy = expectedCopyArgs.map(({ from, to }) => ({ from, to: to.replace('OUTPUT_PATH', outputPath) }));
+			const expectedCopy = expectedCopyArgs.map(({ from, to }) => ({
+				from,
+				to: to.replace('OUTPUT_PATH', outputPath)
+			}));
 			const expectedAssetInclude = {
-				assets: expectedAssets.map(asset => asset.replace('OUTPUT_PATH', outputPath)),
+				assets: expectedAssets.map((asset) => asset.replace('OUTPUT_PATH', outputPath)),
 				append: false,
 				hash: false,
 				files: 'index.html'
@@ -85,17 +89,13 @@ describe('ExternalLoaderPlugin', () => {
 		const assetsMock: SinonSpy = mockModule.getMock('html-webpack-include-assets-plugin').ctor;
 
 		const compiler = new Compiler();
-		const dependencies = [
-			{ from: 'abc', to: 'def', inject: true }
-		];
+		const dependencies = [{ from: 'abc', to: 'def', inject: true }];
 		let plugin = new Plugin({ dependencies, pathPrefix: 'prefix' });
 
-		const expectedCopyArgs = [
-			{ from: 'abc', to: 'prefix/externals/def' }
-		];
+		const expectedCopyArgs = [{ from: 'abc', to: 'prefix/externals/def' }];
 
 		const expectedAssetIncludeArgs = {
-			assets: [ 'prefix/externals/def' ],
+			assets: ['prefix/externals/def'],
 			append: false,
 			hash: false,
 			files: 'prefix/index.html'

@@ -14,7 +14,7 @@ class MockCompiler extends Pluginable {
 		this.applied = [];
 		this.options = options || {
 			resolve: {
-				modules: [ '/root/path' ]
+				modules: ['/root/path']
 			}
 		};
 		if (options && options.callSuper) {

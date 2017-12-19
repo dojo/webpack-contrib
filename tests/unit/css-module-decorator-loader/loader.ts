@@ -26,7 +26,10 @@ describe('css-module-decorator-loader', () => {
 		};`;
 
 		const result = loader.bind({ resourcePath: 'testFile.m.css' })(content);
-		assert.equal(result.replace(/\n|\t/g, ''), 'exports.locals = {" _key": "testFile","hello": "world","foo": "bar"};');
+		assert.equal(
+			result.replace(/\n|\t/g, ''),
+			'exports.locals = {" _key": "testFile","hello": "world","foo": "bar"};'
+		);
 	});
 
 	it('should support inline requires used for composes', () => {
@@ -36,6 +39,9 @@ describe('css-module-decorator-loader', () => {
 		};`;
 
 		const result = loader.bind({ resourcePath: 'testFile.m.css' })(content);
-		assert.equal(result.replace(/\n|\t/g, ''), 'exports.locals = {" _key": "testFile", "hello": "world " + require("-!stuff!./base.css").locals["hello"] + "", "foo": "bar"};');
+		assert.equal(
+			result.replace(/\n|\t/g, ''),
+			'exports.locals = {" _key": "testFile", "hello": "world " + require("-!stuff!./base.css").locals["hello"] + "", "foo": "bar"};'
+		);
 	});
 });

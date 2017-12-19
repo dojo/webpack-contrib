@@ -9,7 +9,11 @@ declare module 'tapable' {
 		protected applyPluginsWaterfall(name: string, initial: any, ...args: any[]): any;
 		protected applyPluginsAsync(name: string, ...args: any[]): void;
 		protected applyPluginsBailResult(name: string, ...args: any[]): any;
-		protected applyPluginsAsyncWaterfall(name: string, initial: any, callback: (error: Error | null, value: any) => void): void;
+		protected applyPluginsAsyncWaterfall(
+			name: string,
+			initial: any,
+			callback: (error: Error | null, value: any) => void
+		): void;
 		protected applyPluginsAsyncSeries(name: string, ...args: any[]): void;
 		protected applyPluginsAsyncSeriesBailResult(name: string, ...args: any[]): void;
 		protected applyPluginsParallel(name: string, ...args: any[]): void;
@@ -39,7 +43,9 @@ declare module 'webpack-sources/lib/RawSource' {
 		constructor(value: string);
 	}
 
-	namespace RawSource {}
+	namespace RawSource {
+
+	}
 
 	export = RawSource;
 }
@@ -68,7 +74,7 @@ declare module 'webpack-sources/lib/Source' {
 		map(options: Source.Options): string;
 		size(): number;
 		source(): string;
-		sourceAndMap(options: Source.Options): { code: string; map: any; };
+		sourceAndMap(options: Source.Options): { code: string; map: any };
 		updateHash(hash: crypto.Hash): void;
 	}
 
@@ -90,7 +96,9 @@ declare module 'webpack-sources/lib/SourceMapSource' {
 		constructor(value: string, name?: string, sourceMap?: string, originalSource?: string, innerSourceMap?: string);
 	}
 
-	namespace SourceMapSource {}
+	namespace SourceMapSource {
+
+	}
 
 	export = SourceMapSource;
 }
@@ -151,10 +159,30 @@ declare module 'webpack/lib/webpack' {
 				packageMains?: string[];
 				moduleExtensions?: string[];
 			};
-			devtool?: false | 'eval' | 'cheap-eval-source-map' | 'cheap-source-map' | 'cheap-module-eval-source-map' | 'cheap-module-source-map' | 'eval-source-map' | 'source-map' | 'nosources-source-map' | 'inline-source-map' | 'hidden-source-map';
+			devtool?:
+				| false
+				| 'eval'
+				| 'cheap-eval-source-map'
+				| 'cheap-source-map'
+				| 'cheap-module-eval-source-map'
+				| 'cheap-module-source-map'
+				| 'eval-source-map'
+				| 'source-map'
+				| 'nosources-source-map'
+				| 'inline-source-map'
+				| 'hidden-source-map';
 			context?: string;
-			target?: 'async-node' | 'electron-main' | 'electron-renderer' | 'node' | 'node-webkit' | 'web' | 'webworker';
-			externals?: { [key: string]: string | string[] | Object } | ((context: string, request: string, callback: Function) => void)[];
+			target?:
+				| 'async-node'
+				| 'electron-main'
+				| 'electron-renderer'
+				| 'node'
+				| 'node-webkit'
+				| 'web'
+				| 'webworker';
+			externals?:
+				| { [key: string]: string | string[] | Object }
+				| ((context: string, request: string, callback: Function) => void)[];
 			stats?: Stats;
 			plugins?: Plugin[];
 			profile?: boolean;
@@ -209,7 +237,18 @@ declare module 'webpack/lib/webpack' {
 			filename: string;
 			publicPath?: string;
 			library?: string;
-			libraryTarget?: 'var' |	'this' | 'window' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'amd' | 'umd' | 'assign' | 'jsonp';
+			libraryTarget?:
+				| 'var'
+				| 'this'
+				| 'window'
+				| 'global'
+				| 'commonjs'
+				| 'commonjs2'
+				| 'commonjs-module'
+				| 'amd'
+				| 'umd'
+				| 'assign'
+				| 'jsonp';
 			pathinfo?: boolean;
 			chunkFilename?: string;
 			jsonpFunction?: string;
@@ -226,9 +265,9 @@ declare module 'webpack/lib/webpack' {
 			file: string;
 		}
 		interface Resolve {
-			alias?: { [key: string]: string; };
+			alias?: { [key: string]: string };
 			aliasFields?: string[];
-			cachePredicate?: (info: { path: string; request: string; }) => boolean;
+			cachePredicate?: (info: { path: string; request: string }) => boolean;
 			descriptionFiles?: string[];
 			enforceExtension?: boolean;
 			enforceModuleExtension?: boolean;
@@ -442,14 +481,23 @@ declare module 'webpack/lib/Compilation' {
 		constructor(compiler: Compiler);
 
 		addModule(module: Module, cacheGroup?: string): Module | boolean;
-		buildModule(module: Module, optional: boolean, origin: Module | null, dependencies: any[] | null, callback: (error?: Error) => void): void;
+		buildModule(
+			module: Module,
+			optional: boolean,
+			origin: Module | null,
+			dependencies: any[] | null,
+			callback: (error?: Error) => void
+		): void;
 		processModuleDependencies(module: Module, callback: (error?: Error) => void): void;
 
 		plugin(name: 'normal-module-loader', fn: (this: Compilation, loaderContext: any, module: Module) => void): void;
 		plugin(name: 'seal', fn: (this: Compilation) => void): void;
 		plugin(name: 'optimize', fn: (this: Compilation) => void): void;
 		plugin(name: 'optimize-chunks-basic', fn: (this: Compilation, chunks: Chunk[]) => void): void;
-		plugin(name: 'optimize-tree', fn: (this: Compilation, chunks: Chunk[], modules: Module[], callback: (error?: Error) => void) => void): void;
+		plugin(
+			name: 'optimize-tree',
+			fn: (this: Compilation, chunks: Chunk[], modules: Module[], callback: (error?: Error) => void) => void
+		): void;
 		plugin(name: 'optimize-modules', fn: (this: Compilation, modules: Module[]) => any): void;
 		plugin(name: 'after-optimize-modules', fn: (this: Compilation, modules: Module[]) => void): void;
 		plugin(name: 'optimize-chunks', fn: (this: Compilation, chunks: Chunk[]) => any): void;
@@ -469,9 +517,15 @@ declare module 'webpack/lib/Compilation' {
 		plugin(name: 'before-chunk-assets', fn: (this: Compilation) => void): void;
 		plugin(name: 'additional-chunk-assets', fn: (this: Compilation, chunks: Chunk[]) => void): void;
 		plugin(name: 'record', fn: (this: Compilation, compilation: Compilation, records: any) => void): void;
-		plugin(name: 'optimize-chunk-assets', fn: (this: Compilation, chunks: Chunk[], callback: (error?: Error) => void) => void): void;
+		plugin(
+			name: 'optimize-chunk-assets',
+			fn: (this: Compilation, chunks: Chunk[], callback: (error?: Error) => void) => void
+		): void;
 		plugin(name: 'after-optimize-chunk-assets', fn: (this: Compilation, chunks: Chunk[]) => void): void;
-		plugin(name: 'optimize-assets', fn: (this: Compilation, assets: { [key: string]: Source }, callback: (error?: Error) => void) => void): void;
+		plugin(
+			name: 'optimize-assets',
+			fn: (this: Compilation, assets: { [key: string]: Source }, callback: (error?: Error) => void) => void
+		): void;
 		plugin(name: 'after-optimize-assets', fn: (this: Compilation, assets: { [key: string]: Source }) => void): void;
 		plugin(name: 'build-module', fn: (this: Compilation, module: Module) => void): void;
 		plugin(name: 'succeed-module', fn: (this: Compilation, module: Module) => void): void;
@@ -509,7 +563,10 @@ declare module 'webpack/lib/Compiler' {
 		plugin(name: 'run', fn: (this: Compiler, compiler: Compiler) => void): void;
 		plugin(name: 'emit', fn: (this: Compiler, compilation: Compilation) => void): void;
 		plugin(name: 'after-emit', fn: (this: Compiler, compilation: Compilation) => void): void;
-		plugin(name: 'compilation', fn: (this: Compiler, compilation: Compilation, params: Compiler.CompilationParams) => void): void;
+		plugin(
+			name: 'compilation',
+			fn: (this: Compiler, compilation: Compilation, params: Compiler.CompilationParams) => void
+		): void;
 		plugin(name: 'normal-module-factory', fn: (this: Compiler, factory: NormalModuleFactory) => void): void;
 		plugin(name: 'context-module-factory', fn: (this: Compiler, factory: ContextModuleFactory) => void): void;
 		plugin(name: 'compile', fn: (this: Compiler, params: any) => void): void;
@@ -570,7 +627,12 @@ declare module 'webpack/lib/ContextReplacementPlugin' {
 	import webpack = require('webpack');
 
 	class ContextReplacementPlugin implements webpack.Plugin {
-		constructor(resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any);
+		constructor(
+			resourceRegExp: RegExp,
+			newContentResource?: any,
+			newContentRecursive?: any,
+			newContentRegExp?: any
+		);
 		apply(compiler: webpack.Compiler): void;
 	}
 	export = ContextReplacementPlugin;
@@ -580,7 +642,7 @@ declare module 'webpack/lib/DefinePlugin' {
 	import webpack = require('webpack');
 
 	class DefinePlugin implements webpack.Plugin {
-		constructor(definitions: { [key: string]: string; });
+		constructor(definitions: { [key: string]: string });
 		apply(compiler: webpack.Compiler): void;
 	}
 	export = DefinePlugin;
@@ -634,10 +696,10 @@ declare module 'webpack/lib/Dependency' {
 
 		loc?: any;
 		module: Module;
-		range?: [ number, number ];
+		range?: [number, number];
 
 		isEqualResource(): boolean;
-		getReference(): { module: Module; importedNames: boolean; } | null;
+		getReference(): { module: Module; importedNames: boolean } | null;
 		getExports(): string[] | null;
 		getWarnings(): string[] | null;
 		getErrors(): string[] | null;
@@ -649,8 +711,7 @@ declare module 'webpack/lib/Dependency' {
 }
 
 declare module 'webpack/lib/MainTemplate' {
-	class MainTemplate {
-	}
+	class MainTemplate {}
 	export = MainTemplate;
 }
 
@@ -684,9 +745,36 @@ declare module 'webpack/lib/ModuleTemplate' {
 	import * as crypto from 'crypto';
 
 	class ModuleTemplate extends Template {
-		plugin(name: 'module', fn: (this: ModuleTemplate, moduleSource: Source, module: Module, chunk: Chunk, dependencyTemplates: Template[]) => Source): void;
-		plugin(name: 'render', fn: (this: ModuleTemplate, moduleSource: Source, module: Module, chunk: Chunk, dependencyTemplates: Template[]) => Source): void;
-		plugin(name: 'package', fn: (this: ModuleTemplate, moduleSource: Source, module: Module, chunk: Chunk, dependencyTemplates: Template[]) => Source): void;
+		plugin(
+			name: 'module',
+			fn: (
+				this: ModuleTemplate,
+				moduleSource: Source,
+				module: Module,
+				chunk: Chunk,
+				dependencyTemplates: Template[]
+			) => Source
+		): void;
+		plugin(
+			name: 'render',
+			fn: (
+				this: ModuleTemplate,
+				moduleSource: Source,
+				module: Module,
+				chunk: Chunk,
+				dependencyTemplates: Template[]
+			) => Source
+		): void;
+		plugin(
+			name: 'package',
+			fn: (
+				this: ModuleTemplate,
+				moduleSource: Source,
+				module: Module,
+				chunk: Chunk,
+				dependencyTemplates: Template[]
+			) => Source
+		): void;
 		plugin(name: 'hash', fn: (this: ModuleTemplate, hash: crypto.Hash) => void): void;
 	}
 
@@ -706,7 +794,14 @@ declare module 'webpack/lib/NormalModule' {
 		context: any;
 		loaders: string[];
 
-		constructor(request: string, userRequest: string, rawRequest: string, loaders: string[], resource: string, parser: Parser);
+		constructor(
+			request: string,
+			userRequest: string,
+			rawRequest: string,
+			loaders: string[],
+			resource: string,
+			parser: Parser
+		);
 	}
 
 	export = NormalModule;
@@ -738,7 +833,10 @@ declare module 'webpack/lib/NormalModuleFactory' {
 		plugin(name: 'after-resolve', fn: NormalModuleFactory.AfterHandler): void;
 		plugin(name: 'before-resolve', fn: NormalModuleFactory.BeforeHandler): void;
 		plugin(name: 'parser', fn: (this: NormalModuleFactory, parser: Parser, options: any) => void): void;
-		plugin(name: 'resolver', fn: (this: NormalModuleFactory, resolver: NormalModuleFactory.Resolver) => NormalModuleFactory.Resolver): void;
+		plugin(
+			name: 'resolver',
+			fn: (this: NormalModuleFactory, resolver: NormalModuleFactory.Resolver) => NormalModuleFactory.Resolver
+		): void;
 	}
 	namespace NormalModuleFactory {
 		interface BeforeData {
@@ -826,7 +924,7 @@ declare module 'webpack/lib/optimize/CommonsChunkPlugin' {
 		constructor(options: CommonsChunkPlugin.Options);
 		apply(compiler: webpack.Compiler): void;
 	}
-	module CommonsChunkPlugin {
+	namespace CommonsChunkPlugin {
 		interface Options {
 			name?: string;
 			names?: string[];
@@ -848,7 +946,7 @@ declare module 'webpack/lib/optimize/UglifyJsPlugin' {
 		constructor(options?: UglifyJsPlugin.Options);
 		apply(compiler: webpack.Compiler): void;
 	}
-	module UglifyJsPlugin {
+	namespace UglifyJsPlugin {
 		type CommentCallback = (astNode: any, comment: any) => boolean;
 		interface Compress {
 			sequences?: boolean;
@@ -869,7 +967,7 @@ declare module 'webpack/lib/optimize/UglifyJsPlugin' {
 			cascade?: boolean;
 			side_effects?: boolean;
 			warnings?: boolean;
-			global_defs?: { [key: string]: boolean; };
+			global_defs?: { [key: string]: boolean };
 		}
 		interface ExtractComments {
 			condition?: RegExp | string | CommentCallback;

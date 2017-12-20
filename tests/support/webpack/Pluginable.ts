@@ -5,11 +5,11 @@ export interface Plugins {
 }
 
 export default class Pluginable extends Tapable {
-	get plugins(): Plugins {
+	get plugins(this: any): Plugins {
 		return this._plugins as any;
 	}
 
-	mockApply(name: string, ...args: any[]) {
+	mockApply(this: any, name: string, ...args: any[]) {
 		const callbacks = this._plugins[name];
 
 		if (callbacks) {

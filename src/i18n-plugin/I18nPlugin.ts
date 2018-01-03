@@ -5,6 +5,8 @@ import { Compiler, DefinePlugin } from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
 import InjectedModuleDependency from './dependencies/InjectedModuleDependency';
 
+const basePath = process.cwd();
+
 export interface I18nPluginOptions {
 	/**
 	 * An optional list of CLDR JSON paths used to inject CLDR data into the application.
@@ -109,6 +111,9 @@ export default class I18nPlugin {
 
 		return this.cldrPaths
 			.map((url) => {
+				if (url.charAt(0) === '.') {
+					url = join(basePath, url);
+				}
 				return locales.map((locale) => url.replace('{locale}', locale));
 			})
 			.reduce((left, right) => left.concat(right), [])

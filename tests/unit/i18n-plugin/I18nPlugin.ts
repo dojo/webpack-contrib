@@ -105,9 +105,9 @@ describe('I18nPlugin', () => {
 		};
 		const plugin = new I18nPlugin({
 			defaultLocale: 'en',
-			cldrPaths: ['{locale}/main.json', 'supplemental.json'].map((file) =>
-				join(process.cwd(), 'tests/support/fixtures/cldr/', file)
-			)
+			cldrPaths: ['{locale}/main.json', 'supplemental.json'].map((file) => {
+				return `./tests/support/fixtures/cldr/${file}`;
+			})
 		});
 		applyModule(plugin);
 

@@ -26,7 +26,7 @@ InjectedModuleDependency.Template = class {
 	 */
 	apply(dep: InjectedModuleDependency, source: ReplaceSource) {
 		const content = dep.module
-			? `__webpack_require__(${dep.module.id});`
+			? `__webpack_require__(${JSON.stringify(dep.module.id)});`
 			: webpackMissingModule.module(dep.request);
 
 		const prefix = dep.variable ? `var ${dep.variable} = ` : '';

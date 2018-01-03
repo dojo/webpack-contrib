@@ -184,7 +184,7 @@ The plugin accepts an options object with the following properties:
 
 | Property | Type | Optional | Description |
 | -------- | ---- | -------- | ----------- |
-| cldrData | string[] | Yes | An array of paths to CLDR JSON modules that should be included in the build and registered with the i18n ecosystem. |
+| cldrData | string[] | Yes | An array of paths to CLDR JSON modules that should be included in the build and registered with the i18n ecosystem. If a path begins with a ".", then it is treated as relative to the current working directory. Otherwise, it is treated as a valid mid. |
 | defaultLocale | string | No | The default locale. |
 | supportedLocales | string[] | Yes | An array of supported locales beyond the default. |
 | target | string | Yes | The entry point into which the i18n module should be injected. Defaults to `src/main.ts`. |

@@ -4,10 +4,9 @@
 [![codecov](https://codecov.io/gh/dojo/webpack-contrib/branch/master/graph/badge.svg)](https://codecov.io/gh/dojo/webpack-contrib)
 [![npm version](https://badge.fury.io/js/%40dojo%2Fwebpack-contrib.svg)](http://badge.fury.io/js/%40dojo%2Fwebpack-contrib)
 
-This is the home for custom Webpack plugins and loaders used in the Dojo 2 build process
+This is the home for custom Webpack plugins and [loaders](https://webpack.js.org/concepts/loaders/) used in the Dojo 2 build process.
 
 # static-build-loader
-
 
 A webpack loader which allows code to be statically optimized for a particular context at bundling time.
 This loader acts on JavaScript. Some examples show the TypeScript source, but the loader will only
@@ -15,14 +14,14 @@ work if acting on the compiled output.
 
 ## Features
 
-The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the AST structure of the code, and modifying it when appropriate.
+The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) structure of the code, and modifying it when appropriate.
 
 The loader takes two options:
 
-* features: A map of _static_ features or a feature or list of features that resolve to a similar static map
+* `features`: A map of _static_ features or a feature or list of features that resolve to a similar static map
 based on the functionality provided by the specified targets. Each key in the map is the name of the feature
 and the value is `true` if the feature is present in that context, otherwise `false`.
-* isRunningInNode: An optional boolean parameter. If set to false this indicates that the loader will not be
+* `isRunningInNode`: An optional boolean parameter. If set to `false` this indicates that the loader will not be
 running in an environment with a Node-like require.
 
 For example in a webpack configuration, the map of features would look like this:

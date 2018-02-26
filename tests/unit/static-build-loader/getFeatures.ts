@@ -15,6 +15,8 @@ registerSuite('getFeatures', {
 			blob: true,
 			'dom-mutationobserver': false,
 			'dom-webanimation': false,
+			'dom-pointer-events': true,
+			'dom-intersection-observer': false,
 			'es-observable': false,
 			'es2017-object': false,
 			'es2017-string': false,
@@ -52,6 +54,7 @@ registerSuite('getFeatures', {
 		assert.deepEqual(getFeatures(['ie11', 'node']), {
 			arraybuffer: true,
 			blob: true,
+			'dom-intersection-observer': false,
 			'dom-mutationobserver': false,
 			'dom-webanimation': false,
 			'es2017-object': false,

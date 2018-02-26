@@ -3,6 +3,8 @@
 	"blob": true,
 	"dom-mutationobserver": false,
 	"dom-webanimation": false,
+	"dom-pointer-events": false,
+	"dom-intersection-observer": false,
 	"es-observable": false,
 	"es2017-object": true,
 	"es2017-string": true,

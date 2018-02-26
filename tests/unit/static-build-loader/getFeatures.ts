@@ -56,7 +56,6 @@ registerSuite('getFeatures', {
 			blob: true,
 			'dom-intersection-observer': false,
 			'dom-mutationobserver': false,
-			'dom-pointer-events': false,
 			'dom-webanimation': false,
 			'es2017-object': false,
 			'es2017-string': false,

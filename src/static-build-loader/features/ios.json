@@ -2,6 +2,7 @@
 	"arraybuffer": true,
 	"blob": true,
 	"dom-mutationobserver": true,
+	"dom-webanimation": false,
 	"es-observable": false,
 	"es2017-object": false,
 	"es2017-string": false,

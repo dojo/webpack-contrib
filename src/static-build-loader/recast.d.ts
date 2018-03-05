@@ -14,7 +14,8 @@ declare module 'recast/main' {
 		CallExpression,
 		ExpressionStatement,
 		VariableDeclaration,
-		MemberExpression
+		MemberExpression,
+		ImportDeclaration
 	} from 'estree';
 
 	namespace recast {
@@ -30,6 +31,7 @@ declare module 'recast/main' {
 			MemberExpression: MemberExpression;
 			ExpressionStatement: ExpressionStatement;
 			VariableDeclaration: VariableDeclaration;
+			ImportDeclaration: ImportDeclaration;
 		}
 
 		interface AST {
@@ -61,6 +63,7 @@ declare module 'recast/main' {
 					visitCallExpression: VisitFunction<CallExpression>;
 					visitVariableDeclaration: VisitFunction<VariableDeclaration>;
 					visitExpressionStatement: VisitFunction<ExpressionStatement>;
+					visitDeclaration: VisitFunction<ImportDeclaration>;
 				}>
 			): void;
 		}

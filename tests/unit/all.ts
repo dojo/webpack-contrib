@@ -8,3 +8,4 @@ import './i18n-plugin/dependencies/InjectedModuleDependency';
 import './i18n-plugin/I18nPlugin';
 import './i18n-plugin/templates/setLocaleData';
 import './promise-loader/all';
+import './build-time-render/all';

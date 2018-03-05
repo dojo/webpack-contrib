@@ -30,9 +30,9 @@
   "dependencies": {
     "@dojo/shim": "~0.2.3",
     "copy-webpack-plugin": "4.0.1",
-    "filter-css": "^0.1.2",
+    "filter-css": "0.1.2",
     "html-webpack-include-assets-plugin": "^1.0.2",
-    "jsdom": "^11.6.2",
+    "jsdom": "11.6.2",
     "loader-utils": "^1.1.0",
     "recast": "^0.12.7",
     "source-map": "0.6.1",

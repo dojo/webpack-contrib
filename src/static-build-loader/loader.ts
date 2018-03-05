@@ -18,6 +18,18 @@ export interface StaticHasFeatures {
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
 
+function hasCheck(hasIdentifier: string, args: any, callee: any) {
+	return (
+		(namedTypes.Identifier.check(callee) && callee.name === hasIdentifier && args.length === 1) ||
+		(namedTypes.MemberExpression.check(callee) &&
+			namedTypes.Identifier.check(callee.object) &&
+			callee.object.name === hasIdentifier &&
+			namedTypes.Identifier.check(callee.property) &&
+			callee.property.name === 'default' &&
+			args.length === 1)
+	);
+}
+
 /**
  * Checks code for usage of has pragmas or other calls to @dojo/has and optimizes them out based on the flags or
  * feature sets specified statically. This loader should act on JavaScript, so it should run after the compiler
@@ -99,6 +111,19 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			this.traverse(path);
 		},
 
+		visitDeclaration(path) {
+			if (namedTypes.ImportDeclaration.check(path.node)) {
+				const value = path.node.source.value;
+				if (typeof value === 'string' && HAS_MID.test(value)) {
+					const specifier = path.node.specifiers[0];
+					if (specifier.type === 'ImportDefaultSpecifier') {
+						hasIdentifier = specifier.local.name;
+					}
+				}
+			}
+			this.traverse(path);
+		},
+
 		// Look for `require('*/has');` and set the variable name to `hasIdentifier`
 		visitVariableDeclaration(path) {
 			const { parentPath: { node: parentNode }, node: { declarations } } = path;
@@ -133,15 +158,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 		types.visit(ast, {
 			visitCallExpression(path) {
 				const { node: { arguments: args, callee } } = path;
-
-				if (
-					namedTypes.MemberExpression.check(callee) &&
-					namedTypes.Identifier.check(callee.object) &&
-					callee.object.name === hasIdentifier &&
-					namedTypes.Identifier.check(callee.property) &&
-					callee.property.name === 'default' &&
-					args.length === 1
-				) {
+				if (hasCheck(hasIdentifier as string, args, callee)) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
 						// check to see if we have a flag that we want to statically swap

@@ -120,7 +120,9 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 							}
 							return true;
 						}
-					}).replace(/\/\*# sourceMappingURL\=.*/, '');
+					})
+						.replace(/\/\*.*\*\//g, '')
+						.replace(/^(\s*)(\r\n?|\n)/gm, '');
 					result = `${result}\n${filteredCss}`;
 				}
 				return result;

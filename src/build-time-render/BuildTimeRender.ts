@@ -135,8 +135,11 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 		var element = document.getElementById('${this._root}');
 		var target;
 		paths.some(function (path, i) {
-			target = html[i];
-			return (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
+			var match = (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
+			if (match) {
+				target = html[i];
+			}
+			return match;
 		});
 		if (target && element) {
 			var frag = document.createRange().createContextualFragment(target);

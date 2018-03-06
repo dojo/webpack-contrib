@@ -136,7 +136,7 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 		var target;
 		paths.some(function (path, i) {
 			target = html[i];
-			return path && ((typeof path === 'string' && path === window.location.hash) || (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash)));
+			return (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
 		});
 		if (target && element) {
 			var frag = document.createRange().createContextualFragment(target);

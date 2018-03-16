@@ -3,12 +3,14 @@ import * as path from 'path';
 
 const dModulePath = ['@dojo/widget-core/d'];
 const wPragma = 'w';
-const prefix = '__autoRegistyItem_';
-const registryBagName = '__autoRegistry';
+const prefix = '__autoRegistryItem_';
+const registryBagName = '__autoRegistryItems';
+const registryNamedImport = '__autoRegistry';
 const registryDecoratorModulePath = '@dojo/widget-core/decorators/registry';
 
-const registryTransformer = function(this: { bundlePaths: string[] }, context: any) {
+const registryTransformer = function(this: { basePath: string; bundlePaths: string[] }, context: any) {
 	const lazyPaths = this.bundlePaths;
+	const basePath = this.basePath;
 	const registryBag: any = {};
 	const moduleBag: any = {};
 
@@ -16,13 +18,14 @@ const registryTransformer = function(this: { bundlePaths: string[] }, context: a
 	let wName: string;
 	let contextPath: string;
 	let moduleIdentifier: ts.Expression;
+	const opts = context.getCompilerOptions();
+	const { module } = opts;
 
 	const visitor: any = (node: any) => {
 		if (node.kind === ts.SyntaxKind.ImportDeclaration) {
 			if (
-				lazyPaths.indexOf(
-					path.resolve(contextPath, node.moduleSpecifier.text).replace(`${process.cwd()}/`, '')
-				) !== -1
+				lazyPaths.indexOf(path.resolve(contextPath, node.moduleSpecifier.text).replace(`${basePath}/`, '')) !==
+				-1
 			) {
 				const importClause = node.importClause;
 				if (importClause.name) {
@@ -57,9 +60,14 @@ const registryTransformer = function(this: { bundlePaths: string[] }, context: a
 					}
 				}
 			} else if (node.kind === ts.SyntaxKind.ClassDeclaration && !addedRegistryImport) {
-				const call = ts.createCall(ts.createPropertyAccess(moduleIdentifier, 'registry'), undefined, [
-					ts.createIdentifier(registryBagName)
-				]);
+				let call;
+				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
+					call = ts.createCall(ts.createPropertyAccess(moduleIdentifier, 'registry'), undefined, [
+						ts.createIdentifier(registryBagName)
+					]);
+				} else {
+					call = ts.createCall(moduleIdentifier, undefined, [ts.createIdentifier(registryBagName)]);
+				}
 				const dec = ts.createDecorator(call);
 
 				node = ts.updateClassDeclaration(
@@ -78,14 +86,19 @@ const registryTransformer = function(this: { bundlePaths: string[] }, context: a
 	};
 
 	return function(node: any) {
-		contextPath = path.dirname(path.relative(process.cwd(), node.getSourceFile().fileName));
+		contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
 		const moduleSpecifier = ts.createLiteral(registryDecoratorModulePath);
 		const importIdentifier = ts.createIdentifier('registry');
-		const importSpecifier = ts.createImportSpecifier(undefined, importIdentifier);
+		const aliasIdentifier = ts.createIdentifier(registryNamedImport);
+		const importSpecifier = ts.createImportSpecifier(importIdentifier, aliasIdentifier);
 		const namedImport = ts.createNamedImports([importSpecifier]);
 		const importClause = ts.createImportClause(undefined, namedImport);
 		const importDeclaration = ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier);
-		moduleIdentifier = ts.getGeneratedNameForNode(importDeclaration);
+		if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
+			moduleIdentifier = ts.getGeneratedNameForNode(importDeclaration);
+		} else {
+			moduleIdentifier = importSpecifier.name;
+		}
 
 		let result = ts.visitNode(node, visitor);
 		if (addedRegistryImport) {
@@ -131,4 +144,4 @@ const registryTransformer = function(this: { bundlePaths: string[] }, context: a
 	};
 };
 
-export default (bundlePaths: string[]) => registryTransformer.bind({ bundlePaths });
+export default (basePath: string, bundlePaths: string[]) => registryTransformer.bind({ bundlePaths, basePath });

@@ -9,7 +9,7 @@ import { v, w } from '@dojo/widget-core/d';
 import WidgetBase from '@dojo/widget-core/WidgetBase';
 import Bar from './Bar';
 import Baz from './Baz';
-import Qux from './Qux';
+import { Blah } from './Qux';
 
 export class Foo extends WidgetBase {
 	protected render() {
@@ -17,7 +17,7 @@ export class Foo extends WidgetBase {
 			v('div', ['Foo']),
 			w(Bar, {}),
 			w(Baz, {}),
-			w(Qux, {})
+			w(Blah, {})
 		]);
 	}
 }
@@ -42,13 +42,13 @@ describe('registry-transformer', () => {
 import WidgetBase from '@dojo/widget-core/WidgetBase';
 import Bar from './Bar';
 import Baz from './Baz';
-import Qux from './Qux';
+import { Blah } from './Qux';
 export class Foo extends WidgetBase {
     render() {
         return v('div'[v('div', ['Foo']),
             w(Bar, {}),
             w(Baz, {}),
-            w(Qux, {})]);
+            w(Blah, {})]);
     }
 }
 export default HelloWorld;
@@ -71,7 +71,7 @@ export default HelloWorld;
 
 		const expected = `import * as tslib_1 from "tslib";
 import { registry as __autoRegistry } from "@dojo/widget-core/decorators/registry";
-var __autoRegistryItems = { '__autoRegistryItem_Bar': () => import("./Bar"), '__autoRegistryItem_Qux': () => import("./Qux") };
+var __autoRegistryItems = { '__autoRegistryItem_Bar': () => import("./Bar"), '__autoRegistryItem_Blah': () => import("./Qux").then(module => module.Blah) };
 import { v, w } from '@dojo/widget-core/d';
 import WidgetBase from '@dojo/widget-core/WidgetBase';
 import Baz from './Baz';
@@ -80,7 +80,7 @@ let Foo = class Foo extends WidgetBase {
         return v('div'[v('div', ['Foo']),
             w("__autoRegistryItem_Bar", {}),
             w(Baz, {}),
-            w("__autoRegistryItem_Qux", {})]);
+            w("__autoRegistryItem_Blah", {})]);
     }
 };
 Foo = tslib_1.__decorate([
@@ -89,6 +89,7 @@ Foo = tslib_1.__decorate([
 export { Foo };
 export default HelloWorld;
 `;
+
 		assert.equal(result.outputText, expected);
 	});
 
@@ -109,7 +110,7 @@ export default HelloWorld;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const registry_1 = require("@dojo/widget-core/decorators/registry");
-var __autoRegistryItems = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./Bar")), '__autoRegistryItem_Qux': () => Promise.resolve().then(() => require("./Qux")) };
+var __autoRegistryItems = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./Bar")), '__autoRegistryItem_Blah': () => Promise.resolve().then(() => require("./Qux")).then(module => module.Blah) };
 const d_1 = require("@dojo/widget-core/d");
 const WidgetBase_1 = require("@dojo/widget-core/WidgetBase");
 const Baz_1 = require("./Baz");
@@ -118,7 +119,7 @@ let Foo = class Foo extends WidgetBase_1.default {
         return d_1.v('div'[d_1.v('div', ['Foo']),
             d_1.w("__autoRegistryItem_Bar", {}),
             d_1.w(Baz_1.default, {}),
-            d_1.w("__autoRegistryItem_Qux", {})]);
+            d_1.w("__autoRegistryItem_Blah", {})]);
     }
 };
 Foo = tslib_1.__decorate([

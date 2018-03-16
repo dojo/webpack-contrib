@@ -25,6 +25,37 @@ export default HelloWorld;
 `;
 
 describe('registry-transformer', () => {
+	it('does not add import or decorator when no modules specified', () => {
+		const transformer = registryTransformer(process.cwd(), []);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const expected = `import { v, w } from '@dojo/widget-core/d';
+import WidgetBase from '@dojo/widget-core/WidgetBase';
+import Bar from './Bar';
+import Baz from './Baz';
+import Qux from './Qux';
+export class Foo extends WidgetBase {
+    render() {
+        return v('div'[v('div', ['Foo']),
+            w(Bar, {}),
+            w(Baz, {}),
+            w(Qux, {})]);
+    }
+}
+export default HelloWorld;
+`;
+		assert.equal(result.outputText, expected);
+	});
+
 	it('does add import and decorator for esm', () => {
 		const transformer = registryTransformer(process.cwd(), ['Bar', 'Qux']);
 		const result = ts.transpileModule(source, {

@@ -16,6 +16,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	const { module } = opts;
 	const registryBag: any = {};
 	const moduleBag: any = {};
+	let hasLazyModules = false;
 
 	let addedRegistryImport = false;
 	let wName: string;
@@ -27,13 +28,15 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			const targetPath = path.resolve(contextPath, node.moduleSpecifier.text).replace(`${basePath}/`, '');
 			if (lazyPaths.indexOf(targetPath) !== -1) {
 				const importClause = node.importClause;
+				const importPath = node.moduleSpecifier.text;
 				if (importClause.name) {
-					moduleBag[importClause.name.escapedText] = node.moduleSpecifier.text;
+					moduleBag[importClause.name.escapedText] = importPath;
 				} else if (importClause.namedBindings) {
 					importClause.namedBindings.elements.forEach((element: any) => {
-						moduleBag[element.name.escapedText] = node.moduleSpecifier.text;
+						moduleBag[element.name.escapedText] = importPath;
 					});
 				}
+				hasLazyModules = true;
 			} else if (dModulePath === node.moduleSpecifier.text) {
 				const namedBindings = node.importClause.namedBindings;
 				if (namedBindings) {
@@ -48,7 +51,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 				}
 			}
 		}
-		if (wName) {
+		if (wName && hasLazyModules) {
 			if (node.kind === ts.SyntaxKind.CallExpression) {
 				if (node.expression.escapedText === wName && node.arguments && node.arguments.length) {
 					const text = node.arguments[0].escapedText;

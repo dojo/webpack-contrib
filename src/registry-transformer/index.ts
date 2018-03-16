@@ -14,8 +14,8 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	const basePath = this.basePath;
 	const opts = context.getCompilerOptions();
 	const { module } = opts;
-	const registryBag: any = {};
-	const moduleBag: any = {};
+	const registryBag: { [index: string]: string } = {};
+	const moduleBag: { [index: string]: string } = {};
 	let hasLazyModules = false;
 
 	let addedRegistryImport = false;
@@ -26,6 +26,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	const visitor: any = (node: any) => {
 		if (node.kind === ts.SyntaxKind.ImportDeclaration) {
 			const targetPath = path.resolve(contextPath, node.moduleSpecifier.text).replace(`${basePath}/`, '');
+			// is the import a specified lazy module?
 			if (lazyPaths.indexOf(targetPath) !== -1) {
 				const importClause = node.importClause;
 				const importPath = node.moduleSpecifier.text;
@@ -37,6 +38,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					});
 				}
 				hasLazyModules = true;
+				// is this the import of d? if so find the w pragma
 			} else if (dModulePath === node.moduleSpecifier.text) {
 				const namedBindings = node.importClause.namedBindings;
 				if (namedBindings) {
@@ -51,18 +53,24 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 				}
 			}
 		}
+		// if we found a pragma and we have lazy modules
 		if (wName && hasLazyModules) {
 			if (node.kind === ts.SyntaxKind.CallExpression) {
+				// is this a w call
 				if (node.expression.escapedText === wName && node.arguments && node.arguments.length) {
 					const text = node.arguments[0].escapedText;
+					// does it exist as a lazy module?
 					if (moduleBag[text]) {
 						node.arguments[0] = ts.createLiteral(`${registryItemPrefix}${text}`);
+						// add to registry object for later
 						registryBag[text] = moduleBag[text];
+						// turn first arg of w call from widget class into generated string
 						ts.updateCall(node, node.expression, node.typeArguments, node.arguments);
 					}
 				}
 			} else if (node.kind === ts.SyntaxKind.ClassDeclaration && !addedRegistryImport) {
 				let call;
+				// a bit hacky but, if we are a non es module, make a property access in lieu of a named import
 				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
 					call = ts.createCall(
 						ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
@@ -98,6 +106,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 		const namedImport = ts.createNamedImports([importSpecifier]);
 		const importClause = ts.createImportClause(undefined, namedImport);
 		const importDeclaration = ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier);
+
 		if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
 			moduleIdentifier = ts.getGeneratedNameForNode(importDeclaration);
 		} else {
@@ -106,7 +115,8 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 
 		let result = ts.visitNode(node, visitor);
 		if (addedRegistryImport) {
-			const registryItems = Object.keys(registryBag).map((registryLabel: string) => {
+			// create a registry object with the keys and import of the module itself
+			const registryItems = Object.keys(registryBag).map((registryLabel) => {
 				const modulePath = registryBag[registryLabel];
 				return ts.createPropertyAssignment(
 					`'${registryItemPrefix}${registryLabel}'`,
@@ -132,11 +142,12 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					)
 				])
 			);
-			const values = Object.keys(registryBag).map((key: string) => registryBag[key]);
+			const importsToRemove = Object.keys(registryBag).map((key) => registryBag[key]);
+			// remove any imports that we have moved to the registry
 			const filteredStatements = result.statements.filter((statement: any) => {
 				if (
 					statement.kind === ts.SyntaxKind.ImportDeclaration &&
-					values.indexOf(statement.moduleSpecifier.text) !== -1
+					importsToRemove.indexOf(statement.moduleSpecifier.text) !== -1
 				) {
 					return false;
 				}

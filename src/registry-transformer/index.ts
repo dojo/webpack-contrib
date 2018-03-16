@@ -16,6 +16,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	const { module } = opts;
 	const registryBag: { [index: string]: string } = {};
 	const moduleBag: { [index: string]: string } = {};
+	const namedImportBag: { [index: string]: boolean } = {};
 	let hasLazyModules = false;
 
 	let addedRegistryImport = false;
@@ -30,11 +31,14 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			if (lazyPaths.indexOf(targetPath) !== -1) {
 				const importClause = node.importClause;
 				const importPath = node.moduleSpecifier.text;
+				// default import
 				if (importClause.name) {
 					moduleBag[importClause.name.escapedText] = importPath;
-				} else if (importClause.namedBindings) {
+					// support a single named import also, anything else we can't elide
+				} else if (importClause.namedBindings && importClause.namedBindings.elements.length === 1) {
 					importClause.namedBindings.elements.forEach((element: any) => {
 						moduleBag[element.name.escapedText] = importPath;
+						namedImportBag[element.name.escapedText] = true;
 					});
 				}
 				hasLazyModules = true;
@@ -118,18 +122,42 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			// create a registry object with the keys and import of the module itself
 			const registryItems = Object.keys(registryBag).map((registryLabel) => {
 				const modulePath = registryBag[registryLabel];
+				let importCall;
+				if (namedImportBag[registryLabel]) {
+					importCall = ts.createCall(
+						ts.createPropertyAccess(
+							ts.createCall(
+								(ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword),
+								undefined,
+								[ts.createLiteral(`${modulePath}`)]
+							),
+							ts.createIdentifier('then')
+						),
+						undefined,
+						[
+							ts.createArrowFunction(
+								undefined,
+								undefined,
+								[ts.createParameter(undefined, undefined, undefined, ts.createIdentifier('module'))],
+								undefined,
+								undefined,
+								ts.createPropertyAccess(
+									ts.createIdentifier('module'),
+									ts.createIdentifier(registryLabel)
+								)
+							)
+						]
+					);
+				} else {
+					importCall = ts.createCall(
+						(ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword),
+						undefined,
+						[ts.createLiteral(`${modulePath}`)]
+					);
+				}
 				return ts.createPropertyAssignment(
 					`'${registryItemPrefix}${registryLabel}'`,
-					ts.createArrowFunction(
-						undefined,
-						undefined,
-						[],
-						undefined,
-						undefined,
-						ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
-							ts.createLiteral(`${modulePath}`)
-						])
-					)
+					ts.createArrowFunction(undefined, undefined, [], undefined, undefined, importCall)
 				);
 			});
 			const registryStatement = ts.createVariableStatement(

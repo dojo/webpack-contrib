@@ -1,16 +1,19 @@
 import * as ts from 'typescript';
 import * as path from 'path';
 
-const dModulePath = ['@dojo/widget-core/d'];
+const dModulePath = '@dojo/widget-core/d';
 const wPragma = 'w';
-const prefix = '__autoRegistryItem_';
+const registryItemPrefix = '__autoRegistryItem_';
 const registryBagName = '__autoRegistryItems';
-const registryNamedImport = '__autoRegistry';
+const registryDecoratorNamedImport = 'registry';
+const registryDecoratorNamedImportAlias = '__autoRegistry';
 const registryDecoratorModulePath = '@dojo/widget-core/decorators/registry';
 
 const registryTransformer = function(this: { basePath: string; bundlePaths: string[] }, context: any) {
 	const lazyPaths = this.bundlePaths;
 	const basePath = this.basePath;
+	const opts = context.getCompilerOptions();
+	const { module } = opts;
 	const registryBag: any = {};
 	const moduleBag: any = {};
 
@@ -18,15 +21,11 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	let wName: string;
 	let contextPath: string;
 	let moduleIdentifier: ts.Expression;
-	const opts = context.getCompilerOptions();
-	const { module } = opts;
 
 	const visitor: any = (node: any) => {
 		if (node.kind === ts.SyntaxKind.ImportDeclaration) {
-			if (
-				lazyPaths.indexOf(path.resolve(contextPath, node.moduleSpecifier.text).replace(`${basePath}/`, '')) !==
-				-1
-			) {
+			const targetPath = path.resolve(contextPath, node.moduleSpecifier.text).replace(`${basePath}/`, '');
+			if (lazyPaths.indexOf(targetPath) !== -1) {
 				const importClause = node.importClause;
 				if (importClause.name) {
 					moduleBag[importClause.name.escapedText] = node.moduleSpecifier.text;
@@ -35,7 +34,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 						moduleBag[element.name.escapedText] = node.moduleSpecifier.text;
 					});
 				}
-			} else if (dModulePath.indexOf(node.moduleSpecifier.text) !== -1) {
+			} else if (dModulePath === node.moduleSpecifier.text) {
 				const namedBindings = node.importClause.namedBindings;
 				if (namedBindings) {
 					namedBindings.elements.forEach((element: any) => {
@@ -54,7 +53,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 				if (node.expression.escapedText === wName && node.arguments && node.arguments.length) {
 					const text = node.arguments[0].escapedText;
 					if (moduleBag[text]) {
-						node.arguments[0] = ts.createLiteral(`${prefix}${text}`);
+						node.arguments[0] = ts.createLiteral(`${registryItemPrefix}${text}`);
 						registryBag[text] = moduleBag[text];
 						ts.updateCall(node, node.expression, node.typeArguments, node.arguments);
 					}
@@ -62,9 +61,11 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			} else if (node.kind === ts.SyntaxKind.ClassDeclaration && !addedRegistryImport) {
 				let call;
 				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
-					call = ts.createCall(ts.createPropertyAccess(moduleIdentifier, 'registry'), undefined, [
-						ts.createIdentifier(registryBagName)
-					]);
+					call = ts.createCall(
+						ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
+						undefined,
+						[ts.createIdentifier(registryBagName)]
+					);
 				} else {
 					call = ts.createCall(moduleIdentifier, undefined, [ts.createIdentifier(registryBagName)]);
 				}
@@ -88,8 +89,8 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	return function(node: any) {
 		contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
 		const moduleSpecifier = ts.createLiteral(registryDecoratorModulePath);
-		const importIdentifier = ts.createIdentifier('registry');
-		const aliasIdentifier = ts.createIdentifier(registryNamedImport);
+		const importIdentifier = ts.createIdentifier(registryDecoratorNamedImport);
+		const aliasIdentifier = ts.createIdentifier(registryDecoratorNamedImportAlias);
 		const importSpecifier = ts.createImportSpecifier(importIdentifier, aliasIdentifier);
 		const namedImport = ts.createNamedImports([importSpecifier]);
 		const importClause = ts.createImportClause(undefined, namedImport);
@@ -105,7 +106,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			const registryItems = Object.keys(registryBag).map((registryLabel: string) => {
 				const modulePath = registryBag[registryLabel];
 				return ts.createPropertyAssignment(
-					`'${prefix}${registryLabel}'`,
+					`'${registryItemPrefix}${registryLabel}'`,
 					ts.createArrowFunction(
 						undefined,
 						undefined,

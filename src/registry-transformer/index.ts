@@ -9,6 +9,34 @@ const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
 const registryDecoratorModulePath = '@dojo/widget-core/decorators/registry';
 
+function createArrowFuncForDefaultImport(modulePath: string) {
+	return ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
+		ts.createLiteral(`${modulePath}`)
+	]);
+}
+
+function createArrowFuncForNamedImport(modulePath: string, namedImport: string) {
+	return ts.createCall(
+		ts.createPropertyAccess(
+			ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
+				ts.createLiteral(`${modulePath}`)
+			]),
+			ts.createIdentifier('then')
+		),
+		undefined,
+		[
+			ts.createArrowFunction(
+				undefined,
+				undefined,
+				[ts.createParameter(undefined, undefined, undefined, ts.createIdentifier('module'))],
+				undefined,
+				undefined,
+				ts.createPropertyAccess(ts.createIdentifier('module'), ts.createIdentifier(namedImport))
+			)
+		]
+	);
+}
+
 const registryTransformer = function(this: { basePath: string; bundlePaths: string[] }, context: any) {
 	const lazyPaths = this.bundlePaths;
 	const basePath = this.basePath;
@@ -36,10 +64,9 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					moduleBag[importClause.name.escapedText] = importPath;
 					// support a single named import also, anything else we can't elide
 				} else if (importClause.namedBindings && importClause.namedBindings.elements.length === 1) {
-					importClause.namedBindings.elements.forEach((element: any) => {
-						moduleBag[element.name.escapedText] = importPath;
-						namedImportBag[element.name.escapedText] = true;
-					});
+					const element = importClause.namedBindings.elements[0];
+					moduleBag[element.name.escapedText] = importPath;
+					namedImportBag[element.name.escapedText] = true;
 				}
 				hasLazyModules = true;
 				// is this the import of d? if so find the w pragma
@@ -124,36 +151,9 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 				const modulePath = registryBag[registryLabel];
 				let importCall;
 				if (namedImportBag[registryLabel]) {
-					importCall = ts.createCall(
-						ts.createPropertyAccess(
-							ts.createCall(
-								(ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword),
-								undefined,
-								[ts.createLiteral(`${modulePath}`)]
-							),
-							ts.createIdentifier('then')
-						),
-						undefined,
-						[
-							ts.createArrowFunction(
-								undefined,
-								undefined,
-								[ts.createParameter(undefined, undefined, undefined, ts.createIdentifier('module'))],
-								undefined,
-								undefined,
-								ts.createPropertyAccess(
-									ts.createIdentifier('module'),
-									ts.createIdentifier(registryLabel)
-								)
-							)
-						]
-					);
+					importCall = createArrowFuncForNamedImport(modulePath, registryLabel);
 				} else {
-					importCall = ts.createCall(
-						(ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword),
-						undefined,
-						[ts.createLiteral(`${modulePath}`)]
-					);
+					importCall = createArrowFuncForDefaultImport(modulePath);
 				}
 				return ts.createPropertyAssignment(
 					`'${registryItemPrefix}${registryLabel}'`,

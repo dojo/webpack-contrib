@@ -47,10 +47,10 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 	const namedImportBag: { [index: string]: boolean } = {};
 	let hasLazyModules = false;
 
-	let addedRegistryImport = false;
 	let wName: string;
 	let contextPath: string;
 	let moduleIdentifier: ts.Expression;
+	let targetClass: ts.Node;
 
 	const visitor: any = (node: any) => {
 		if (node.kind === ts.SyntaxKind.ImportDeclaration) {
@@ -64,7 +64,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					moduleBag[importClause.name.escapedText] = importPath;
 					// support a single named import also, anything else we can't elide
 				} else if (importClause.namedBindings && importClause.namedBindings.elements.length === 1) {
-					const element = importClause.namedBindings.elements[0];
+					const [element] = importClause.namedBindings.elements;
 					moduleBag[element.name.escapedText] = importPath;
 					namedImportBag[element.name.escapedText] = true;
 				}
@@ -92,6 +92,15 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					const text = node.arguments[0].escapedText;
 					// does it exist as a lazy module?
 					if (moduleBag[text]) {
+						let parent = node.parent;
+						while (parent) {
+							if (parent.kind === ts.SyntaxKind.ClassDeclaration) {
+								targetClass = parent;
+								break;
+							}
+							parent = parent.parent;
+						}
+
 						const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
 						// add to registry object for later
 						registryBag[text] = moduleBag[text];
@@ -102,30 +111,6 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 						]);
 					}
 				}
-			} else if (node.kind === ts.SyntaxKind.ClassDeclaration && !addedRegistryImport) {
-				let call;
-				// a bit hacky but, if we are a non es module, make a property access in lieu of a named import
-				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD || module === ts.ModuleKind.UMD) {
-					call = ts.createCall(
-						ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
-						undefined,
-						[ts.createIdentifier(registryBagName)]
-					);
-				} else {
-					call = ts.createCall(moduleIdentifier, undefined, [ts.createIdentifier(registryBagName)]);
-				}
-				const dec = ts.createDecorator(call);
-
-				node = ts.updateClassDeclaration(
-					node,
-					[dec, ...(node.decorators || [])],
-					node.modifiers,
-					node.name,
-					node.typeParameters,
-					node.heritageClauses,
-					node.members
-				);
-				addedRegistryImport = true;
 			}
 		}
 		return ts.visitEachChild(node, visitor, context);
@@ -148,7 +133,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 		}
 
 		let result = ts.visitNode(node, visitor);
-		if (addedRegistryImport) {
+		if (targetClass) {
 			// create a registry object with the keys and import of the module itself
 			const registryItems = Object.keys(registryBag).map((registryLabel) => {
 				const modulePath = registryBag[registryLabel];
@@ -175,15 +160,47 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 			);
 			const importsToRemove = Object.keys(registryBag).map((key) => registryBag[key]);
 			// remove any imports that we have moved to the registry
-			const filteredStatements = result.statements.filter((statement: any) => {
-				if (
-					statement.kind === ts.SyntaxKind.ImportDeclaration &&
-					importsToRemove.indexOf(statement.moduleSpecifier.text) !== -1
-				) {
-					return false;
-				}
-				return true;
-			});
+			const filteredStatements = result.statements
+				.filter((statement: any) => {
+					if (
+						statement.kind === ts.SyntaxKind.ImportDeclaration &&
+						importsToRemove.indexOf(statement.moduleSpecifier.text) !== -1
+					) {
+						return false;
+					}
+					return true;
+				})
+				.map((node: any) => {
+					if (node.kind === ts.SyntaxKind.ClassDeclaration) {
+						let call;
+						// a bit hacky but, if we are a non es module, make a property access in lieu of a named import
+						if (
+							module === ts.ModuleKind.CommonJS ||
+							module === ts.ModuleKind.AMD ||
+							module === ts.ModuleKind.UMD
+						) {
+							call = ts.createCall(
+								ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
+								undefined,
+								[ts.createIdentifier(registryBagName)]
+							);
+						} else {
+							call = ts.createCall(moduleIdentifier, undefined, [ts.createIdentifier(registryBagName)]);
+						}
+						const dec = ts.createDecorator(call);
+
+						node = ts.updateClassDeclaration(
+							node,
+							[dec, ...(node.decorators || [])],
+							node.modifiers,
+							node.name,
+							node.typeParameters,
+							node.heritageClauses,
+							node.members
+						);
+					}
+					return node;
+				});
 			result = ts.updateSourceFileNode(result, [importDeclaration, registryStatement, ...filteredStatements]);
 		}
 		return result;

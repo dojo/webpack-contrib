@@ -25,6 +25,7 @@ export default HelloWorld;
 `;
 
 describe('registry-transformer', () => {
+	/**
 	it('does not add import or decorator when no modules specified', () => {
 		const transformer = registryTransformer(process.cwd(), []);
 		const result = ts.transpileModule(source, {
@@ -92,7 +93,7 @@ export default HelloWorld;
 
 		assert.equal(result.outputText, expected);
 	});
-
+*/
 	it('does add import and decorator for commonjs', () => {
 		const transformer = registryTransformer(process.cwd(), ['Bar', 'Qux']);
 		const result = ts.transpileModule(source, {
@@ -105,7 +106,7 @@ export default HelloWorld;
 				before: [transformer]
 			}
 		});
-
+		console.log(result.outputText);
 		const expected = `"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");

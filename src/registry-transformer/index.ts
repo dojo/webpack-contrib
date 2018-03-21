@@ -92,17 +92,20 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 					const text = node.arguments[0].escapedText;
 					// does it exist as a lazy module?
 					if (moduleBag[text]) {
-						node.arguments[0] = ts.createLiteral(`${registryItemPrefix}${text}`);
+						const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
 						// add to registry object for later
 						registryBag[text] = moduleBag[text];
 						// turn first arg of w call from widget class into generated string
-						ts.updateCall(node, node.expression, node.typeArguments, node.arguments);
+						node = ts.updateCall(node, node.expression, node.typeArguments, [
+							registryIdentifier,
+							...node.arguments.slice(1)
+						]);
 					}
 				}
 			} else if (node.kind === ts.SyntaxKind.ClassDeclaration && !addedRegistryImport) {
 				let call;
 				// a bit hacky but, if we are a non es module, make a property access in lieu of a named import
-				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
+				if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD || module === ts.ModuleKind.UMD) {
 					call = ts.createCall(
 						ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
 						undefined,
@@ -138,7 +141,7 @@ const registryTransformer = function(this: { basePath: string; bundlePaths: stri
 		const importClause = ts.createImportClause(undefined, namedImport);
 		const importDeclaration = ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier);
 
-		if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD) {
+		if (module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD || module === ts.ModuleKind.UMD) {
 			moduleIdentifier = ts.getGeneratedNameForNode(importDeclaration);
 		} else {
 			moduleIdentifier = importSpecifier.name;

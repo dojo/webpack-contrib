@@ -15,40 +15,9 @@ function createArrowFuncForDefaultImport(modulePath: string) {
 	]);
 }
 
-function createArrowFuncForNamedImport(modulePath: string, namedImport: string) {
-	return ts.createCall(
-		ts.createPropertyAccess(
-			ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
-				ts.createLiteral(`${modulePath}`)
-			]),
-			ts.createIdentifier('then')
-		),
-		undefined,
-		[
-			ts.createArrowFunction(
-				undefined,
-				undefined,
-				[ts.createParameter(undefined, undefined, undefined, ts.createIdentifier('module'))],
-				undefined,
-				undefined,
-				ts.createPropertyAccess(ts.createIdentifier('module'), ts.createIdentifier(namedImport))
-			)
-		]
-	);
-}
-
-function createRegistryImportDeclaration() {
-	const moduleSpecifier = ts.createLiteral(registryDecoratorModulePath);
-	const importIdentifier = ts.createIdentifier(registryDecoratorNamedImport);
-	const aliasIdentifier = ts.createIdentifier(registryDecoratorNamedImportAlias);
-	const importSpecifier = ts.createImportSpecifier(importIdentifier, aliasIdentifier);
-	const namedImport = ts.createNamedImports([importSpecifier]);
-	const importClause = ts.createImportClause(undefined, namedImport);
-	return ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier);
-}
-
 class Visitor {
 	private context: ts.TransformationContext;
+	private root: ts.SourceFile;
 	private contextPath: string;
 	private basePath: string;
 	private bundlePaths: string[];
@@ -63,6 +32,7 @@ class Visitor {
 		this.bundlePaths = options.bundlePaths;
 		this.basePath = options.basePath;
 		this.legacyModule = options.legacyModule;
+		this.root = options.root;
 	}
 
 	public visit(node: ts.Node) {
@@ -86,51 +56,28 @@ class Visitor {
 	}
 
 	public end(node: ts.SourceFile) {
-		const registryImport = createRegistryImportDeclaration();
-		const statements = this.removeImportStatements(node.statements);
-		const registryStatements = this.getRegistryStatements();
-		return ts.updateSourceFileNode(node, [registryImport, ...registryStatements, ...statements]);
-	}
-
-	private setLazyImport(node: ts.ImportDeclaration) {
-		const importPath = (node.moduleSpecifier as ts.StringLiteral).text;
-		const importClause = node.importClause;
-		if (importClause && importClause.name && importClause.name.text) {
-			this.modulesMap.set(importClause.name.text, importPath);
+		if (!this.classMap.size) {
+			return node;
 		}
-	}
 
-	private setWPragma(node: ts.ImportDeclaration) {
-		if (node.importClause) {
-			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
-			namedBindings.elements.some((element: ts.ImportSpecifier) => {
-				const text = element.name.getText();
-				if (text === wPragma || (element.propertyName && element.propertyName.escapedText === wPragma)) {
-					this.wPragma = text;
-					return true;
-				}
-			});
+		let statements = [...node.statements];
+		const moduleSpecifier = ts.createLiteral(registryDecoratorModulePath);
+		const importIdentifier = ts.createIdentifier(registryDecoratorNamedImport);
+		const aliasIdentifier = ts.createIdentifier(registryDecoratorNamedImportAlias);
+		const importSpecifier = ts.createImportSpecifier(importIdentifier, aliasIdentifier);
+		const namedImport = ts.createNamedImports([importSpecifier]);
+		const importClause = ts.createImportClause(undefined, namedImport);
+		const registryImport = ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier);
+
+		let moduleIdentifier: ts.Identifier;
+		if (this.legacyModule) {
+			moduleIdentifier = ts.getGeneratedNameForNode(registryImport);
+		} else {
+			moduleIdentifier = importSpecifier.name;
 		}
-	}
 
-	private replaceWidgetClassWithString(node: ts.CallExpression) {
-		const text = node.arguments[0].getText();
-		const targetClass = this.findParentClass(node);
-		if (targetClass) {
-			const registryItems = this.classMap.get(targetClass) || {};
-			registryItems[text] = this.modulesMap.get(text);
-			this.classMap.set(targetClass, registryItems);
-			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
-			return ts.updateCall(node, node.expression, node.typeArguments, [
-				registryIdentifier,
-				...node.arguments.slice(1)
-			]);
-		}
-		return node;
-	}
+		const registryStatements: ts.Statement[] = [];
 
-	private getRegistryStatements() {
-		const registryStatements: any[] = [];
 		this.classMap.forEach((registry: any, key: ts.Node) => {
 			const registryItems = Object.keys(registry).map((label) => {
 				const modulePath = registry[label];
@@ -152,11 +99,81 @@ class Visitor {
 				])
 			);
 			registryStatements.push(registryStatement);
+
+			const index = this.root.statements.findIndex((node: ts.Node) => {
+				return node === key;
+			});
+
+			let node = statements[index] as ts.ClassDeclaration;
+			let call: ts.CallExpression;
+			if (this.legacyModule) {
+				call = ts.createCall(
+					ts.createPropertyAccess(moduleIdentifier, registryDecoratorNamedImport),
+					undefined,
+					[registryVariableName]
+				);
+			} else {
+				call = ts.createCall(moduleIdentifier, undefined, [registryVariableName]);
+			}
+
+			const dec = ts.createDecorator(call);
+
+			node = ts.updateClassDeclaration(
+				node,
+				[dec, ...(node.decorators || [])],
+				node.modifiers,
+				node.name,
+				node.typeParameters,
+				node.heritageClauses || [],
+				node.members
+			);
+
+			statements[index] = node;
 		});
-		return registryStatements;
+
+		statements = this.removeImportStatements(statements);
+		return ts.updateSourceFileNode(node, [registryImport, ...registryStatements, ...statements]);
 	}
 
-	private removeImportStatements(nodes: ts.NodeArray<ts.Statement>) {
+	private setLazyImport(node: ts.ImportDeclaration) {
+		const importPath = (node.moduleSpecifier as ts.StringLiteral).text;
+		const importClause = node.importClause;
+		if (importClause && importClause.name && importClause.name.text) {
+			this.modulesMap.set(importClause.name.text, importPath);
+		}
+	}
+
+	private setWPragma(node: ts.ImportDeclaration) {
+		if (node.importClause) {
+			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
+			namedBindings.elements.some((element: ts.ImportSpecifier) => {
+				const text = element.name.getText();
+				if (text === wPragma || (element.propertyName && element.propertyName.escapedText === wPragma)) {
+					this.wPragma = text;
+					return true;
+				}
+				return false;
+			});
+		}
+	}
+
+	private replaceWidgetClassWithString(node: ts.CallExpression) {
+		const text = node.arguments[0].getText();
+		const targetClass = this.findParentClass(node);
+		if (targetClass) {
+			const registryItems = this.classMap.get(targetClass) || {};
+			registryItems[text] = this.modulesMap.get(text);
+			this.classMap.set(targetClass, registryItems);
+			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
+			return ts.updateCall(node, node.expression, node.typeArguments, [
+				registryIdentifier,
+				...node.arguments.slice(1)
+			]);
+		}
+		return node;
+	}
+
+	private removeImportStatements(nodes: ts.Statement[]) {
 		const importsToRemove: string[] = [];
 		this.classMap.forEach((registry: any, key: ts.Node) => {
 			Object.keys(registry).forEach((label) => {
@@ -207,8 +224,9 @@ const registryTransformer = function(
 	const legacyModule =
 		module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD || module === ts.ModuleKind.UMD;
 	return function(node: ts.SourceFile) {
+		const root = node;
 		const contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
-		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule });
+		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root });
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
 		return visitor.end(result);
 	};

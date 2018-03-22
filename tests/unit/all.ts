@@ -9,3 +9,4 @@ import './i18n-plugin/I18nPlugin';
 import './i18n-plugin/templates/setLocaleData';
 import './promise-loader/all';
 import './build-time-render/all';
+import './registry-transformer/RegistryTransformer';

@@ -9,13 +9,24 @@ const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
 const registryDecoratorModulePath = '@dojo/widget-core/decorators/registry';
 
+type Registry = { [index: string]: string };
+
+interface VisitorOptions {
+	context: ts.TransformationContext;
+	root: ts.SourceFile;
+	contextPath: string;
+	basePath: string;
+	bundlePaths: string[];
+	legacyModule: boolean;
+}
+
 function createArrowFuncForDefaultImport(modulePath: string) {
 	return ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
 		ts.createLiteral(`${modulePath}`)
 	]);
 }
 
-function createRegistryItemsObject(registryVariableName: ts.Identifier, registry: { [index: string]: string }) {
+function createRegistryItemsObject(registryVariableName: ts.Identifier, registry: Registry) {
 	const registryItems = Object.keys(registry).map((label) => {
 		const modulePath = registry[label];
 		const importCall = createArrowFuncForDefaultImport(modulePath);
@@ -41,9 +52,9 @@ class Visitor {
 	private legacyModule: boolean;
 	private wPragma: undefined | string;
 	private modulesMap = new Map<string, string>();
-	private classMap = new Map<ts.Node, any>();
+	private classMap = new Map<ts.Node, Registry>();
 
-	constructor(options: any) {
+	constructor(options: VisitorOptions) {
 		this.context = options.context;
 		this.contextPath = options.contextPath;
 		this.bundlePaths = options.bundlePaths;
@@ -79,7 +90,7 @@ class Visitor {
 		const statements = [...nodeStatements];
 		const registryStatements: ts.Statement[] = [];
 
-		this.classMap.forEach((registry: any, key: ts.Node) => {
+		this.classMap.forEach((registry: Registry, key: ts.Node) => {
 			const registryVariableName = ts.createUniqueName(registryBagName);
 			registryStatements.push(createRegistryItemsObject(registryVariableName, registry));
 
@@ -162,7 +173,7 @@ class Visitor {
 		const targetClass = this.findParentClass(node);
 		if (targetClass) {
 			const registryItems = this.classMap.get(targetClass) || {};
-			registryItems[text] = this.modulesMap.get(text);
+			registryItems[text] = this.modulesMap.get(text) as string;
 			this.classMap.set(targetClass, registryItems);
 			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
 			return ts.updateCall(node, node.expression, node.typeArguments, [
@@ -175,7 +186,7 @@ class Visitor {
 
 	private removeImportStatements(nodes: ts.Statement[]) {
 		const importsToRemove: string[] = [];
-		this.classMap.forEach((registry: any, key: ts.Node) => {
+		this.classMap.forEach((registry: Registry, key: ts.Node) => {
 			Object.keys(registry).forEach((label) => {
 				importsToRemove.push(registry[label]);
 			});

@@ -1,6 +1,7 @@
 import registryTransformer from '../../../src/registry-transformer/index';
 import * as ts from 'typescript';
 
+const nl = require('normalize-newline');
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
@@ -72,7 +73,7 @@ export class Another extends WidgetBase {
 }
 export default HelloWorld;
 `;
-		assert.equal(result.outputText, expected);
+		assert.equal(nl(result.outputText), expected);
 	});
 
 	it('does add import and decorator for esm', () => {
@@ -122,7 +123,7 @@ Another = tslib_1.__decorate([
 export { Another };
 export default HelloWorld;
 `;
-		assert.equal(result.outputText, expected);
+		assert.equal(nl(result.outputText), expected);
 	});
 
 	it('does add import and decorator for commonjs', () => {
@@ -174,6 +175,6 @@ exports.Another = Another;
 exports.default = HelloWorld;
 `;
 
-		assert.equal(result.outputText, expected);
+		assert.equal(nl(result.outputText), expected);
 	});
 });

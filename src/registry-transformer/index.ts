@@ -66,7 +66,9 @@ class Visitor {
 	public visit(node: ts.Node) {
 		if (ts.isImportDeclaration(node)) {
 			const importPath = (node.moduleSpecifier as ts.StringLiteral).text;
-			const targetPath = path.resolve(this.contextPath, importPath).replace(`${this.basePath}${path.sep}`, '');
+			const targetPath = path.posix
+				.resolve(this.contextPath, importPath)
+				.replace(`${this.basePath}${path.posix.sep}`, '');
 
 			if (this.bundlePaths.indexOf(targetPath) !== -1) {
 				this.setLazyImport(node);

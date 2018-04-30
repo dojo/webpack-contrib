@@ -38,7 +38,7 @@ npm install @dojo/webpack-contrib
 
 ## css-module-decorator-loader
 
-A webpack loader that injects CSS module path info into the generated modules, making it easier for `@dojo/widget-core` to resolve theme styles. This loader takes no options.
+A webpack loader that injects CSS module path information into the generated modules, making it easier for `@dojo/widget-core` to resolve theme styles. This loader takes no options.
 
 ## css-module-dts-loader
 

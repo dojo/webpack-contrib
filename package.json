@@ -46,6 +46,7 @@
     "@types/glob": "~5.0.30",
     "@types/grunt": "~0.4.21",
     "@types/mockery": "^1.4.29",
+    "@types/node": "~9.6.5",
     "@types/sinon": "^2.3.3",
     "@types/webpack": "^3.8.1",
     "codecov.io": "0.1.6",

@@ -10,3 +10,5 @@ import './i18n-plugin/templates/setLocaleData';
 import './promise-loader/all';
 import './build-time-render/all';
 import './registry-transformer/RegistryTransformer';
+import './service-worker-plugin/service-worker-entry';
+import './service-worker-plugin/ServiceWorkerPlugin';

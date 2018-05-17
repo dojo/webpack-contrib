@@ -98,7 +98,9 @@ export default class ServiceWorkerPlugin {
 
 		const precacheProperties = Object.keys(precache).reduce((precacheProperties: WorkboxPrecacheOptions, key) => {
 			const workboxKey: keyof WorkboxPrecacheOptions = precachePropertiesMap[key];
-			precacheProperties[workboxKey] = (precache as any)[key];
+			if (workboxKey) {
+				precacheProperties[workboxKey] = (precache as any)[key];
+			}
 			return precacheProperties;
 		}, Object.create(null));
 
@@ -114,7 +116,8 @@ export default class ServiceWorkerPlugin {
 					importWorkboxFrom: 'local',
 					skipWaiting,
 					runtimeCaching: routes.map((route) => {
-						const { options, strategy, urlPattern } = route;
+						const { options = {}, strategy, urlPattern } = route;
+						const { cacheName, cacheableResponse, expiration, networkTimeoutSeconds } = options;
 
 						if (!urlPattern || !strategy) {
 							throw new Error('Each route must have both a `urlPattern` and `strategy`');
@@ -123,7 +126,12 @@ export default class ServiceWorkerPlugin {
 						return {
 							urlPattern: new RegExp(urlPattern),
 							handler: strategy,
-							options
+							options: this._getDefinedOptions({
+								cacheName,
+								cacheableResponse,
+								expiration,
+								networkTimeoutSeconds
+							})
 						};
 					})
 				})
@@ -154,7 +162,7 @@ export default class ServiceWorkerPlugin {
 	 *
 	 * @param options The options to filter
 	 */
-	private _getDefinedOptions(options: Partial<WorkboxPrecacheOptions>): Partial<WorkboxPrecacheOptions> {
+	private _getDefinedOptions<T>(options: Partial<T>): Partial<T> {
 		return Object.keys(options).reduce((filtered, key) => {
 			const value = (options as any)[key];
 			if (typeof value !== 'undefined') {

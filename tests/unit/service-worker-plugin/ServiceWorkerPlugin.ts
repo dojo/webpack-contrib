@@ -77,9 +77,7 @@ describe('ServiceWorkerPlugin', () => {
 				importWorkboxFrom: 'local',
 				maximumFileSizeToCacheInBytes: 500,
 				skipWaiting: true,
-				runtimeCaching: [
-					{ urlPattern: new RegExp('.*{png|gif|jpg|svg}'), handler: 'cacheFirst', options: undefined }
-				]
+				runtimeCaching: [{ urlPattern: new RegExp('.*{png|gif|jpg|svg}'), handler: 'cacheFirst', options: {} }]
 			}
 		]);
 	});
@@ -121,5 +119,23 @@ describe('ServiceWorkerPlugin', () => {
 			Error,
 			'Each route must have both a `urlPattern` and `strategy`'
 		);
+	});
+
+	it('should ignore unsupported options', () => {
+		const ServiceWorkerPlugin = mockModule.getModuleUnderTest().default;
+		const GenerateSW = mockModule.getMock('workbox-webpack-plugin').GenerateSW;
+		const plugin = new ServiceWorkerPlugin({
+			bogusValue: 'x',
+			precache: {
+				nonExistentOption: true
+			},
+			routes: [{ urlPattern: '.*\\.svg', strategy: 'networkFirst', options: { fakeOption: 42 } }]
+		});
+		plugin.apply(compiler);
+
+		const options = GenerateSW.firstCall.args[0];
+		const keys = Object.keys(options);
+		assert.sameMembers(keys, ['importScripts', 'importWorkboxFrom', 'runtimeCaching']);
+		assert.deepEqual(options.runtimeCaching[0].options, {});
 	});
 });

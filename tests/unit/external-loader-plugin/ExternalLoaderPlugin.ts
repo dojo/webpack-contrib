@@ -28,7 +28,7 @@ describe('ExternalLoaderPlugin', () => {
 			'a',
 			{ from: 'abc', inject: true },
 			{ from: 'abc', to: 'def', inject: true },
-			{ from: 'abc', to: 'def', inject: 'main' },
+			{ from: 'abc', to: 'def/', inject: 'main' },
 			{ from: 'abc', inject: ['one', 'two', 'three', 'four'] },
 			{ from: 'abc' },
 			{ to: 'ignore', name: 'no-from' }
@@ -36,7 +36,7 @@ describe('ExternalLoaderPlugin', () => {
 		const expectedCopyArgs = [
 			{ from: 'abc', to: 'OUTPUT_PATH/abc' },
 			{ from: 'abc', to: 'OUTPUT_PATH/def' },
-			{ from: 'abc', to: 'OUTPUT_PATH/def' },
+			{ from: 'abc', to: 'OUTPUT_PATH/def/' },
 			{ from: 'abc', to: 'OUTPUT_PATH/abc' },
 			{ from: 'abc', to: 'OUTPUT_PATH/abc' }
 		];

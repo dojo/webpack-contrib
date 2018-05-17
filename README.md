@@ -325,8 +325,8 @@ properties:
 
  | Property | Type | optional | Description |
  | -------- | ---- | -------- | ----------- |
- | `from` | `string` | `false`  | A path relative to `node_modules` specifying the dependency location to copy into the build application. |
- | `to` | `string` | `true` | A path that replaces `from` as the location to copy this dependency to. By default, dependencies will be copied to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` if `to` is not specified. |
+ | `from` | `string` | `false`  | A path relative to the root of the project specifying the dependency location to copy into the build application. |
+ | `to` | `string` | `true` | A path that replaces `from` as the location to copy this dependency to. By default, dependencies will be copied to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` if `to` is not specified. If the path includes `.` characters, it must end in a forward slash to be treated as a directory |
  | `name` | `string` | `true` | Indicates that this path, and any children of this path, should be loaded via the external loader |
  | `inject` | `string, string[], or boolean` | `true` | This property indicates that this dependency defines, or includes, scripts or stylesheets that should be loaded on the page. If `inject` is set to `true`, then the file at the location specified by `to` or `from` will be loaded on the page. If this dependency is a folder, then `inject` can be set to a string or array of strings to define one or more files to inject. Each path in `inject` should be relative to `${externalsOutputPath}/${to}` or `${externalsOutputPath}/${from}` depending on whether `to` was provided. |
 

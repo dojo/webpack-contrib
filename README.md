@@ -371,6 +371,7 @@ A custom webpack plugin that generates a service worker from configuration optio
 The plugin accepts either a string path for an existing service worker to copy to the output directory, or an options object with the following properties:
 
 | Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
 | bundles | `string[]` | Yes | An array of bundles to include in the precache. Defaults to all bundles. |
 | cachePrefix | `string` | Yes | The prefix to use for the runtime precache cache. |
 | clientsClaim | `boolean` | Yes | Whether the service worker should start controlling clients on activation. Defaults to `false`. |
@@ -385,6 +386,7 @@ The plugin accepts either a string path for an existing service worker to copy t
 The `precache` option can take the following options to control precaching behavior:
 
 | Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
 | baseDir | `string` | Yes | The base directory to match `include` against. |
 | ignore | `string[]` | Yes | An array of glob pattern string matching files that should be ignored when generating the precache. Defaults to `[ 'node_modules/**/*' ]`. |
 | include | `string` or `string[]` | Yes | A glob pattern string or an array of glob pattern strings matching files that should be included in the precache. Defaults to all files in the build pipeline. |
@@ -398,6 +400,7 @@ The `precache` option can take the following options to control precaching behav
 In addition to precaching, strategies can be provided for specific routes to determine whether and how they can be cached. This `routes` option is an array of objects with the following properties:
 
 | Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
 | urlPattern | `string` | No | A pattern string (which will be converted a regular expression) that matches a specific route. |
 | strategy | `string` | No | The caching strategy (see below). |
 | options | `object` | Yes | An object of additional options, each detailed below. |

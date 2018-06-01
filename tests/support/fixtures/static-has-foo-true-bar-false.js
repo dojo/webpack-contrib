@@ -25,7 +25,6 @@ require("qat");
 
 somename.default.add('foo');
 
-var foo = 'foo';
 var dynamicHas = somename.default(foo);
 
 function doX() {

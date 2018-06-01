@@ -89,12 +89,13 @@ export default class ExternalLoaderPlugin {
 				}
 
 				const base = to || from;
+				const baseDir = base[base.length - 1] === '/' ? base : `${base}/`;
 
 				if (Array.isArray(inject)) {
-					return assets.concat(inject.map((path) => prefixPath(`${base}/${path}`)));
+					return assets.concat(inject.map((path) => prefixPath(`${baseDir}${path}`)));
 				}
 
-				return assets.concat(prefixPath(`${base}${typeof inject === 'string' ? `/${inject}` : ''}`));
+				return assets.concat(prefixPath(typeof inject === 'string' ? `${baseDir}${inject}` : base));
 			},
 			[] as string[]
 		);

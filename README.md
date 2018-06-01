@@ -19,6 +19,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 	- [css-module-plugin](#css-module-plugin)
 	- [external-loader-plugin](#external-loader-plugin)
 	- [i18n-plugin](#i18n-plugin)
+	- [service-worker-plugin](#service-worker-plugin)
 - [Transformers](#transformers)
 	- [registry-transformer](#registry-transformer)
 - [How do I contribute?](#how-do-i-contribute)
@@ -362,6 +363,92 @@ However, in the following scenario the default locale will be used, although it 
 * Default Locale: 'en'
 * Supported Locales: [ 'de', 'ja', 'ar' ]
 * User's locale: 'cz'
+
+## service-worker-plugin
+
+A custom webpack plugin that generates a service worker from configuration options, or simply ensures a custom service worker is copied to the output directory. Generated service workers support both precaching and runtime caching and allow you specify additional resources that should be loaded by the service worker.
+
+The plugin accepts either a string path for an existing service worker to copy to the output directory, or an options object with the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| bundles | `string[]` | Yes | An array of bundles to include in the precache. Defaults to all bundles. |
+| cachePrefix | `string` | Yes | The prefix to use for the runtime precache cache. |
+| clientsClaim | `boolean` | Yes | Whether the service worker should start controlling clients on activation. Defaults to `false`. |
+| excludeBundles | `string[]` | Yes | An array of bundles to include in the precache. Defaults to `[]`. |
+| importScripts | `string[]` | Yes | An array of script paths that should be loaded within the service worker |
+| precache | `object` | Yes | An object of precache configuration options (see below) |
+| routes | `object[]` | Yes | An array of runtime caching config objects (see below) |
+| skipWaiting | `boolean` | Yes | Whether the service worker should skip the waiting lifecycle |
+
+### Precaching
+
+The `precache` option can take the following options to control precaching behavior:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| baseDir | `string` | Yes | The base directory to match `include` against. |
+| ignore | `string[]` | Yes | An array of glob pattern string matching files that should be ignored when generating the precache. Defaults to `[ 'node_modules/**/*' ]`. |
+| include | `string` or `string[]` | Yes | A glob pattern string or an array of glob pattern strings matching files that should be included in the precache. Defaults to all files in the build pipeline. |
+| index | `string` | Yes | The index filename that should be checked if a request fails for a URL ending in `/`. Defaults to `'index.html'`. |
+| maxCacheSize | `number` | Yes | The maximum size in bytes a file must not exceed to be added to the precache. Defaults to `2097152` (2 MB). |
+| strict | `boolean` | Yes | If `true`, then the build will fail if an `include` pattern matches a non-existent directory. Defaults to `true`. |
+| symlinks | `boolean` | Yes | Whether to follow symlinks when generating the precache. Defaults to `true`. |
+
+### Runtime Caching
+
+In addition to precaching, strategies can be provided for specific routes to determine whether and how they can be cached. This `routes` option is an array of objects with the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| urlPattern | `string` | No | A pattern string (which will be converted a regular expression) that matches a specific route. |
+| strategy | `string` | No | The caching strategy (see below). |
+| options | `object` | Yes | An object of additional options, each detailed below. |
+| cacheName | `string` | Yes | The name of the cache to use for the route. Note that the `cachePrefix` is _not_ prepended to the cache name. Defaults to the main runtime cache (`${cachePrefix}-runtime-${domain}`). |
+| cacheableResponse | `object` | Yes | Uses HTTP status codes and or headers to determine whether a response can be cached. This object has two optional properties: `statuses` and `headers`. `statuses` is an array of HTTP status codes that should be considered valid for the cache. `headers` is an object of HTTP header and value pairs; at least one header must match for the response to be considered valid. Defaults to `{ statuses: [ 200 ] }` when the `strategy` is `'cacheFirst'`, and `{ statuses: [0, 200] }` when the `strategy` is either `networkFirst` or `staleWhileRevalidate`. |
+| expiration | `object` | Yes | Controls how the cache is invalidated. This object has two optional properties. `maxEntries` is the number of responses that can be cached at any given time. Once this max is exceeded, the oldest entry is removed. `maxAgeSeconds` is the oldest a cached response can be in seconds before it gets removed. |
+| networkTimeoutSeconds | `number` | Yes | Used with the `networkFirst` strategy to specify how long in seconds to wait for a resource to load before falling back on the cache. |
+
+
+#### Strategies
+
+Four routing strategies are currently supported:
+
+- `networkFirst` attempts to load a resource over the network, falling back on the cache if the request fails or times out. This is a useful strategy for assets that either change frequently or may change frequently (i.e., are not versioned).
+- `cacheFirst` loads a resource from the cache unless it does not exist, in which case it is fetched over the network. This is best for resources that change infrequently or can be cached for a long time (e.g., versioned assets).
+- `networkOnly` forces the resource to always be retrieved over the network, and is useful for requests that have no offline equivalent.
+- `staleWhileRevalidate` requests resources from both the cache and the network simulaneously. The cache is updated with each successful network response. This strategy is best for resources that do not need to be continuously up-to-date, like user avatars. However, when fetching third-party resources that do not send CORS headers, it is not possible to read the contents of the response or verify the status code. As such, it is possible that a bad response could be cached. In such cases, the `networkFirst` strategy may be a better fit.
+
+### Example
+
+```typescript
+import ServiceWorkerPlugin from '@dojo/webpack-contrib/service-worker-plugin/ServiceWorkerPlugin';
+
+new ServiceWorkerPlugin({
+	cachePrefix: 'my-app',
+
+	// exclude the "admin" bundle from caching
+	excludeBundles: [ 'admin' ],
+
+	routes: [
+		// Use the cache-first strategy for loading images, adding them to the "my-app-images" cache.
+		// Only the first ten images should be cached, and for one week.
+		{
+			urlPattern: '.*\\.(png|jpg|gif|svg)',
+			strategy: 'cacheFirst',
+			cacheName: 'my-app-images',
+			expiration: { maxEntries: 10, maxAgeSeconds: 604800 }
+		},
+
+		// Use the cache-first strategy to cache up to 25 articles that expire after one day.
+		{
+			urlPattern: 'http://my-app-url.com/api/articles',
+			strategy: 'cacheFirst',
+			expiration: { maxEntries: 25, maxAgeSeconds: 86400 }
+		}
+	]
+});
+```
 
 # Transformers
 

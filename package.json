@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@dojo/shim": "^2.0.0",
+    "acorn-dynamic-import": "3.0.0",
     "copy-webpack-plugin": "4.0.1",
     "filter-css": "0.1.2",
     "html-webpack-include-assets-plugin": "1.0.2",

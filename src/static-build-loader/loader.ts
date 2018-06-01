@@ -7,6 +7,7 @@ const types = recast.types;
 const namedTypes = types.namedTypes;
 const builders = types.builders;
 const compose = require('recast/lib/util').composeSourceMaps;
+const acorn = require('acorn-dynamic-import').default;
 
 /**
  * A map of features that should be statically replaced in the code
@@ -50,6 +51,15 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	const { features: featuresOption } = options;
 	const parseOptions =
 		(sourceMap && {
+			parser: {
+				parse(source: string) {
+					return acorn.parse(source, {
+						plugins: { dynamicImport: true },
+						locations: true,
+						sourceType: 'module'
+					});
+				}
+			},
 			sourceFileName: sourceMap.file
 		}) ||
 		undefined;

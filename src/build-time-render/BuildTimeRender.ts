@@ -30,10 +30,13 @@ class BuildTimeRender {
 	private _root: string;
 	private _entries: string[];
 	private _useManifest: boolean;
+	private _hasPaths: boolean;
+	private _btrRoot: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', useManifest = false, entries } = args;
 		this._paths = ['', ...paths];
+		this._hasPaths = paths.length > 0;
 		this._root = root;
 		this._entries = entries;
 		this._useManifest = useManifest;
@@ -46,6 +49,9 @@ class BuildTimeRender {
 		const window: Window = new JSDOM(htmlContent, { runScripts: 'outside-only', pretendToBeVisual: true }).window;
 		const document: Document = window.document;
 		const parent = document.getElementById(root)!;
+		if (!this._btrRoot) {
+			this._btrRoot = parent.outerHTML;
+		}
 		let manifest: any = {};
 		if (this._useManifest) {
 			manifest = JSON.parse(readFileSync(path.join(output, 'manifest.json'), 'utf-8'));
@@ -128,7 +134,9 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 				return result;
 			}, '');
 
-			const replacement = `<script>
+			let replacement = '';
+			if (this._hasPaths) {
+				replacement = `<script>
 	(function () {
 		var paths = ${JSON.stringify(this._paths)};
 		var html = ${JSON.stringify(html)};
@@ -147,6 +155,7 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 		}
 	}())
 </script>`;
+			}
 
 			const script = this._entries.reduce((script, entry) => {
 				entry = this._useManifest ? manifest[`${entry}.js`] : `${entry}.js`;
@@ -163,6 +172,9 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 			}, '');
 
 			htmlContent = htmlContent.replace(script, `${replacement}${css}${script}`);
+			if (!this._hasPaths) {
+				htmlContent = htmlContent.replace(this._btrRoot, html[0]);
+			}
 			writeFileSync(path.join(output, 'index.html'), htmlContent);
 		});
 	}

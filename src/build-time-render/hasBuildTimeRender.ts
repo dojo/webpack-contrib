@@ -1,5 +1,6 @@
-import { add, exists } from '@dojo/core/has';
+// tslint:disable-next-line
+var has = require('@dojo/core/has');
 
-if (!exists('build-time-render')) {
-	add('build-time-render', false, false);
+if (!has.exists('build-time-render')) {
+	has.add('build-time-render', false, false);
 }

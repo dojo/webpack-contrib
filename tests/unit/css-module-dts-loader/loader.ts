@@ -230,30 +230,6 @@ describe('css-module-dts-loader', () => {
 		});
 	});
 
-	it('should remove file from ts-loader cache if instance name is passed', () => {
-		mockUtils.getOptions.returns({
-			type: 'ts',
-			instanceName: 'src'
-		});
-
-		return new Promise((resolve, reject) => {
-			loaderUnderTest.call(
-				{
-					async() {
-						return () => resolve();
-					},
-					resourcePath,
-					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-						callback(null, path);
-					}
-				},
-				tsContentWithCss
-			);
-		}).then(() => {
-			assert.isUndefined(instance.files[resourcePath]);
-		});
-	});
-
 	it('should handle the case that no instance is found', () => {
 		mockInstances.getTypeScriptInstance.returns({});
 		mockUtils.getOptions.returns({

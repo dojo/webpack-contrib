@@ -6,7 +6,6 @@ import Map from '@dojo/shim/Map';
 import '@dojo/shim/Promise';
 const DtsCreator = require('typed-css-modules');
 const { getOptions } = require('loader-utils');
-const instances = require('ts-loader/dist/instances');
 
 type DtsResult = {
 	writeFile(): Promise<void>;
@@ -18,7 +17,6 @@ type DtsCreatorInstance = {
 
 type LoaderArgs = {
 	type: string;
-	instanceName?: string;
 	sourceFilesPattern?: RegExp | string;
 };
 
@@ -84,7 +82,7 @@ function traverseNode(
 
 export default function(this: webpack.LoaderContext, content: string, sourceMap?: string) {
 	const callback = this.async();
-	const { type = 'ts', instanceName, sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
+	const { type = 'ts', sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
 	const sourceFilesRegex =
 		typeof sourceFilesPattern === 'string' ? new RegExp(sourceFilesPattern) : sourceFilesPattern;
 
@@ -100,14 +98,6 @@ export default function(this: webpack.LoaderContext, content: string, sourceMap?
 					const cssFilePathPromises = traverseNode(sourceFile, [], this);
 
 					if (cssFilePathPromises.length) {
-						if (instanceName) {
-							const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
-
-							if (instanceWrapper.instance) {
-								instanceWrapper.instance.files[this.resourcePath] = undefined;
-							}
-						}
-
 						generationPromises = cssFilePathPromises.map((cssFilePathPromise) =>
 							cssFilePathPromise.then((cssFilePath) => generateDTSFile(cssFilePath, sourceFilesRegex))
 						);

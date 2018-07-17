@@ -10,11 +10,11 @@ describe('I18nPlugin template', () => {
 	const systemLocale = 'xk-CD';
 
 	function configureMocks() {
-		const i18n = mockModule.getMock('@dojo/i18n/i18n');
+		const i18n = mockModule.getMock('@dojo/framework/i18n/i18n');
 		i18n.systemLocale = systemLocale;
 		i18n.switchLocale = stub();
 
-		const loadCldrData = mockModule.getMock('@dojo/i18n/cldr/load');
+		const loadCldrData = mockModule.getMock('@dojo/framework/i18n/cldr/load');
 		loadCldrData.default = stub();
 	}
 
@@ -34,7 +34,7 @@ describe('I18nPlugin template', () => {
 
 	beforeEach(() => {
 		mockModule = new MockModule('../../../../src/i18n-plugin/templates/setLocaleData', require);
-		mockModule.dependencies(['@dojo/i18n/i18n', '@dojo/i18n/cldr/load']);
+		mockModule.dependencies(['@dojo/framework/i18n/i18n', '@dojo/framework/i18n/cldr/load']);
 	});
 
 	afterEach(() => {
@@ -49,7 +49,7 @@ describe('I18nPlugin template', () => {
 		setLocaleData();
 		mockModule.getModuleUnderTest();
 
-		const i18n = mockModule.getMock('@dojo/i18n/i18n');
+		const i18n = mockModule.getMock('@dojo/framework/i18n/i18n');
 		assert.isTrue(i18n.switchLocale.calledWith('en'));
 	});
 
@@ -58,7 +58,7 @@ describe('I18nPlugin template', () => {
 		setLocaleData({ supportedLocales: ['xk'] });
 		mockModule.getModuleUnderTest();
 
-		const i18n = mockModule.getMock('@dojo/i18n/i18n');
+		const i18n = mockModule.getMock('@dojo/framework/i18n/i18n');
 		assert.isTrue(i18n.switchLocale.calledWith(systemLocale));
 	});
 
@@ -69,8 +69,8 @@ describe('I18nPlugin template', () => {
 		setLocaleData({ cldrData });
 		mockModule.getModuleUnderTest();
 
-		const i18n = mockModule.getMock('@dojo/i18n/i18n');
-		const loadCldrData = mockModule.getMock('@dojo/i18n/cldr/load');
+		const i18n = mockModule.getMock('@dojo/framework/i18n/i18n');
+		const loadCldrData = mockModule.getMock('@dojo/framework/i18n/cldr/load');
 		assert.isTrue(loadCldrData.default.calledWith(cldrData));
 		assert.isTrue(
 			loadCldrData.default.calledBefore(i18n.switchLocale),

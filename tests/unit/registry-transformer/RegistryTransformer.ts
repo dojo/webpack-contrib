@@ -6,8 +6,8 @@ const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 const source = `
-import { v, w } from '@dojo/widget-core/d';
-import WidgetBase from '@dojo/widget-core/WidgetBase';
+import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';
@@ -50,8 +50,8 @@ describe('registry-transformer', () => {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/widget-core/d';
-import WidgetBase from '@dojo/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';
@@ -90,11 +90,11 @@ export default HelloWorld;
 		});
 
 		const expected = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/widget-core/decorators/registry";
+import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
 var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
 var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
-import { v, w } from '@dojo/widget-core/d';
-import WidgetBase from '@dojo/widget-core/WidgetBase';
+import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Baz from './Baz';
 import Quz from './Quz';
 import { Blah } from './Qux';
@@ -142,11 +142,11 @@ export default HelloWorld;
 		const expected = `"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const registry_1 = require("@dojo/widget-core/decorators/registry");
+const registry_1 = require("@dojo/framework/widget-core/decorators/registry");
 var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./widgets/Bar")) };
 var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./widgets/Bar")), '__autoRegistryItem_Quz': () => Promise.resolve().then(() => require("./Quz")) };
-const d_1 = require("@dojo/widget-core/d");
-const WidgetBase_1 = require("@dojo/widget-core/WidgetBase");
+const d_1 = require("@dojo/framework/widget-core/d");
+const WidgetBase_1 = require("@dojo/framework/widget-core/WidgetBase");
 const Baz_1 = require("./Baz");
 const Qux_1 = require("./Qux");
 let Foo = class Foo extends WidgetBase_1.default {

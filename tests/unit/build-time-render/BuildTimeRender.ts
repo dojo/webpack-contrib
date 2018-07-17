@@ -8,7 +8,7 @@ const { assert } = intern.getPlugin('chai');
 
 let mockModule: MockModule;
 
-const outputPath = path.join(__dirname, '..', '..', '..', '..', 'tests', 'support', 'fixtures', 'build-time-render');
+const outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render');
 
 const pluginStub = stub();
 const compiler = {

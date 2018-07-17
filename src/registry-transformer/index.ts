@@ -1,13 +1,13 @@
 import * as ts from 'typescript';
 import * as path from 'path';
 
-const dImportPath = '@dojo/widget-core/d';
+const dImportPath = '@dojo/framework/widget-core/d';
 const wPragma = 'w';
 const registryItemPrefix = '__autoRegistryItem_';
 const registryBagName = '__autoRegistryItems';
 const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
-const registryDecoratorModulePath = '@dojo/widget-core/decorators/registry';
+const registryDecoratorModulePath = '@dojo/framework/widget-core/decorators/registry';
 
 type Registry = { [index: string]: string };
 

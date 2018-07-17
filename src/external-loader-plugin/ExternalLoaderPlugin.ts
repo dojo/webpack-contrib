@@ -111,7 +111,7 @@ export default class ExternalLoaderPlugin {
 										from: `${dependency.from}`,
 										to: prefixPath(dependency.to || dependency.from)
 									}
-								]),
+							  ]),
 					[] as { from: string; to: string; transform?: Function }[]
 				)
 			)

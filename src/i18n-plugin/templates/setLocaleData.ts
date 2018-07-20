@@ -1,6 +1,6 @@
 // tslint:disable
-var i18n = require('@dojo/i18n/i18n');
-var loadCldrData = require('@dojo/i18n/cldr/load').default;
+var i18n = require('@dojo/framework/i18n/i18n');
+var loadCldrData = require('@dojo/framework/i18n/cldr/load').default;
 var systemLocale = i18n.systemLocale;
 
 declare const __cldrData__: any;

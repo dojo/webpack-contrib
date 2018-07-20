@@ -32,7 +32,7 @@ function hasCheck(hasIdentifier: string, args: any, callee: any) {
 }
 
 /**
- * Checks code for usage of has pragmas or other calls to @dojo/has and optimizes them out based on the flags or
+ * Checks code for usage of has pragmas or other calls to @dojo/framework/has and optimizes them out based on the flags or
  * feature sets specified statically. This loader should act on JavaScript, so it should run after the compiler
  * if using TypeScript
  * @param content The JavaScript code to optimize
@@ -136,7 +136,10 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 
 		// Look for `require('*/has');` and set the variable name to `hasIdentifier`
 		visitVariableDeclaration(path) {
-			const { parentPath: { node: parentNode }, node: { declarations } } = path;
+			const {
+				parentPath: { node: parentNode },
+				node: { declarations }
+			} = path;
 			// Get all the top level variable declarations
 			if (ast.program === parentNode && !hasIdentifier) {
 				declarations.forEach(({ id, init }) => {
@@ -167,7 +170,9 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	if (hasIdentifier) {
 		types.visit(ast, {
 			visitCallExpression(path) {
-				const { node: { arguments: args, callee } } = path;
+				const {
+					node: { arguments: args, callee }
+				} = path;
 				if (hasCheck(hasIdentifier as string, args, callee)) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
@@ -192,7 +197,10 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	}
 	if (sourceMap) {
 		const result = recast.print(ast, { sourceMapName: sourceMap.file });
-		const map = compose(sourceMap, result.map);
+		const map = compose(
+			sourceMap,
+			result.map
+		);
 		this.callback(null, result.code, map, ast);
 		return;
 	}

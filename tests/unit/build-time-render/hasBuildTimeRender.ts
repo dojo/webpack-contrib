@@ -8,7 +8,7 @@ let mockModule: MockModule;
 describe('hasBuildTimeRender', () => {
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/hasBuildTimeRender', require);
-		mockModule.dependencies(['@dojo/core/has']);
+		mockModule.dependencies(['@dojo/framework/core/has']);
 	});
 
 	afterEach(() => {
@@ -16,7 +16,7 @@ describe('hasBuildTimeRender', () => {
 	});
 
 	it('should set the build-time-render flag', () => {
-		const has = mockModule.getMock('@dojo/core/has');
+		const has = mockModule.getMock('@dojo/framework/core/has');
 		const existsMock = stub();
 		const addMock = stub();
 		existsMock.returns(false);
@@ -27,7 +27,7 @@ describe('hasBuildTimeRender', () => {
 	});
 
 	it('should not set the build-time-render flag if already set', () => {
-		const has = mockModule.getMock('@dojo/core/has');
+		const has = mockModule.getMock('@dojo/framework/core/has');
 		const existsMock = stub();
 		const addMock = stub();
 		existsMock.returns(true);

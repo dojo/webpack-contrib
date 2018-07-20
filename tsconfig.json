@@ -1,16 +1,8 @@
 {
-	"version": "2.2.0",
+	"extends": "./node_modules/@dojo/scripts/tsconfig/commonjs.json",
 	"compilerOptions": {
 		"declaration": false,
-		"module": "commonjs",
-		"noUnusedLocals": true,
-		"outDir": "_build/",
-		"removeComments": false,
-		"sourceMap": true,
-		"strict": true,
 		"target": "es6",
-		"moduleResolution": "node",
-		"types": [ "intern" ],
 		"lib": [
 			"dom",
 			"es5",

@@ -1,16 +1,18 @@
 import NormalModule = require('./NormalModule');
 import Pluginable from './Pluginable';
 
-interface ParserState {
-	current?: NormalModule;
+namespace MockParser {
+	export interface ParserState {
+		current?: NormalModule;
+	}
 }
 
 class MockParser extends Pluginable {
-	state: ParserState;
+	state: MockParser.ParserState;
 
 	constructor(options?: any) {
 		super();
-		this.state = {} as ParserState;
+		this.state = {} as MockParser.ParserState;
 	}
 }
 

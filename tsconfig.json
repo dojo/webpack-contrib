@@ -1,7 +1,6 @@
 {
 	"extends": "./node_modules/@dojo/scripts/tsconfig/commonjs.json",
 	"compilerOptions": {
-		"declaration": false,
 		"target": "es6",
 		"lib": [
 			"dom",

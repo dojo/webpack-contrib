@@ -1,7 +1,7 @@
 {
   "name": "@dojo/webpack-contrib",
   "version": "3.0.0-pre",
-  "description": "Webpack loaders and plugins used by the Dojo 2 build process",
+  "description": "Webpack loaders and plugins used by the Dojo build process",
   "engines": {
     "npm": ">=3.0.0"
   },
@@ -25,22 +25,24 @@
     "build:static:dev": "cpx \"{src,tests}/**/*.{d.ts,html,md,json,js,css}\" dist/dev",
     "build:static:release": "cpx \"src/**/*.{d.ts,json}\" dist/release",
     "build:cjs": "tsc",
-    "build": "npm-run-all -p build:** -s package",
+    "build": "npm-run-all -p build:** -s dojo-package",
     "clean": "rimraf dist coverage",
+    "dojo-package": "dojo-package",
+    "dojo-release": "dojo-release",
     "intern": "intern",
     "lint:tslint": "tslint -p .",
     "lint:prettier": "prettier -l \"{src,tests}/**/*.{ts,tsx}\"",
     "lint": "run-p lint:*",
-    "package": "dojo-package",
     "precommit": "lint-staged",
     "prettier": "prettier --write \"{src,tests}/**/*.{ts,tsx}\"",
+    "release": "run-s lint clean build \"dojo-release -- {@}\" --",
     "test": "run-s lint build intern",
     "uploadCoverage": "codecov --file=coverage/coverage.json",
     "watch:ts": "dojo-tsc-watcher -p tsconfig.json -- dojo-package",
     "watch": "run-p watch:ts \"build:static:** -- --watch\""
   },
   "dependencies": {
-    "@dojo/framework": "^3.0.0-alpha.1",
+    "@dojo/framework": "~3.0.0",
     "acorn-dynamic-import": "3.0.0",
     "copy-webpack-plugin": "4.0.1",
     "filter-css": "0.1.2",
@@ -55,7 +57,7 @@
     "workbox-webpack-plugin": "3.2.0"
   },
   "devDependencies": {
-    "@dojo/scripts": "^3.0.0-alpha.6",
+    "@dojo/scripts": "~3.0.1",
     "@types/estree": "0.0.37",
     "@types/mockery": "1.4.29",
     "@types/node": "9.6.5",

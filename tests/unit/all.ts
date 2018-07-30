@@ -12,3 +12,4 @@ import './build-time-render/all';
 import './registry-transformer/RegistryTransformer';
 import './service-worker-plugin/service-worker-entry';
 import './service-worker-plugin/ServiceWorkerPlugin';
+import './istanbul-loader/all';

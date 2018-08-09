@@ -7,6 +7,7 @@ const registryItemPrefix = '__autoRegistryItem_';
 const registryBagName = '__autoRegistryItems';
 const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
+const fakeComponentName = 'Loadable__';
 const registryDecoratorModulePath = '@dojo/framework/widget-core/decorators/registry';
 
 type Registry = { [index: string]: string };
@@ -53,6 +54,7 @@ class Visitor {
 	private wPragma: undefined | string;
 	private modulesMap = new Map<string, string>();
 	private classMap = new Map<ts.Node, Registry>();
+	private needsLoadable = false;
 
 	constructor(options: VisitorOptions) {
 		this.context = options.context;
@@ -76,11 +78,16 @@ class Visitor {
 				this.setWPragma(node);
 			}
 		}
+
 		if (this.isWCall(node)) {
 			const text = node.arguments[0].getText();
 			if (this.modulesMap.get(text)) {
 				node = this.replaceWidgetClassWithString(node);
 			}
+		}
+
+		if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+			node = this.replaceTSXElementWithLoadable(node);
 		}
 		return ts.visitEachChild(node, this.visit.bind(this), this.context);
 	}
@@ -145,6 +152,16 @@ class Visitor {
 
 		let statements = this.addRegistryDecoratorToClasses(registryIdentifier, node.statements);
 		statements = this.removeImportStatements(statements);
+
+		if (this.needsLoadable) {
+			const obj = ts.createObjectLiteral([
+				ts.createPropertyAssignment(ts.createIdentifier('type'), ts.createLiteral('registry'))
+			]);
+			const decl = ts.createVariableDeclaration(fakeComponentName, undefined, obj);
+			const stmt = ts.createVariableStatement(undefined, [decl]);
+			statements.unshift(stmt);
+		}
+
 		return ts.updateSourceFileNode(node, [registryImport, ...statements]);
 	}
 
@@ -168,6 +185,45 @@ class Visitor {
 				return false;
 			});
 		}
+	}
+
+	private replaceTSXElementWithLoadable(inputNode: ts.JsxSelfClosingElement | ts.JsxElement) {
+		let node: ts.JsxOpeningLikeElement;
+		if (ts.isJsxElement(inputNode)) {
+			node = inputNode.openingElement;
+		} else {
+			node = inputNode;
+		}
+		const text = node.tagName.getText();
+		if (this.modulesMap.get(text)) {
+			const targetClass = this.findParentClass(inputNode);
+			if (targetClass) {
+				const registryItems = this.classMap.get(targetClass) || {};
+				registryItems[text] = this.modulesMap.get(text) as string;
+				this.classMap.set(targetClass, registryItems);
+				const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
+				const registryAttribute = ts.createJsxAttribute(
+					ts.createIdentifier('__autoRegistryItem'),
+					registryIdentifier
+				);
+				const attrs = ts.updateJsxAttributes(node.attributes, [
+					...node.attributes.properties,
+					registryAttribute
+				]);
+				this.needsLoadable = true;
+				if (ts.isJsxElement(inputNode)) {
+					const openingElement = ts.updateJsxOpeningElement(
+						node as ts.JsxOpeningElement,
+						ts.createIdentifier(fakeComponentName),
+						attrs
+					);
+					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, inputNode.closingElement);
+				} else {
+					return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
+				}
+			}
+		}
+		return inputNode;
 	}
 
 	private replaceWidgetClassWithString(node: ts.CallExpression) {

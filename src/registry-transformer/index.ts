@@ -217,7 +217,11 @@ class Visitor {
 						ts.createIdentifier(fakeComponentName),
 						attrs
 					);
-					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, inputNode.closingElement);
+					const closingElement = ts.updateJsxClosingElement(
+						inputNode.closingElement,
+						ts.createIdentifier(fakeComponentName)
+					);
+					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, closingElement);
 				} else {
 					return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
 				}

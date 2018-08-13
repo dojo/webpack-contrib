@@ -49,20 +49,21 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
 	const { features: featuresOption } = options;
-	const parseOptions =
-		(sourceMap && {
-			parser: {
-				parse(source: string) {
-					return acorn.parse(source, {
-						plugins: { dynamicImport: true },
-						locations: true,
-						sourceType: 'module'
-					});
-				}
-			},
-			sourceFileName: sourceMap.file
-		}) ||
-		undefined;
+	const parseOptions: any = {
+		parser: {
+			parse(source: string) {
+				return acorn.parse(source, {
+					plugins: { dynamicImport: true },
+					locations: true,
+					sourceType: 'module'
+				});
+			}
+		}
+	};
+
+	if (sourceMap) {
+		parseOptions.sourceFileName = sourceMap.file;
+	}
 	const dynamicFlags = new Set<string>();
 	const ast = recast.parse(content, parseOptions);
 	let features: StaticHasFeatures;

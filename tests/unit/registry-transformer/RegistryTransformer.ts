@@ -312,4 +312,26 @@ exports.default = HelloWorld;
 
 		assert.equal(nl(result.outputText), expected);
 	});
+
+	it('replaces all in analyze mode', () => {
+		const transformer = registryTransformer(process.cwd(), [], true);
+		ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+		const shared = require('../../../src/registry-transformer/shared');
+		assert.deepEqual(shared, {
+			modules: {
+				__autoRegistryItem_Bar: 'widgets/Bar',
+				__autoRegistryItem_Baz: 'Baz',
+				__autoRegistryItem_Quz: 'Quz'
+			}
+		});
+	});
 });

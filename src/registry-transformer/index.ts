@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import * as path from 'path';
+const shared = require('./shared');
 
 const dImportPath = '@dojo/framework/widget-core/d';
 const wPragma = 'w';
@@ -19,6 +20,7 @@ interface VisitorOptions {
 	basePath: string;
 	bundlePaths: string[];
 	legacyModule: boolean;
+	analyze: boolean;
 }
 
 function createArrowFuncForDefaultImport(modulePath: string) {
@@ -55,6 +57,7 @@ class Visitor {
 	private modulesMap = new Map<string, string>();
 	private classMap = new Map<ts.Node, Registry>();
 	private needsLoadable = false;
+	private analyze = false;
 
 	constructor(options: VisitorOptions) {
 		this.context = options.context;
@@ -63,6 +66,7 @@ class Visitor {
 		this.basePath = options.basePath;
 		this.legacyModule = options.legacyModule;
 		this.root = options.root;
+		this.analyze = options.analyze;
 	}
 
 	public visit(node: ts.Node) {
@@ -72,7 +76,7 @@ class Visitor {
 				.resolve(this.contextPath, importPath)
 				.replace(`${this.basePath}${path.posix.sep}`, '');
 
-			if (this.bundlePaths.indexOf(targetPath) !== -1) {
+			if ((this.analyze && importPath.match(/^(\.|\.\.)/)) || this.bundlePaths.indexOf(targetPath) !== -1) {
 				this.setLazyImport(node);
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
@@ -206,6 +210,7 @@ class Visitor {
 					ts.createIdentifier('__autoRegistryItem'),
 					registryIdentifier
 				);
+				this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
 				const attrs = ts.updateJsxAttributes(node.attributes, [
 					...node.attributes.properties,
 					registryAttribute
@@ -230,6 +235,16 @@ class Visitor {
 		return inputNode;
 	}
 
+	private setSharedModules(registryItemName: string, modulePath: string) {
+		if (this.analyze) {
+			const targetPath = path.posix
+				.resolve(this.contextPath, modulePath)
+				.replace(`${this.basePath}${path.posix.sep}`, '');
+			shared.modules = shared.modules || {};
+			shared.modules[registryItemName] = targetPath;
+		}
+	}
+
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
 		const text = node.arguments[0].getText();
 		const targetClass = this.findParentClass(node);
@@ -238,6 +253,7 @@ class Visitor {
 			registryItems[text] = this.modulesMap.get(text) as string;
 			this.classMap.set(targetClass, registryItems);
 			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
+			this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
 			return ts.updateCall(node, node.expression, node.typeArguments, [
 				registryIdentifier,
 				...node.arguments.slice(1)
@@ -287,11 +303,12 @@ class Visitor {
 }
 
 const registryTransformer = function(
-	this: { basePath: string; bundlePaths: string[] },
+	this: { basePath: string; bundlePaths: string[]; analyze: boolean },
 	context: ts.TransformationContext
 ) {
 	const basePath = this.basePath;
 	const bundlePaths = this.bundlePaths;
+	const analyze = this.analyze;
 	const opts = context.getCompilerOptions();
 	const { module } = opts;
 	const legacyModule =
@@ -299,10 +316,11 @@ const registryTransformer = function(
 	return function(node: ts.SourceFile) {
 		const root = node;
 		const contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
-		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root });
+		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root, analyze });
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
 		return visitor.end(result);
 	};
 };
 
-export default (basePath: string, bundlePaths: string[]) => registryTransformer.bind({ bundlePaths, basePath });
+export default (basePath: string, bundlePaths: string[], analyze: boolean = false) =>
+	registryTransformer.bind({ bundlePaths, basePath, analyze });

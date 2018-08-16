@@ -20,7 +20,7 @@ interface VisitorOptions {
 	basePath: string;
 	bundlePaths: string[];
 	legacyModule: boolean;
-	analyze: boolean;
+	all: boolean;
 }
 
 function createArrowFuncForDefaultImport(modulePath: string) {
@@ -57,7 +57,7 @@ class Visitor {
 	private modulesMap = new Map<string, string>();
 	private classMap = new Map<ts.Node, Registry>();
 	private needsLoadable = false;
-	private analyze = false;
+	private all = false;
 
 	constructor(options: VisitorOptions) {
 		this.context = options.context;
@@ -66,7 +66,7 @@ class Visitor {
 		this.basePath = options.basePath;
 		this.legacyModule = options.legacyModule;
 		this.root = options.root;
-		this.analyze = options.analyze;
+		this.all = options.all;
 	}
 
 	public visit(node: ts.Node) {
@@ -76,7 +76,7 @@ class Visitor {
 				.resolve(this.contextPath, importPath)
 				.replace(`${this.basePath}${path.posix.sep}`, '');
 
-			if ((this.analyze && importPath.match(/^(\.|\.\.)/)) || this.bundlePaths.indexOf(targetPath) !== -1) {
+			if ((this.all && importPath.match(/^(\.|\.\.)/)) || this.bundlePaths.indexOf(targetPath) !== -1) {
 				this.setLazyImport(node);
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
@@ -236,13 +236,11 @@ class Visitor {
 	}
 
 	private setSharedModules(registryItemName: string, modulePath: string) {
-		if (this.analyze) {
-			const targetPath = path.posix
-				.resolve(this.contextPath, modulePath)
-				.replace(`${this.basePath}${path.posix.sep}`, '');
-			shared.modules = shared.modules || {};
-			shared.modules[registryItemName] = targetPath;
-		}
+		const targetPath = path.posix
+			.resolve(this.contextPath, modulePath)
+			.replace(`${this.basePath}${path.posix.sep}`, '');
+		shared.modules = shared.modules || {};
+		shared.modules[registryItemName] = targetPath;
 	}
 
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
@@ -303,12 +301,12 @@ class Visitor {
 }
 
 const registryTransformer = function(
-	this: { basePath: string; bundlePaths: string[]; analyze: boolean },
+	this: { basePath: string; bundlePaths: string[]; all: boolean },
 	context: ts.TransformationContext
 ) {
 	const basePath = this.basePath;
 	const bundlePaths = this.bundlePaths;
-	const analyze = this.analyze;
+	const all = this.all;
 	const opts = context.getCompilerOptions();
 	const { module } = opts;
 	const legacyModule =
@@ -316,11 +314,11 @@ const registryTransformer = function(
 	return function(node: ts.SourceFile) {
 		const root = node;
 		const contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
-		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root, analyze });
+		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root, all });
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
 		return visitor.end(result);
 	};
 };
 
-export default (basePath: string, bundlePaths: string[], analyze: boolean = false) =>
-	registryTransformer.bind({ bundlePaths, basePath, analyze });
+export default (basePath: string, bundlePaths: string[], all: boolean = false) =>
+	registryTransformer.bind({ bundlePaths, basePath, all });

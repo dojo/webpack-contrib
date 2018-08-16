@@ -313,7 +313,7 @@ exports.default = HelloWorld;
 		assert.equal(nl(result.outputText), expected);
 	});
 
-	it('replaces all in analyze mode', () => {
+	it('replaces all widgets in all mode', () => {
 		const transformer = registryTransformer(process.cwd(), [], true);
 		ts.transpileModule(source, {
 			compilerOptions: {

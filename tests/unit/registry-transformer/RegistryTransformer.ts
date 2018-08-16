@@ -312,4 +312,60 @@ exports.default = HelloWorld;
 
 		assert.equal(nl(result.outputText), expected);
 	});
+
+	it('replaces all widgets in all mode', () => {
+		const transformer = registryTransformer(process.cwd(), [], true);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+		const shared = require('../../../src/registry-transformer/shared');
+
+		const expected = `import * as tslib_1 from "tslib";
+import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
+var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
+var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz"), '__autoRegistryItem_Quz': () => import("./Quz") };
+import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import { Blah } from './Qux';
+let Foo = class Foo extends WidgetBase {
+    render() {
+        return v('div'[v('div', ['Foo']),
+            w("__autoRegistryItem_Bar", {}),
+            w("__autoRegistryItem_Baz", {}),
+            w(Blah, {})]);
+    }
+};
+Foo = tslib_1.__decorate([
+    __autoRegistry(__autoRegistryItems_1)
+], Foo);
+export { Foo };
+let Another = class Another extends WidgetBase {
+    render() {
+        return v('div'[w("__autoRegistryItem_Bar", {}),
+            w("__autoRegistryItem_Baz", {}),
+            w("__autoRegistryItem_Quz", {})]);
+    }
+};
+Another = tslib_1.__decorate([
+    __autoRegistry(__autoRegistryItems_2)
+], Another);
+export { Another };
+export default HelloWorld;
+`;
+		assert.equal(nl(result.outputText), expected);
+		assert.deepEqual(shared, {
+			modules: {
+				__autoRegistryItem_Bar: 'widgets/Bar',
+				__autoRegistryItem_Baz: 'Baz',
+				__autoRegistryItem_Quz: 'Quz'
+			}
+		});
+	});
 });

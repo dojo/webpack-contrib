@@ -210,7 +210,10 @@ class Visitor {
 					ts.createIdentifier('__autoRegistryItem'),
 					registryIdentifier
 				);
-				this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
+				this.setSharedModules(`${registryItemPrefix}${text}`, {
+					path: registryItems[text],
+					outletName: undefined
+				});
 				const attrs = ts.updateJsxAttributes(node.attributes, [
 					...node.attributes.properties,
 					registryAttribute
@@ -235,23 +238,24 @@ class Visitor {
 		return inputNode;
 	}
 
-	private setSharedModules(registryItemName: string, modulePath: string) {
+	private setSharedModules(registryItemName: string, meta: { path: string; outletName: string | undefined }) {
 		const targetPath = path.posix
-			.resolve(this.contextPath, modulePath)
+			.resolve(this.contextPath, meta.path)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 		shared.modules = shared.modules || {};
-		shared.modules[registryItemName] = targetPath;
+		shared.modules[registryItemName] = { path: targetPath, outletName: meta.outletName };
 	}
 
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
 		const text = node.arguments[0].getText();
 		const targetClass = this.findParentClass(node);
+		const outletName = this.getOutletName(node);
 		if (targetClass) {
 			const registryItems = this.classMap.get(targetClass) || {};
 			registryItems[text] = this.modulesMap.get(text) as string;
 			this.classMap.set(targetClass, registryItems);
 			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
-			this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
+			this.setSharedModules(`${registryItemPrefix}${text}`, { path: registryItems[text], outletName });
 			return ts.updateCall(node, node.expression, node.typeArguments, [
 				registryIdentifier,
 				...node.arguments.slice(1)
@@ -287,6 +291,26 @@ class Visitor {
 			node.arguments &&
 			node.arguments.length
 		);
+	}
+
+	private getOutletName(node: ts.Node): string | undefined {
+		let parent = node.parent;
+		while (parent) {
+			if (ts.isMethodDeclaration(parent) && parent.name.getText() === 'renderer') {
+				const w = parent.parent!.parent as ts.Node;
+				if (ts.isCallExpression(w) && w.expression.getText() === this.wPragma) {
+					const propBag = w.arguments[1] as ts.ObjectLiteralExpression;
+					for (let i = 0; i < propBag.properties.length; i++) {
+						const property = propBag.properties[i];
+						if (ts.isPropertyAssignment(property) && property.name.getText() === 'id') {
+							return (property.initializer as ts.StringLiteral).text;
+						}
+					}
+				}
+			}
+			parent = parent.parent;
+		}
+		return undefined;
 	}
 
 	private findParentClass(node: ts.Node): ts.Node | undefined {

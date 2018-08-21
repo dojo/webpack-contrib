@@ -322,6 +322,8 @@ class Visitor {
 				if (
 					ts.isCallExpression(w) &&
 					w.expression.getText() === this.wPragma &&
+					ts.isIdentifier(w.arguments[0]) &&
+					w.arguments[0].getText() === this.outletName &&
 					ts.isObjectLiteralExpression(w.arguments[1])
 				) {
 					const objectLiteral = w.arguments[1] as ts.ObjectLiteralExpression;

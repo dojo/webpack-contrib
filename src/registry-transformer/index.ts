@@ -10,6 +10,10 @@ const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
 const fakeComponentName = 'Loadable__';
 const registryDecoratorModulePath = '@dojo/framework/widget-core/decorators/registry';
+const outletImportPath = '@dojo/framework/routing/Outlet';
+const outletRendererName = 'renderer';
+const outletIdName = 'id';
+const outletName = 'Outlet';
 
 type Registry = { [index: string]: string };
 
@@ -54,6 +58,7 @@ class Visitor {
 	private bundlePaths: string[];
 	private legacyModule: boolean;
 	private wPragma: undefined | string;
+	private outletName: undefined | string;
 	private modulesMap = new Map<string, string>();
 	private classMap = new Map<ts.Node, Registry>();
 	private needsLoadable = false;
@@ -80,6 +85,8 @@ class Visitor {
 				this.setLazyImport(node);
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
+			} else if (outletImportPath === importPath) {
+				this.setOutletName(node);
 			}
 		}
 
@@ -177,6 +184,20 @@ class Visitor {
 		}
 	}
 
+	private setOutletName(node: ts.ImportDeclaration) {
+		if (node.importClause) {
+			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
+			namedBindings.elements.some((element: ts.ImportSpecifier) => {
+				const text = element.name.getText();
+				if (text === outletName || (element.propertyName && element.propertyName.escapedText === outletName)) {
+					this.outletName = text;
+					return true;
+				}
+				return false;
+			});
+		}
+	}
+
 	private setWPragma(node: ts.ImportDeclaration) {
 		if (node.importClause) {
 			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
@@ -249,7 +270,7 @@ class Visitor {
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
 		const text = node.arguments[0].getText();
 		const targetClass = this.findParentClass(node);
-		const outletName = this.getOutletName(node);
+		const outletName = this.outletName ? this.getOutletName(node) : undefined;
 		if (targetClass) {
 			const registryItems = this.classMap.get(targetClass) || {};
 			registryItems[text] = this.modulesMap.get(text) as string;
@@ -296,14 +317,22 @@ class Visitor {
 	private getOutletName(node: ts.Node): string | undefined {
 		let parent = node.parent;
 		while (parent) {
-			if (ts.isMethodDeclaration(parent) && parent.name.getText() === 'renderer') {
+			if (ts.isMethodDeclaration(parent) && parent.name.getText() === outletRendererName) {
 				const w = parent.parent!.parent as ts.Node;
-				if (ts.isCallExpression(w) && w.expression.getText() === this.wPragma) {
-					const propBag = w.arguments[1] as ts.ObjectLiteralExpression;
-					for (let i = 0; i < propBag.properties.length; i++) {
-						const property = propBag.properties[i];
-						if (ts.isPropertyAssignment(property) && property.name.getText() === 'id') {
-							return (property.initializer as ts.StringLiteral).text;
+				if (
+					ts.isCallExpression(w) &&
+					w.expression.getText() === this.wPragma &&
+					ts.isObjectLiteralExpression(w.arguments[1])
+				) {
+					const objectLiteral = w.arguments[1] as ts.ObjectLiteralExpression;
+					for (let i = 0; i < objectLiteral.properties.length; i++) {
+						const property = objectLiteral.properties[i];
+						if (
+							ts.isPropertyAssignment(property) &&
+							property.name.getText() === outletIdName &&
+							ts.isStringLiteral(property.initializer)
+						) {
+							return property.initializer.text;
 						}
 					}
 				}

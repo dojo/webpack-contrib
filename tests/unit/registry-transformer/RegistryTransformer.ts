@@ -7,6 +7,7 @@ const { assert } = intern.getPlugin('chai');
 
 const source = `
 import { v, w } from '@dojo/framework/widget-core/d';
+import { Outlet } from '@dojo/framework/routing/Outlet';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
@@ -339,6 +340,7 @@ import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorato
 var __autoRegistryItems_1 = { '__autoRegistryItem_Something': () => import("./Something"), '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
 var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz"), '__autoRegistryItem_Quz': () => import("./Quz") };
 import { v, w } from '@dojo/framework/widget-core/d';
+import { Outlet } from '@dojo/framework/routing/Outlet';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { Blah } from './Qux';
 let Foo = class Foo extends WidgetBase {
@@ -372,7 +374,7 @@ Another = tslib_1.__decorate([
 export { Another };
 export default HelloWorld;
 `;
-		/*assert.equal(nl(result.outputText), expected);*/
+		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: undefined },

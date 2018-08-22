@@ -1,0 +1,13 @@
+.container, .map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebarGroup {
+  margin-bottom: 20px;
+}
+
+.activeSize {
+  font-weight: bold;
+}

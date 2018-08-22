@@ -54,12 +54,6 @@ const program = commander
     'parsed'
   )
   .option(
-    '-t, --reportType <type>',
-    'Type of report to generate. Can be either `treemap` or `sunburst`.' +
-    br('Default is `treemap`.'),
-    'treemap'
-  )
-  .option(
     '-O, --no-open',
     "Don't open report in default browser automatically."
   )
@@ -78,7 +72,6 @@ let {
   report: reportFilename,
   defaultSizes,
   logLevel,
-  reportType,
   open: openBrowser,
   args: [bundleStatsFile, bundleDir]
 } = program;
@@ -111,7 +104,6 @@ if (mode === 'server') {
     defaultSizes,
     logger: new Logger(logLevel),
     bundleDir,
-    reportType
   });
 } else {
   viewer.generateReport(bundleStats, {
@@ -120,7 +112,6 @@ if (mode === 'server') {
     defaultSizes,
     logger: new Logger(logLevel),
     bundleDir,
-    reportType
   });
 }
 

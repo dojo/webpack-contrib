@@ -18,7 +18,6 @@ module.exports = opts => {
 
 		resolve: {
 			modules: [
-				`${__dirname}/client/vendor`,
 				'node_modules'
 			],
 			extensions: ['.js', '.jsx']
@@ -30,7 +29,7 @@ module.exports = opts => {
 			rules: [
 				{
 					test: /\.jsx?$/,
-					exclude: /(node_modules|client\/vendor)/,
+					exclude: /node_modules/,
 					loader: 'babel-loader',
 					options: {
 						presets: [
@@ -56,10 +55,6 @@ module.exports = opts => {
 							}
 						}
 					]
-				},
-				{
-					test: /carrotsearch\.foamtree/,
-					loader: 'exports-loader?CarrotSearchFoamTree'
 				}
 			]
 		},

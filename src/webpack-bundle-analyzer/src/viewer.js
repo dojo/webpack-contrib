@@ -49,8 +49,7 @@ async function startServer(bundleStats, opts) {
     res.render('viewer', {
       mode: 'server',
       get chartData() { return JSON.stringify(chartData) },
-      defaultSizes: JSON.stringify(defaultSizes),
-      reportType: opts.reportType
+      defaultSizes: JSON.stringify(defaultSizes)
     });
   });
 
@@ -140,7 +139,6 @@ function generateReport(bundleStats, opts) {
         mode: 'static',
         chartData: JSON.stringify([ data ]),
         assetContent: getAssetContent,
-        reportType: opts.reportType,
       	defaultSizes: JSON.stringify(defaultSizes)
       },
       (err, reportHtml) => {

@@ -14,7 +14,6 @@ class BundleAnalyzerPlugin {
       analyzerHost: '127.0.0.1',
       analyzerPort: 8888,
       reportFilename: 'report.html',
-      reportType: 'treemap',
       defaultSizes: 'parsed',
       openAnalyzer: true,
       generateStatsFile: false,
@@ -98,8 +97,7 @@ class BundleAnalyzerPlugin {
         port: this.opts.analyzerPort,
         bundleDir: this.getBundleDirFromCompiler(),
         logger: this.logger,
-        defaultSizes: this.opts.defaultSizes,
-      reportType: this.opts.reportType
+        defaultSizes: this.opts.defaultSizes
       });
     }
   }
@@ -110,8 +108,7 @@ class BundleAnalyzerPlugin {
       reportFilename: path.resolve(this.compiler.outputPath, this.opts.reportFilename),
       bundleDir: this.getBundleDirFromCompiler(),
       logger: this.logger,
-      defaultSizes: this.opts.defaultSizes,
-      reportType: this.opts.reportType
+      defaultSizes: this.opts.defaultSizes
     });
   }
 
@@ -121,4 +118,6 @@ class BundleAnalyzerPlugin {
 
 }
 
-module.exports = BundleAnalyzerPlugin;
+module.exports = {
+	default: BundleAnalyzerPlugin
+};

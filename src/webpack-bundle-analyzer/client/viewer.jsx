@@ -1,18 +1,17 @@
 /** @jsx h */
 import { h, render } from 'preact';
 
-import ModulesTreemap from './components/ModulesTreemap';
 import Sunburst from './components/Sunburst';
 /* eslint no-unused-vars: "off" */
 import styles from './viewer.css';
 
-// Initializing WebSocket for live treemap updates
+// Initializing WebSocket for live updates
 let ws;
 try {
   ws = new WebSocket(`ws://${location.host}`);
 } catch (err) {
   console.warn(
-    "Couldn't connect to analyzer websocket server so you'll have to reload page manually to see updates in the treemap"
+    "Couldn't connect to analyzer websocket server so you'll have to reload page manually to see updates"
   );
 }
 
@@ -32,9 +31,5 @@ window.addEventListener('load', () => {
 
 let app;
 function renderApp(chartData) {
-  app = render(
-    window.reportType === 'sunburst' ?
-      <Sunburst data={chartData}/> : <ModulesTreemap data={chartData} defaultSizes={window.defaultSizes}/>,
-    document.getElementById('app')
-  );
+  app = render(<Sunburst data={chartData}/>, document.getElementById('app'));
 }

@@ -1,9 +1,12 @@
 const webpack = require('webpack');
 
-module.exports = opts => {
-	opts = Object.assign({
-		prod: false
-	}, opts);
+module.exports = (opts) => {
+	opts = Object.assign(
+		{
+			prod: false
+		},
+		opts
+	);
 
 	return {
 		context: __dirname,
@@ -11,15 +14,13 @@ module.exports = opts => {
 		output: {
 			path: `${__dirname}/${
 				opts.prod ? '../../dist/release/webpack-bundle-analyzer' : '../../dist/dev/src/webpack-bundle-analyzer'
-				}/public`,
+			}/public`,
 			filename: 'viewer.js',
 			publicPath: '/'
 		},
 
 		resolve: {
-			modules: [
-				'node_modules'
-			],
+			modules: ['node_modules'],
 			extensions: ['.js', '.jsx']
 		},
 
@@ -32,9 +33,7 @@ module.exports = opts => {
 					exclude: /node_modules/,
 					loader: 'babel-loader',
 					options: {
-						presets: [
-							['env', { targets: { uglify: true } }]
-						],
+						presets: [['env', { targets: { uglify: true } }]],
 						plugins: [
 							'transform-class-properties',
 							'transform-react-jsx',
@@ -50,7 +49,7 @@ module.exports = opts => {
 							loader: 'css-loader',
 							options: {
 								modules: true,
-								minimize: (opts.env === 'prod'),
+								minimize: opts.env === 'prod',
 								localIdentName: '[name]__[local]'
 							}
 						}
@@ -59,7 +58,7 @@ module.exports = opts => {
 			]
 		},
 
-		plugins: (plugins => {
+		plugins: ((plugins) => {
 			plugins.push(
 				new webpack.DefinePlugin({
 					'process.env': {

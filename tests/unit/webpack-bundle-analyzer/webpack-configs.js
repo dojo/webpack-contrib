@@ -8,59 +8,54 @@ const { describe, it, before, after, beforeEach, afterEach } = intern.getInterfa
 
 let nightmare;
 
-describe('Webpack config', function () {
-  let clock;
+describe('Webpack config', function() {
+	let clock;
 
-  before(function () {
-    const Nightmare = require('nightmare');
-    nightmare = Nightmare();
-    del.sync(`${__dirname}/output`);
-    clock = sinon.useFakeTimers();
-  });
+	before(function() {
+		const Nightmare = require('nightmare');
+		nightmare = Nightmare();
+		del.sync(`${__dirname}/output`);
+		clock = sinon.useFakeTimers();
+	});
 
-  beforeEach(async function () {
-    this.timeout = 10000;
-    await nightmare.goto('about:blank');
-  });
+	beforeEach(async function() {
+		this.timeout = 10000;
+		await nightmare.goto('about:blank');
+	});
 
-  afterEach(function () {
-    del.sync(`${__dirname}/output`);
-  });
+	afterEach(function() {
+		del.sync(`${__dirname}/output`);
+	});
 
-  after(function () {
-    clock.restore();
-  });
+	after(function() {
+		clock.restore();
+	});
 
-  it('with `multi` module should be supported', async function () {
-    const config = makeWebpackConfig();
+	it('with `multi` module should be supported', async function() {
+		const config = makeWebpackConfig();
 
-    config.entry.bundle = [
-      './src/a.js',
-      './src/b.js'
-    ];
+		config.entry.bundle = ['./src/a.js', './src/b.js'];
 
-    await webpackCompile(config);
-    clock.tick(1);
+		await webpackCompile(config);
+		clock.tick(1);
 
-    const chartData = await getChartDataFromReport();
-    expect(chartData[0].groups).to.containSubset([{
-      label: 'multi ./src/a.js ./src/b.js',
-      path: './multi ./src/a.js ./src/b.js',
-      groups: undefined
-    }]);
-  });
+		const chartData = await getChartDataFromReport();
+		expect(chartData[0].groups).to.containSubset([
+			{
+				label: 'multi ./src/a.js ./src/b.js',
+				path: './multi ./src/a.js ./src/b.js',
+				groups: undefined
+			}
+		]);
+	});
 });
 
 async function getChartDataFromReport(reportFilename = 'report.html') {
-  return await nightmare
-    .goto(`file://${__dirname}/output/${reportFilename}`)
-    .evaluate(() => window.chartData);
+	return await nightmare.goto(`file://${__dirname}/output/${reportFilename}`).evaluate(() => window.chartData);
 }
 
 function webpackCompile(config) {
-	return new Promise((resolve, reject) =>
-		webpack(config, err => (err ? reject(err) : resolve()))
-	);
+	return new Promise((resolve, reject) => webpack(config, (err) => (err ? reject(err) : resolve())));
 }
 
 function makeWebpackConfig(opts) {
@@ -84,10 +79,8 @@ function makeWebpackConfig(opts) {
 			path: `${__dirname}/output`,
 			filename: '[name].js'
 		},
-		plugins: (plugins => {
-			plugins.push(
-				new BundleAnalyzerPlugin(opts.analyzerOpts)
-			);
+		plugins: ((plugins) => {
+			plugins.push(new BundleAnalyzerPlugin(opts.analyzerOpts));
 
 			if (opts.multipleChunks) {
 				plugins.push(

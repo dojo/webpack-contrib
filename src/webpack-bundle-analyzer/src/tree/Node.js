@@ -1,20 +1,18 @@
 export default class Node {
+	constructor(name, parent) {
+		this.name = name;
+		this.parent = parent;
+	}
 
-  constructor(name, parent) {
-    this.name = name;
-    this.parent = parent;
-  }
+	get path() {
+		const path = [];
+		let node = this;
 
-  get path() {
-    const path = [];
-    let node = this;
+		while (node) {
+			path.push(node.name);
+			node = node.parent;
+		}
 
-    while (node) {
-      path.push(node.name);
-      node = node.parent;
-    }
-
-    return path.reverse().join('/');
-  }
-
-};
+		return path.reverse().join('/');
+	}
+}

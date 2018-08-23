@@ -17,12 +17,8 @@ describe('Analyzer', function() {
 		clock = sinon.useFakeTimers();
 	});
 
-	beforeEach(async function() {
-		this.timeout = 15000;
-	});
-
 	afterEach(function() {
-		// del.sync(`${__dirname}/output`);
+		del.sync(`${__dirname}/output`);
 	});
 
 	after(function() {

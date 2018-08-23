@@ -66,7 +66,7 @@ function webpackCompile(config) {
 }
 
 function makeWebpackConfig(opts) {
-	opts = {
+	opts = Object.assign({}, {
 		analyzerOpts: {
 			analyzerMode: 'static',
 			openAnalyzer: false,
@@ -74,8 +74,7 @@ function makeWebpackConfig(opts) {
 		},
 		minify: false,
 		multipleChunks: false,
-		...opts
-	};
+	}, opts);
 
 	return {
 		context: __dirname,

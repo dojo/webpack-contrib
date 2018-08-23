@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const net = require('net');
 
-const Logger = require('../../../dist/release/webpack-bundle-analyzer/Logger');
-const { startServer } = require('../../../dist/release/webpack-bundle-analyzer/viewer.js');
+const Logger = require('../../../src/webpack-bundle-analyzer/Logger');
+const { startServer } = require('../../../src/webpack-bundle-analyzer/viewer.js');
+const { expect } = intern.getPlugin('chai');
+const { describe, it } = intern.getInterface('bdd');
 
 describe('WebSocket server', function () {
   it('should not crash when an error is emitted on the websocket', function (done) {

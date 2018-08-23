@@ -1,12 +1,15 @@
 const fs = require('fs');
 const del = require('del');
+const webpack = require('webpack');
+const sinon = require('sinon');
+const { expect } = intern.getPlugin('chai');
+const BundleAnalyzerPlugin = require('../../../src/webpack-bundle-analyzer/BundleAnalyzerPlugin').default;
+const { describe, it, before, after, beforeEach, afterEach } = intern.getInterface('bdd');
 
 let nightmare;
 
 describe('Webpack config', function () {
   let clock;
-
-  this.timeout(3000);
 
   before(function () {
     const Nightmare = require('nightmare');
@@ -16,7 +19,7 @@ describe('Webpack config', function () {
   });
 
   beforeEach(async function () {
-    this.timeout(10000);
+    this.timeout = 10000;
     await nightmare.goto('about:blank');
   });
 
@@ -26,34 +29,6 @@ describe('Webpack config', function () {
 
   after(function () {
     clock.restore();
-  });
-
-  it('with query in bundle filename should be supported', async function () {
-    const config = makeWebpackConfig();
-
-    config.output.filename = 'bundle.js?what=is-this-for';
-
-    await webpackCompile(config);
-    clock.tick(1);
-
-    await expectValidReport();
-  });
-
-  it('with custom `jsonpFunction` name should be supported', async function () {
-    const config = makeWebpackConfig({
-      multipleChunks: true
-    });
-
-    config.output.jsonpFunction = 'somethingCompletelyDifferent';
-
-    await webpackCompile(config);
-    clock.tick(1);
-
-    await expectValidReport({
-      reportFilename: 'report-bundle.html',
-      parsedSize: 445,
-      gzipSize: 178
-    });
   });
 
   it('with `multi` module should be supported', async function () {
@@ -76,29 +51,67 @@ describe('Webpack config', function () {
   });
 });
 
-async function expectValidReport(opts) {
-  const {
-    bundleFilename = 'bundle.js',
-    reportFilename = 'report.html',
-    bundleLabel = 'bundle.js',
-    statSize = 141,
-    parsedSize = 2821,
-    gzipSize = 770
-  } = opts || {};
-
-  expect(fs.existsSync(`${__dirname}/output/${bundleFilename}`)).to.be.true;
-  expect(fs.existsSync(`${__dirname}/output/${reportFilename}`)).to.be.true;
-  const chartData = await getChartDataFromReport(reportFilename);
-  expect(chartData[0]).to.containSubset({
-    label: bundleLabel,
-    statSize,
-    parsedSize,
-    gzipSize
-  });
-}
-
 async function getChartDataFromReport(reportFilename = 'report.html') {
   return await nightmare
     .goto(`file://${__dirname}/output/${reportFilename}`)
     .evaluate(() => window.chartData);
+}
+
+function webpackCompile(config) {
+	return new Promise((resolve, reject) =>
+		webpack(config, err => (err ? reject(err) : resolve()))
+	);
+}
+
+function makeWebpackConfig(opts) {
+	opts = {
+		analyzerOpts: {
+			analyzerMode: 'static',
+			openAnalyzer: false,
+			logLevel: 'error'
+		},
+		minify: false,
+		multipleChunks: false,
+		...opts
+	};
+
+	return {
+		context: __dirname,
+		entry: {
+			bundle: '../../support/fixtures/webpack-bundle-analyzer/src'
+		},
+		output: {
+			path: `${__dirname}/output`,
+			filename: '[name].js'
+		},
+		plugins: (plugins => {
+			plugins.push(
+				new BundleAnalyzerPlugin(opts.analyzerOpts)
+			);
+
+			if (opts.multipleChunks) {
+				plugins.push(
+					new webpack.optimize.CommonsChunkPlugin({
+						name: 'manifest',
+						minChunks: Infinity
+					})
+				);
+			}
+
+			if (opts.minify) {
+				plugins.push(
+					new webpack.optimize.UglifyJsPlugin({
+						comments: false,
+						mangle: true,
+						compress: {
+							warnings: false,
+							negate_iife: false
+						}
+					})
+				);
+			}
+
+			return plugins;
+		})([])
+	};
 }

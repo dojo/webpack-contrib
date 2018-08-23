@@ -1,4 +1,6 @@
-const Logger = require('../../../dist/release/webpack-bundle-analyzer/Logger');
+const Logger = require('../../../src/webpack-bundle-analyzer/Logger');
+const { expect } = intern.getPlugin('chai');
+const { describe, it, beforeEach } = intern.getInterface('bdd');
 
 class TestLogger extends Logger {
   constructor(level) {

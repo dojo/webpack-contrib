@@ -1,13 +1,18 @@
 const fs = require('fs');
 const del = require('del');
+const sinon = require('sinon');
 const childProcess = require('child_process');
+const chaiSubset = require('chai-subset');
+
 
 let nightmare;
+const chai = intern.getPlugin('chai');
+chai.use(chaiSubset);
+const { expect } = chai;
+const { describe, it, before, after, beforeEach, afterEach } = intern.getInterface('bdd');
 
 describe('Analyzer', function () {
   let clock;
-
-  this.timeout(5000);
 
   before(function () {
     const Nightmare = require('nightmare');
@@ -17,7 +22,7 @@ describe('Analyzer', function () {
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout = 15000;
     await nightmare.goto('about:blank');
   });
 
@@ -43,14 +48,14 @@ describe('Analyzer', function () {
     generateReportFrom('with-module-concatenation-info/stats.json');
     const chartData = await getChartData();
     expect(chartData[0].groups[0]).to.containSubset(
-      require('./stats/with-module-concatenation-info/expected-chart-data')
+      require('../../support/fixtures/webpack-bundle-analyzer/stats/with-module-concatenation-info/expected-chart-data')
     );
   });
 });
 
 function generateReportFrom(statsFilename) {
   childProcess.execSync(
-    `node ../../../dist/release/bin/analyzer.js -m static -r output/report.html -O ../../support/fixtures/webpack-bundle-analyzer/stats/${statsFilename}`,
+    `node ../../../../release/webpack-bundle-analyzer/bin/analyzer.js -m static -r output/report.html -O ../../support/fixtures/webpack-bundle-analyzer/stats/${statsFilename}`,
     { cwd: __dirname }
   );
 }

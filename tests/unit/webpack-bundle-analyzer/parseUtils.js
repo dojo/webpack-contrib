@@ -1,9 +1,11 @@
 const fs = require('fs');
 
 const _ = require('lodash');
-const { parseBundle } = require('../../../dist/release/webpack-bundle-analyzer/parseUtils');
+const { parseBundle } = require('../../../src/webpack-bundle-analyzer/parseUtils');
 
 const BUNDLES_DIR = `${__dirname}/../../support/fixtures/webpack-bundle-analyzer/bundles`;
+const { expect } = intern.getPlugin('chai');
+const { describe, it } = intern.getInterface('bdd');
 
 describe('parseBundle', function () {
   const bundles = fs

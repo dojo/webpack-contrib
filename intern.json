@@ -1,5 +1,8 @@
 {
 	"extends": "./node_modules/@dojo/scripts/intern/base.json",
+	"coverage": [
+		"./dist/dev/src/!(webpack-bundle-analyzer)/**/*.js"
+	],
 	"capabilities+": {
 		"name": "@dojo/webpack-contrib"
 	}

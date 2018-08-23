@@ -15,7 +15,7 @@ describe('Webpack config', function() {
 		clock = sinon.useFakeTimers();
 	});
 
-	beforeEach(async function() {
+	beforeEach(function() {
 		this.timeout = 10000;
 	});
 
@@ -27,27 +27,29 @@ describe('Webpack config', function() {
 		clock.restore();
 	});
 
-	it('with `multi` module should be supported', async function() {
+	it('with `multi` module should be supported', function() {
 		const config = makeWebpackConfig();
 
 		config.entry.bundle = ['./src/a.js', './src/b.js'];
 
-		await webpackCompile(config);
-		clock.tick(1);
+		return webpackCompile(config).then(() => {
+			clock.tick(1);
 
-		const chartData = await getChartDataFromReport();
-		expect(chartData[0].groups).to.containSubset([
-			{
-				label: 'multi ./src/a.js ./src/b.js',
-				path: './multi ./src/a.js ./src/b.js',
-				groups: undefined
-			}
-		]);
+			return getChartDataFromReport();
+		}).then(chartData => {
+			expect(chartData[0].groups).to.containSubset([
+				{
+					label: 'multi ./src/a.js ./src/b.js',
+					path: './multi ./src/a.js ./src/b.js',
+					groups: undefined
+				}
+			]);
+		});
 	});
 });
 
-async function getChartDataFromReport(reportFilename = 'report.html') {
-	const contents = await new Promise((resolve, reject) => {
+function getChartDataFromReport(reportFilename = 'report.html') {
+	return new Promise((resolve, reject) => {
 		fs.readFile(`${__dirname}/output/${reportFilename}`, 'utf8', (err, data) => {
 			if (err) {
 				reject(err);
@@ -55,10 +57,7 @@ async function getChartDataFromReport(reportFilename = 'report.html') {
 
 			resolve(data);
 		});
-	});
-
-
-	return JSON.parse(/window.chartData = (.*);[\r\n]/.exec(contents)[1]);
+	}).then(contents => JSON.parse(/window.chartData = (.*);[\r\n]/.exec(contents)[1]));
 }
 
 function webpackCompile(config) {

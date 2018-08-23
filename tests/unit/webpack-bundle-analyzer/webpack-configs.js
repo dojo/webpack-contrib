@@ -6,21 +6,17 @@ const { expect } = intern.getPlugin('chai');
 const BundleAnalyzerPlugin = require('../../../src/webpack-bundle-analyzer/BundleAnalyzerPlugin').default;
 const { describe, it, before, after, beforeEach, afterEach } = intern.getInterface('bdd');
 
-let nightmare;
 
 describe('Webpack config', function() {
 	let clock;
 
 	before(function() {
-		const Nightmare = require('nightmare');
-		nightmare = Nightmare();
 		del.sync(`${__dirname}/output`);
 		clock = sinon.useFakeTimers();
 	});
 
 	beforeEach(async function() {
 		this.timeout = 10000;
-		await nightmare.goto('about:blank');
 	});
 
 	afterEach(function() {
@@ -51,7 +47,18 @@ describe('Webpack config', function() {
 });
 
 async function getChartDataFromReport(reportFilename = 'report.html') {
-	return await nightmare.goto(`file://${__dirname}/output/${reportFilename}`).evaluate(() => window.chartData);
+	const contents = await new Promise((resolve, reject) => {
+		fs.readFile(`${__dirname}/output/${reportFilename}`, 'utf8', (err, data) => {
+			if (err) {
+				reject(err);
+			}
+
+			resolve(data);
+		});
+	});
+
+
+	return JSON.parse(/window.chartData = (.*);[\r\n]/.exec(contents)[1]);
 }
 
 function webpackCompile(config) {

@@ -4,7 +4,6 @@ const sinon = require('sinon');
 const childProcess = require('child_process');
 const chaiSubset = require('chai-subset');
 
-let nightmare;
 const chai = intern.getPlugin('chai');
 chai.use(chaiSubset);
 const { expect } = chai;
@@ -14,19 +13,16 @@ describe('Analyzer', function() {
 	let clock;
 
 	before(function() {
-		const Nightmare = require('nightmare');
-		nightmare = Nightmare();
 		del.sync(`${__dirname}/output`);
 		clock = sinon.useFakeTimers();
 	});
 
 	beforeEach(async function() {
 		this.timeout = 15000;
-		await nightmare.goto('about:blank');
 	});
 
 	afterEach(function() {
-		del.sync(`${__dirname}/output`);
+		// del.sync(`${__dirname}/output`);
 	});
 
 	after(function() {
@@ -60,7 +56,18 @@ function generateReportFrom(statsFilename) {
 }
 
 async function getChartData() {
-	return await nightmare.goto(`file://${__dirname}/output/report.html`).evaluate(() => window.chartData);
+	const contents = await new Promise((resolve, reject) => {
+		fs.readFile(`${__dirname}/output/report.html`, 'utf8', (err, data) => {
+			if (err) {
+				reject(err);
+			}
+
+			resolve(data);
+		});
+	});
+
+
+	return JSON.parse(/window.chartData = (.*);[\r\n]/.exec(contents)[1]);
 }
 
 async function expectValidReport(opts) {

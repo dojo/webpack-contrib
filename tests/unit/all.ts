@@ -13,7 +13,6 @@ import './registry-transformer/RegistryTransformer';
 import './service-worker-plugin/service-worker-entry';
 import './service-worker-plugin/ServiceWorkerPlugin';
 import './webpack-bundle-analyzer/analyzer';
-import './webpack-bundle-analyzer/dev-server';
 import './webpack-bundle-analyzer/Logger';
 import './webpack-bundle-analyzer/parseUtils';
 import './webpack-bundle-analyzer/viewer';

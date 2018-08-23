@@ -4,6 +4,7 @@ require('import');
 
 if (noLeadingSlash.default('foo')) {
 	const a = 1 + 1;
-} else {
+}
+else {
 	const has = 2;
 }

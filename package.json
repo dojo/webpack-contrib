@@ -41,7 +41,7 @@
     "lint:prettier": "prettier -l \"{src,tests}/**/*.{ts,tsx}\"",
     "lint": "run-p lint:*",
     "precommit": "lint-staged",
-    "prettier": "prettier --write \"{src,tests}/**/*.{js,jsx,ts,tsx}\"",
+    "prettier": "prettier --write \"{src,tests}/**/*.{ts,tsx}\"",
     "release": "run-s lint clean build \"dojo-release -- {@}\" --",
     "test": "run-s lint build intern",
     "uploadCoverage": "codecov --file=coverage/coverage.json",

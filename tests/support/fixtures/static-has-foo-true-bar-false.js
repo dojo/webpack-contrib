@@ -8,31 +8,36 @@ const somename = require('something/has'),
 	chainedDeclarations = true;
 const afterHasRequire = true;
 // has('foo')
-'use strict';
+"use strict";
 exports.__esModule = true;
 // elided: import 'foo'
 // !has('bar')
 // elided: import 'bar'
-require('baz');
+require("baz");
 // has('qat')
-require('qat');
+require("qat");
 // has('qat')
 const foo = 'bar';
 require(foo);
 require('foo');
 // !has('baz')
-require('qat');
+require("qat");
 
 somename.default.add('foo');
 
 var dynamicHas = somename.default(foo);
 
-function doX() {}
+function doX() {
 
-function doY() {}
+}
+
+function doY() {
+
+}
 if (true) {
 	doX();
-} else {
+}
+else {
 	doY();
 }
 
@@ -41,6 +46,7 @@ if (!true) {
 }
 
 if ((true || false) && true) {
+
 }
 
 function returnArg(arg) {
@@ -52,6 +58,7 @@ if (returnArg(!true) && (somename.default('baz') || returnArg(somename.default('
 	doY();
 }
 
-if (true) doX();
+if (true)
+	doX();
 
 var variable = false || returnArg(true);

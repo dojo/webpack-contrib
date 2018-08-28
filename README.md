@@ -20,6 +20,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 	- [external-loader-plugin](#external-loader-plugin)
 	- [i18n-plugin](#i18n-plugin)
 	- [service-worker-plugin](#service-worker-plugin)
+	- [webpack-bundle-analyzer](#webpack-bundle-analyzer)
 - [Transformers](#transformers)
 	- [registry-transformer](#registry-transformer)
 - [How do I contribute?](#how-do-i-contribute)
@@ -447,6 +448,36 @@ new ServiceWorkerPlugin({
 			expiration: { maxEntries: 25, maxAgeSeconds: 86400 }
 		}
 	]
+});
+```
+
+## webpack-bundle-analyzer
+
+A webpack plugin that provides a visualization of the size of webpack output with an interactive sunburst graphic. 
+Functionally this is a copy of [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) with a custom visualization.
+
+The plugin accepts an options object with the following optional properties.
+
+| Property | Type | Description | Default |
+| -------- | ---- | ----------- | ------- |
+| analyzerMode | `'server' or 'static' or 'disabled'` | Whether to serve bundle analysis in a live server, render the report in a static HTML file or files, or to disable visual report generation entirely. | `'server' |
+| analyzerPort | `number` |  The port to use in `server` mode | `8888` |
+| reportFilename | `string` | Path to the report bundle file. Multiple report will be created with `-<bundleName>` appended to this value if there is more than one output bundle. | `'report.html'` |
+| openAnalyzer | `boolean` | Whether the report should be opened in a browser automatically | `true` |
+| generateStatsFile | `boolean` | Whether a JSON Webpack Stats file should be generated | `false` |
+| statsFilename | `string` | Name to use for the stats file if one is generated | `'stats.json'` |
+| statsOptons | `any` | Options to pass to `stats.toJson()`. More documentation can be found [here](https://github.com/webpack/webpack/blob/webpack-1/lib/Stats.js#L21) | `null` |
+| logLevel | `'info' or 'warn' or 'error' or 'silent'` | The level of logs from this plugin | `'info`'
+
+### Example
+
+```typescript
+import BundleAnalyzerPlugin from '@dojo/webpack-contrib/webpack-bundle-analyzer/BundleAnalyzerPlugin';
+
+new BundleAnalyzerPlugin({
+	analyzerMode: 'static',
+	reportFilename: '../info/report.html',
+	openAnalyzer: false
 });
 ```
 

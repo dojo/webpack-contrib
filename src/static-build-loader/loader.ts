@@ -179,7 +179,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
 						// check to see if we have a flag that we want to statically swap
 						if (arg.value in features) {
-							path.replace(builders.literal(Boolean(features[arg.value])));
+							path.replace(builders.literal(features[arg.value]));
 						} else {
 							dynamicFlags.add(arg.value);
 						}

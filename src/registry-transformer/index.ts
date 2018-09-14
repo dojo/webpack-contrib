@@ -230,6 +230,7 @@ class Visitor {
 		const text = node.tagName.getText();
 		if (this.modulesMap.get(text)) {
 			const targetClass = this.findParentClass(inputNode);
+			const outletName = this.outletName ? this.getOutletName(node) : undefined;
 			if (targetClass) {
 				const registryItems = this.classMap.get(targetClass) || {};
 				registryItems[text] = this.modulesMap.get(text) as string;
@@ -241,7 +242,7 @@ class Visitor {
 				);
 				this.setSharedModules(`${registryItemPrefix}${text}`, {
 					path: registryItems[text],
-					outletName: undefined
+					outletName
 				});
 				const attrs = ts.updateJsxAttributes(node.attributes, [
 					...node.attributes.properties,
@@ -343,6 +344,21 @@ class Visitor {
 							ts.isStringLiteral(property.initializer)
 						) {
 							return property.initializer.text;
+						}
+					}
+				}
+			} else if (ts.isJsxAttribute(parent) && parent.name.getText() === outletRendererName) {
+				const tsx = parent.parent!.parent as ts.JsxOpeningLikeElement;
+				if (ts.isJsxOpeningLikeElement(tsx) && tsx.tagName.getText() === this.outletName) {
+					const properties = tsx.attributes.properties;
+					for (let i = 0; i < properties.length; i++) {
+						const attribute = properties[i] as ts.JsxAttribute;
+						if (
+							attribute.name.getText() === outletIdName &&
+							attribute.initializer &&
+							ts.isStringLiteral(attribute.initializer)
+						) {
+							return attribute.initializer.text;
 						}
 					}
 				}

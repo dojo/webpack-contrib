@@ -186,15 +186,23 @@ class Visitor {
 
 	private setOutletName(node: ts.ImportDeclaration) {
 		if (node.importClause) {
-			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
-			namedBindings.elements.some((element: ts.ImportSpecifier) => {
-				const text = element.name.getText();
-				if (text === outletName || (element.propertyName && element.propertyName.escapedText === outletName)) {
-					this.outletName = text;
-					return true;
-				}
-				return false;
-			});
+			const importClause = node.importClause;
+			if (importClause && importClause.name && importClause.name.text) {
+				this.outletName = importClause.name.text;
+			} else if (importClause.namedBindings) {
+				const namedBindings = importClause.namedBindings as ts.NamedImports;
+				namedBindings.elements.some((element: ts.ImportSpecifier) => {
+					const text = element.name.getText();
+					if (
+						text === outletName ||
+						(element.propertyName && element.propertyName.escapedText === outletName)
+					) {
+						this.outletName = text;
+						return true;
+					}
+					return false;
+				});
+			}
 		}
 	}
 

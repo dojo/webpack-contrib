@@ -10,6 +10,10 @@ const registryDecoratorNamedImport = 'registry';
 const registryDecoratorNamedImportAlias = '__autoRegistry';
 const fakeComponentName = 'Loadable__';
 const registryDecoratorModulePath = '@dojo/framework/widget-core/decorators/registry';
+const outletImportPath = '@dojo/framework/routing/Outlet';
+const outletRendererName = 'renderer';
+const outletIdName = 'id';
+const outletName = 'Outlet';
 
 type Registry = { [index: string]: string };
 
@@ -54,6 +58,7 @@ class Visitor {
 	private bundlePaths: string[];
 	private legacyModule: boolean;
 	private wPragma: undefined | string;
+	private outletName: undefined | string;
 	private modulesMap = new Map<string, string>();
 	private classMap = new Map<ts.Node, Registry>();
 	private needsLoadable = false;
@@ -80,6 +85,8 @@ class Visitor {
 				this.setLazyImport(node);
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
+			} else if (outletImportPath === importPath) {
+				this.setOutletName(node);
 			}
 		}
 
@@ -177,6 +184,28 @@ class Visitor {
 		}
 	}
 
+	private setOutletName(node: ts.ImportDeclaration) {
+		if (node.importClause) {
+			const importClause = node.importClause;
+			if (importClause && importClause.name && importClause.name.text) {
+				this.outletName = importClause.name.text;
+			} else if (importClause.namedBindings) {
+				const namedBindings = importClause.namedBindings as ts.NamedImports;
+				namedBindings.elements.some((element: ts.ImportSpecifier) => {
+					const text = element.name.getText();
+					if (
+						text === outletName ||
+						(element.propertyName && element.propertyName.escapedText === outletName)
+					) {
+						this.outletName = text;
+						return true;
+					}
+					return false;
+				});
+			}
+		}
+	}
+
 	private setWPragma(node: ts.ImportDeclaration) {
 		if (node.importClause) {
 			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
@@ -201,6 +230,7 @@ class Visitor {
 		const text = node.tagName.getText();
 		if (this.modulesMap.get(text)) {
 			const targetClass = this.findParentClass(inputNode);
+			const outletName = this.outletName ? this.getOutletName(node) : undefined;
 			if (targetClass) {
 				const registryItems = this.classMap.get(targetClass) || {};
 				registryItems[text] = this.modulesMap.get(text) as string;
@@ -210,7 +240,10 @@ class Visitor {
 					ts.createIdentifier('__autoRegistryItem'),
 					registryIdentifier
 				);
-				this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
+				this.setSharedModules(`${registryItemPrefix}${text}`, {
+					path: registryItems[text],
+					outletName
+				});
 				const attrs = ts.updateJsxAttributes(node.attributes, [
 					...node.attributes.properties,
 					registryAttribute
@@ -235,23 +268,24 @@ class Visitor {
 		return inputNode;
 	}
 
-	private setSharedModules(registryItemName: string, modulePath: string) {
+	private setSharedModules(registryItemName: string, meta: { path: string; outletName: string | undefined }) {
 		const targetPath = path.posix
-			.resolve(this.contextPath, modulePath)
+			.resolve(this.contextPath, meta.path)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 		shared.modules = shared.modules || {};
-		shared.modules[registryItemName] = targetPath;
+		shared.modules[registryItemName] = { path: targetPath, outletName: meta.outletName };
 	}
 
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
 		const text = node.arguments[0].getText();
 		const targetClass = this.findParentClass(node);
+		const outletName = this.outletName ? this.getOutletName(node) : undefined;
 		if (targetClass) {
 			const registryItems = this.classMap.get(targetClass) || {};
 			registryItems[text] = this.modulesMap.get(text) as string;
 			this.classMap.set(targetClass, registryItems);
 			const registryIdentifier = ts.createLiteral(`${registryItemPrefix}${text}`);
-			this.setSharedModules(`${registryItemPrefix}${text}`, registryItems[text]);
+			this.setSharedModules(`${registryItemPrefix}${text}`, { path: registryItems[text], outletName });
 			return ts.updateCall(node, node.expression, node.typeArguments, [
 				registryIdentifier,
 				...node.arguments.slice(1)
@@ -287,6 +321,51 @@ class Visitor {
 			node.arguments &&
 			node.arguments.length
 		);
+	}
+
+	private getOutletName(node: ts.Node): string | undefined {
+		let parent = node.parent;
+		while (parent) {
+			if (ts.isMethodDeclaration(parent) && parent.name.getText() === outletRendererName) {
+				const w = parent.parent!.parent as ts.Node;
+				if (
+					ts.isCallExpression(w) &&
+					w.expression.getText() === this.wPragma &&
+					ts.isIdentifier(w.arguments[0]) &&
+					w.arguments[0].getText() === this.outletName &&
+					ts.isObjectLiteralExpression(w.arguments[1])
+				) {
+					const objectLiteral = w.arguments[1] as ts.ObjectLiteralExpression;
+					for (let i = 0; i < objectLiteral.properties.length; i++) {
+						const property = objectLiteral.properties[i];
+						if (
+							ts.isPropertyAssignment(property) &&
+							property.name.getText() === outletIdName &&
+							ts.isStringLiteral(property.initializer)
+						) {
+							return property.initializer.text;
+						}
+					}
+				}
+			} else if (ts.isJsxAttribute(parent) && parent.name.getText() === outletRendererName) {
+				const tsx = parent.parent!.parent as ts.JsxOpeningLikeElement;
+				if (ts.isJsxOpeningLikeElement(tsx) && tsx.tagName.getText() === this.outletName) {
+					const properties = tsx.attributes.properties;
+					for (let i = 0; i < properties.length; i++) {
+						const attribute = properties[i] as ts.JsxAttribute;
+						if (
+							attribute.name.getText() === outletIdName &&
+							attribute.initializer &&
+							ts.isStringLiteral(attribute.initializer)
+						) {
+							return attribute.initializer.text;
+						}
+					}
+				}
+			}
+			parent = parent.parent;
+		}
+		return undefined;
 	}
 
 	private findParentClass(node: ts.Node): ts.Node | undefined {

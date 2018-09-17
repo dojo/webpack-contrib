@@ -347,7 +347,10 @@ class Visitor {
 	private getOutletName(node: ts.Node): string | undefined {
 		let parent = node.parent;
 		while (parent) {
-			if (ts.isMethodDeclaration(parent) && parent.name.getText() === outletRendererName) {
+			if (
+				(ts.isMethodDeclaration(parent) || ts.isPropertyAssignment(parent)) &&
+				parent.name.getText() === outletRendererName
+			) {
 				const w = parent.parent!.parent as ts.Node;
 				if (
 					ts.isCallExpression(w) &&

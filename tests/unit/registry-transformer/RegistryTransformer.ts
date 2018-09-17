@@ -414,7 +414,9 @@ export default HelloWorld;
 		}
 		export default HelloWorld;
 		`;
-		const transformer = registryTransformer(process.cwd(), [], true);
+		const transformer = registryTransformer(process.cwd(), ['widgets/Bar', 'Bar', 'Baz', 'Quz'], false, [
+			'my-foo-outlet'
+		]);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
 				importHelpers: true,
@@ -481,8 +483,6 @@ export default HelloWorld;
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
-import Quz from './Quz';
-import { Blah } from './Qux';
 import Outlet from '@dojo/framework/routing/Outlet';
 
 export class Foo extends WidgetBase {
@@ -501,7 +501,7 @@ export class Foo extends WidgetBase {
 	}
 }
 `;
-		const transformer = registryTransformer(process.cwd(), [], true);
+		const transformer = registryTransformer(process.cwd(), [], false, ['my-bar-outlet']);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
 				importHelpers: true,
@@ -517,17 +517,18 @@ export class Foo extends WidgetBase {
 		const expected = `import * as tslib_1 from "tslib";
 import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
 var Loadable__ = { type: "registry" };
-var __autoRegistryItems_1 = { '__autoRegistryItem_Baz': () => import("./Baz"), '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
+var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import Baz from './Baz';
 import Outlet from '@dojo/framework/routing/Outlet';
 let Foo = class Foo extends WidgetBase {
     render() {
         return (<div>
 				<div>
 					<div>Foo</div>
-					<Loadable__ __autoRegistryItem="__autoRegistryItem_Baz">
+					<Baz>
 						<div>child</div>
-					</Loadable__>
+					</Baz>
 					<Outlet id="my-bar-outlet" renderer={() => (<Loadable__ __autoRegistryItem="__autoRegistryItem_Bar"/>)}/>
 				</div>
 			</div>);
@@ -541,7 +542,6 @@ export { Foo };
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
-				__autoRegistryItem_Baz: { path: 'Baz', outletName: undefined },
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: 'my-bar-outlet' }
 			}
 		});

@@ -283,7 +283,10 @@ class Visitor {
 			.resolve(this.contextPath, meta.path)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 		shared.modules = shared.modules || {};
-		shared.modules[registryItemName] = { path: targetPath, outletName: meta.outletName };
+		shared.modules[registryItemName] = shared.modules[registryItemName] || { path: targetPath, outletName: [] };
+		if (meta.outletName) {
+			shared.modules[registryItemName].outletName.push(meta.outletName);
+		}
 	}
 
 	private replaceWidgetClassWithString(node: ts.CallExpression) {

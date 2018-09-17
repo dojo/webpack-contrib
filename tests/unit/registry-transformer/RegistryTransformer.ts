@@ -368,9 +368,9 @@ export default HelloWorld;
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
-				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: undefined },
-				__autoRegistryItem_Baz: { path: 'Baz', outletName: undefined },
-				__autoRegistryItem_Quz: { path: 'Quz', outletName: undefined }
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
+				__autoRegistryItem_Baz: { path: 'Baz', outletName: [] },
+				__autoRegistryItem_Quz: { path: 'Quz', outletName: [] }
 			}
 		});
 	});
@@ -481,10 +481,10 @@ export default HelloWorld;
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
-				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: undefined },
-				__autoRegistryItem_Blah: { path: 'Qux', outletName: 'my-blah-outlet' },
-				__autoRegistryItem_Quz: { path: 'Quz', outletName: undefined },
-				__autoRegistryItem_Something: { outletName: 'my-foo-outlet', path: 'Something' }
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
+				__autoRegistryItem_Blah: { path: 'Qux', outletName: ['my-blah-outlet'] },
+				__autoRegistryItem_Quz: { path: 'Quz', outletName: [] },
+				__autoRegistryItem_Something: { outletName: ['my-foo-outlet'], path: 'Something' }
 			}
 		});
 	});
@@ -553,7 +553,7 @@ export { Foo };
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
-				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: 'my-bar-outlet' }
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: ['my-bar-outlet'] }
 			}
 		});
 	});

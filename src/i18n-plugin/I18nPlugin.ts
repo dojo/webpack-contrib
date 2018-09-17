@@ -1,5 +1,5 @@
 /* tslint:disable:interface-name */
-import { deepAssign } from '@dojo/framework/core/lang';
+import { deepAssign } from '@dojo/framework/core/util';
 import { join } from 'path';
 import { Compiler, DefinePlugin } from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');

@@ -84,7 +84,7 @@ class Visitor {
 			);
 		});
 
-		const varStmt = ts.createVariableStatement(
+		const registryStmt = ts.createVariableStatement(
 			undefined,
 			ts.createVariableDeclarationList([
 				ts.createVariableDeclaration(
@@ -95,7 +95,17 @@ class Visitor {
 			])
 		);
 
-		const statements = this.removeImportStatements([varStmt, ...node.statements]);
+		let index = 0;
+		for (let i = 0; i < node.statements.length; i++) {
+			if (!ts.isImportDeclaration(node.statements[i])) {
+				index = i;
+				break;
+			}
+		}
+
+		let statements = [...node.statements];
+		statements.splice(index, 0, registryStmt);
+		statements = this.removeImportStatements(statements);
 
 		if (this.needsLoadable) {
 			const obj = ts.createObjectLiteral([

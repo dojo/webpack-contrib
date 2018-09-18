@@ -75,37 +75,40 @@ class Visitor {
 	}
 
 	public end(node: ts.SourceFile) {
-		const registryItems = Object.keys(this.registryItems).map((label) => {
-			const modulePath = this.registryItems[label];
-			const importCall = createArrowFuncForDefaultImport(modulePath);
-			return ts.createPropertyAssignment(
-				label,
-				ts.createArrowFunction(undefined, undefined, [], undefined, undefined, importCall)
-			);
-		});
-
-		const registryStmt = ts.createVariableStatement(
-			undefined,
-			ts.createVariableDeclarationList([
-				ts.createVariableDeclaration(
-					'__autoRegistryItems',
-					undefined,
-					ts.createObjectLiteral(registryItems, false)
-				)
-			])
-		);
-
-		let index = 0;
-		for (let i = 0; i < node.statements.length; i++) {
-			if (!ts.isImportDeclaration(node.statements[i])) {
-				index = i;
-				break;
-			}
-		}
-
 		let statements = [...node.statements];
-		statements.splice(index, 0, registryStmt);
-		statements = this.removeImportStatements(statements);
+
+		if (Object.keys(this.registryItems).length) {
+			const registryItems = Object.keys(this.registryItems).map((label) => {
+				const modulePath = this.registryItems[label];
+				const importCall = createArrowFuncForDefaultImport(modulePath);
+				return ts.createPropertyAssignment(
+					label,
+					ts.createArrowFunction(undefined, undefined, [], undefined, undefined, importCall)
+				);
+			});
+
+			const registryStmt = ts.createVariableStatement(
+				undefined,
+				ts.createVariableDeclarationList([
+					ts.createVariableDeclaration(
+						'__autoRegistryItems',
+						undefined,
+						ts.createObjectLiteral(registryItems, false)
+					)
+				])
+			);
+
+			let index = 0;
+			for (let i = 0; i < statements.length; i++) {
+				if (!ts.isImportDeclaration(statements[i])) {
+					index = i;
+					break;
+				}
+			}
+
+			statements.splice(index, 0, registryStmt);
+			statements = this.removeImportStatements(statements);
+		}
 
 		if (this.needsLoadable) {
 			const obj = ts.createObjectLiteral([
@@ -113,7 +116,16 @@ class Visitor {
 			]);
 			const decl = ts.createVariableDeclaration(fakeComponentName, undefined, obj);
 			const stmt = ts.createVariableStatement(undefined, [decl]);
-			statements.unshift(stmt);
+
+			let index = 0;
+			for (let i = 0; i < statements.length; i++) {
+				if (!ts.isImportDeclaration(statements[i])) {
+					index = i;
+					break;
+				}
+			}
+
+			statements.splice(index, 0, stmt);
 		}
 
 		return ts.updateSourceFileNode(node, [...statements]);
@@ -199,7 +211,7 @@ class Visitor {
 					ts.createIdentifier('__autoRegistryItem'),
 					ts.createJsxExpression(undefined, registryExpr)
 				);
-				this.setSharedModules(text, {
+				this.setSharedModules(`__autoRegistryItem_${text}`, {
 					path: this.registryItems[text],
 					outletName
 				});
@@ -263,7 +275,7 @@ class Visitor {
 				),
 				ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
 			]);
-			this.setSharedModules(text, { path: this.registryItems[text], outletName });
+			this.setSharedModules(`__autoRegistryItem_${text}`, { path: this.registryItems[text], outletName });
 			return ts.updateCall(node, node.expression, node.typeArguments, [registryExpr, ...node.arguments.slice(1)]);
 		}
 		return node;

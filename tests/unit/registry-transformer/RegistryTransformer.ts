@@ -81,7 +81,7 @@ describe('registry-transformer', () => {
 		shared.modules = {};
 	});
 
-	it('does not add import or decorator when no modules specified', () => {
+	it('does not modify when no modules specified', () => {
 		const transformer = registryTransformer(process.cwd(), []);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
@@ -130,7 +130,6 @@ export class Another extends WidgetBase {
 }
 export default HelloWorld;
 `;
-
 		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
@@ -159,12 +158,11 @@ export class Another extends WidgetBase {
     }
 }
 `;
-
 		assert.equal(nl(result.outputText), expected);
 		assert.equal(nl(resultTsx.outputText), expectedTsx);
 	});
 
-	it('does add import and decorator for esm', () => {
+	it('does elide modules and transform when specified', () => {
 		const transformer = registryTransformer(process.cwd(), ['widgets/Bar', 'Qux', 'Baz']);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
@@ -190,134 +188,58 @@ export class Another extends WidgetBase {
 			}
 		});
 
-		const expected = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
-var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
-var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
-import { v, w } from '@dojo/framework/widget-core/d';
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Quz from './Quz';
 import { Blah } from './Qux';
-let Foo = class Foo extends WidgetBase {
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
+export class Foo extends WidgetBase {
     render() {
         return v('div'[v('div', ['Foo']),
-            w("__autoRegistryItem_Bar", {}),
-            w("__autoRegistryItem_Baz", {}),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
             w(Blah, {})]);
     }
-};
-Foo = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_1)
-], Foo);
-export { Foo };
-let Another = class Another extends WidgetBase {
+}
+export class Another extends WidgetBase {
     render() {
-        return v('div'[w("__autoRegistryItem_Bar", {}),
-            w("__autoRegistryItem_Baz", {}),
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
             w(Quz, {})]);
     }
-};
-Another = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_2)
-], Another);
-export { Another };
+}
 export default HelloWorld;
 `;
-
-		const expectedTsx = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
-var Loadable__ = { type: "registry" };
-var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
-var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { Blah } from './Qux';
-let Foo = class Foo extends WidgetBase {
+var Loadable__ = { type: "registry" };
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
+export class Foo extends WidgetBase {
     render() {
         return (<div>
 				<div>
 					<div>Foo</div>
-					<Loadable__ prop="hello" __autoRegistryItem="__autoRegistryItem_Bar"/>
-					<Loadable__ __autoRegistryItem="__autoRegistryItem_Baz">
+					<Loadable__ prop="hello" __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>
+					<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }}>
 						<div>child</div>
 					</Loadable__>
 					<Blah />
 				</div>
 			</div>);
     }
-};
-Foo = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_1)
-], Foo);
-export { Foo };
-let Another = class Another extends WidgetBase {
+}
+export class Another extends WidgetBase {
     render() {
         return (<div>
-				<Loadable__ __autoRegistryItem="__autoRegistryItem_Bar"/>
-				<Loadable__ __autoRegistryItem="__autoRegistryItem_Baz"/>
+				<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>
+				<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }}/>
 				<Qux />
 			</div>);
     }
-};
-Another = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_2)
-], Another);
-export { Another };
+}
 `;
-
 		assert.equal(nl(result.outputText), expected);
 		assert.equal(nl(resultTsx.outputText), expectedTsx);
-	});
-
-	it('does add import and decorator for commonjs', () => {
-		const transformer = registryTransformer(process.cwd(), ['widgets/Bar', 'Qux', 'Quz']);
-		const result = ts.transpileModule(source, {
-			compilerOptions: {
-				importHelpers: true,
-				module: ts.ModuleKind.CommonJS,
-				target: ts.ScriptTarget.ESNext
-			},
-			transformers: {
-				before: [transformer]
-			}
-		});
-
-		const expected = `"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const registry_1 = require("@dojo/framework/widget-core/decorators/registry");
-var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./widgets/Bar")) };
-var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => Promise.resolve().then(() => require("./widgets/Bar")), '__autoRegistryItem_Quz': () => Promise.resolve().then(() => require("./Quz")) };
-const d_1 = require("@dojo/framework/widget-core/d");
-const WidgetBase_1 = require("@dojo/framework/widget-core/WidgetBase");
-const Baz_1 = require("./Baz");
-const Qux_1 = require("./Qux");
-let Foo = class Foo extends WidgetBase_1.default {
-    render() {
-        return d_1.v('div'[d_1.v('div', ['Foo']),
-            d_1.w("__autoRegistryItem_Bar", {}),
-            d_1.w(Baz_1.default, {}),
-            d_1.w(Qux_1.Blah, {})]);
-    }
-};
-Foo = tslib_1.__decorate([
-    registry_1.registry(__autoRegistryItems_1)
-], Foo);
-exports.Foo = Foo;
-let Another = class Another extends WidgetBase_1.default {
-    render() {
-        return d_1.v('div'[d_1.w("__autoRegistryItem_Bar", {}),
-            d_1.w(Baz_1.default, {}),
-            d_1.w("__autoRegistryItem_Quz", {})]);
-    }
-};
-Another = tslib_1.__decorate([
-    registry_1.registry(__autoRegistryItems_2)
-], Another);
-exports.Another = Another;
-exports.default = HelloWorld;
-`;
-
-		assert.equal(nl(result.outputText), expected);
 	});
 
 	it('replaces all widgets in all mode', () => {
@@ -333,36 +255,25 @@ exports.default = HelloWorld;
 			}
 		});
 
-		const expected = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
-var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz") };
-var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Baz': () => import("./Baz"), '__autoRegistryItem_Quz': () => import("./Quz") };
-import { v, w } from '@dojo/framework/widget-core/d';
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { Blah } from './Qux';
-let Foo = class Foo extends WidgetBase {
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz"), Quz: () => import("./Quz") };
+export class Foo extends WidgetBase {
     render() {
         return v('div'[v('div', ['Foo']),
-            w("__autoRegistryItem_Bar", {}),
-            w("__autoRegistryItem_Baz", {}),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
             w(Blah, {})]);
     }
-};
-Foo = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_1)
-], Foo);
-export { Foo };
-let Another = class Another extends WidgetBase {
+}
+export class Another extends WidgetBase {
     render() {
-        return v('div'[w("__autoRegistryItem_Bar", {}),
-            w("__autoRegistryItem_Baz", {}),
-            w("__autoRegistryItem_Quz", {})]);
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
+            w({ label: "__autoRegistryItem_Quz", registryItem: __autoRegistryItems.Quz }, {})]);
     }
-};
-Another = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_2)
-], Another);
-export { Another };
+}
 export default HelloWorld;
 `;
 		assert.equal(nl(result.outputText), expected);
@@ -434,51 +345,39 @@ export default HelloWorld;
 			}
 		});
 
-		const expected = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
-var __autoRegistryItems_1 = { '__autoRegistryItem_Something': () => import("./Something"), '__autoRegistryItem_Blah': () => import("./Qux"), '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
-var __autoRegistryItems_2 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar"), '__autoRegistryItem_Quz': () => import("./Quz") };
-import { v, w } from '@dojo/framework/widget-core/d';
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { Outlet } from '@dojo/framework/routing/Outlet';
 import Baz from './Baz';
-let Foo = class Foo extends WidgetBase {
+var __autoRegistryItems = { Something: () => import("./Something"), Blah: () => import("./Qux"), Bar: () => import("./widgets/Bar"), Quz: () => import("./Quz") };
+export class Foo extends WidgetBase {
     render() {
         return v('div'[v('div', ['Foo']),
             w(Outlet, {
                 id: 'my-foo-outlet',
                 renderer: () => {
-                    return w("__autoRegistryItem_Something", {});
+                    return w({ label: "__autoRegistryItem_Something", registryItem: __autoRegistryItems.Something }, {});
                 }
             }),
             w(Outlet, {
                 id: 'my-blah-outlet',
                 renderer() {
-                    return w("__autoRegistryItem_Blah", {});
+                    return w({ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }, {});
                 }
             }),
-            w("__autoRegistryItem_Bar", {}),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
             w(Baz, {})]);
     }
-};
-Foo = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_1)
-], Foo);
-export { Foo };
-let Another = class Another extends WidgetBase {
+}
+export class Another extends WidgetBase {
     render() {
-        return v('div'[w("__autoRegistryItem_Bar", {}),
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
             w(Baz, {}),
-            w("__autoRegistryItem_Quz", {})]);
+            w({ label: "__autoRegistryItem_Quz", registryItem: __autoRegistryItems.Quz }, {})]);
     }
-};
-Another = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_2)
-], Another);
-export { Another };
+}
 export default HelloWorld;
 `;
-		console.log(nl(result.outputText));
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {
@@ -526,14 +425,13 @@ export class Foo extends WidgetBase {
 				before: [transformer]
 			}
 		});
-		const expected = `import * as tslib_1 from "tslib";
-import { registry as __autoRegistry } from "@dojo/framework/widget-core/decorators/registry";
-var Loadable__ = { type: "registry" };
-var __autoRegistryItems_1 = { '__autoRegistryItem_Bar': () => import("./widgets/Bar") };
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+
+		const expected = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Baz from './Baz';
 import Outlet from '@dojo/framework/routing/Outlet';
-let Foo = class Foo extends WidgetBase {
+var Loadable__ = { type: "registry" };
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar") };
+export class Foo extends WidgetBase {
     render() {
         return (<div>
 				<div>
@@ -541,17 +439,12 @@ let Foo = class Foo extends WidgetBase {
 					<Baz>
 						<div>child</div>
 					</Baz>
-					<Outlet id="my-bar-outlet" renderer={() => (<Loadable__ __autoRegistryItem="__autoRegistryItem_Bar"/>)}/>
+					<Outlet id="my-bar-outlet" renderer={() => (<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>)}/>
 				</div>
 			</div>);
     }
-};
-Foo = tslib_1.__decorate([
-    __autoRegistry(__autoRegistryItems_1)
-], Foo);
-export { Foo };
+}
 `;
-		console.log(nl(result.outputText));
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {

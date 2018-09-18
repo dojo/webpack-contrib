@@ -478,6 +478,7 @@ Another = tslib_1.__decorate([
 export { Another };
 export default HelloWorld;
 `;
+		console.log(nl(result.outputText));
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {

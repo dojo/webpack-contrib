@@ -1,10 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-
-const _ = require('lodash');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as _ from 'lodash';
 const gzipSize = require('gzip-size');
-
-const Logger = require('./Logger');
 const Folder = require('./tree/Folder').default;
 const { parseBundle } = require('./parseUtils');
 
@@ -15,9 +12,7 @@ module.exports = {
 	readStatsFromFile
 };
 
-function getViewerData(bundleStats, bundleDir, opts) {
-	const { logger = new Logger() } = opts || {};
-
+function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
 	// Sometimes all the information is located in `children` array (e.g. problem in #10)
 	if (_.isEmpty(bundleStats.assets) && !_.isEmpty(bundleStats.children)) {
 		bundleStats = bundleStats.children[0];
@@ -33,8 +28,8 @@ function getViewerData(bundleStats, bundleDir, opts) {
 	});
 
 	// Trying to parse bundle assets and get real module sizes if `bundleDir` is provided
-	let bundlesSources = null;
-	let parsedModules = null;
+	let bundlesSources: any = null;
+	let parsedModules: any = null;
 
 	if (bundleDir) {
 		bundlesSources = {};
@@ -51,10 +46,6 @@ function getViewerData(bundleStats, bundleDir, opts) {
 			}
 
 			if (!bundleInfo) {
-				logger.warn(
-					`\nCouldn't parse bundle asset "${assetFile}".\n` +
-						'Analyzer will use module sizes from stats file.\n'
-				);
 				parsedModules = null;
 				bundlesSources = null;
 				break;
@@ -67,8 +58,8 @@ function getViewerData(bundleStats, bundleDir, opts) {
 
 	const assets = _.transform(
 		bundleStats.assets,
-		(result, statAsset) => {
-			const asset = (result[statAsset.name] = _.pick(statAsset, 'size'));
+		(result: any, statAsset: any) => {
+			const asset: any = (result[statAsset.name] = _.pick(statAsset, 'size'));
 
 			if (bundlesSources) {
 				asset.parsedSize = bundlesSources[statAsset.name].length;
@@ -91,7 +82,7 @@ function getViewerData(bundleStats, bundleDir, opts) {
 
 	return _.transform(
 		assets,
-		(result, asset, filename) => {
+		(result: any, asset: any, filename: any) => {
 			result.push({
 				label: filename,
 				// Not using `asset.size` here provided by Webpack because it can be very confusing when `UglifyJsPlugin` is used.
@@ -107,15 +98,15 @@ function getViewerData(bundleStats, bundleDir, opts) {
 	);
 }
 
-function readStatsFromFile(filename) {
+function readStatsFromFile(filename: any) {
 	return JSON.parse(fs.readFileSync(filename, 'utf8'));
 }
 
-function assetHasModule(statAsset, statModule) {
+function assetHasModule(statAsset: any, statModule: any) {
 	return _.some(statModule.chunks, (moduleChunk) => _.includes(statAsset.chunks, moduleChunk));
 }
 
-function createModulesTree(modules) {
+function createModulesTree(modules: any) {
 	const root = new Folder('.');
 
 	_.each(modules, (module) => root.addModule(module));

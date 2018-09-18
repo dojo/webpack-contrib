@@ -1,5 +1,5 @@
-import _ from 'lodash';
-import gzipSize from 'gzip-size';
+import * as _ from 'lodash';
+import * as gzipSize from 'gzip-size';
 
 import Module from './Module';
 import BaseFolder from './BaseFolder';
@@ -7,6 +7,8 @@ import ConcatenatedModule from './ConcatenatedModule';
 import { getModulePathParts } from './utils';
 
 export default class Folder extends BaseFolder {
+	private _gzipSize: any;
+
 	get parsedSize() {
 		return this.src ? this.src.length : undefined;
 	}
@@ -19,7 +21,7 @@ export default class Folder extends BaseFolder {
 		return this._gzipSize;
 	}
 
-	addModule(moduleData) {
+	addModule(moduleData: any) {
 		const pathParts = getModulePathParts(moduleData);
 
 		if (!pathParts) {

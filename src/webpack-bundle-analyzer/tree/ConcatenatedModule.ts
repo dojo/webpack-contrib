@@ -1,12 +1,15 @@
-import _ from 'lodash';
+import * as _ from 'lodash';
 
 import Module from './Module';
 import ContentModule from './ContentModule';
 import ContentFolder from './ContentFolder';
 import { getModulePathParts } from './utils';
+import BaseNode from './Node';
 
 export default class ConcatenatedModule extends Module {
-	constructor(name, data, parent) {
+	private children: any;
+
+	constructor(name: string, data: any, parent?: BaseNode) {
 		super(name, data, parent);
 		this.name += ' (concatenated)';
 		this.children = Object.create(null);
@@ -14,10 +17,10 @@ export default class ConcatenatedModule extends Module {
 	}
 
 	fillContentModules() {
-		_.each(this.data.modules, (moduleData) => this.addContentModule(moduleData));
+		_.each(this.data.modules, (moduleData: any) => this.addContentModule(moduleData));
 	}
 
-	addContentModule(moduleData) {
+	addContentModule(moduleData: any) {
 		const pathParts = getModulePathParts(moduleData);
 
 		if (!pathParts) {
@@ -27,7 +30,7 @@ export default class ConcatenatedModule extends Module {
 		const [folders, fileName] = [pathParts.slice(0, -1), _.last(pathParts)];
 		let currentFolder = this;
 
-		_.each(folders, (folderName) => {
+		_.each(folders, (folderName: any) => {
 			let childFolder = currentFolder.getChild(folderName);
 
 			if (!childFolder) {
@@ -41,16 +44,16 @@ export default class ConcatenatedModule extends Module {
 		currentFolder.addChildModule(module);
 	}
 
-	getChild(name) {
+	getChild(name: any) {
 		return this.children[name];
 	}
 
-	addChildModule(module) {
+	addChildModule(module: any) {
 		module.parent = this;
 		this.children[module.name] = module;
 	}
 
-	addChildFolder(folder) {
+	addChildFolder(folder: any) {
 		folder.parent = this;
 		this.children[folder.name] = folder;
 		return folder;

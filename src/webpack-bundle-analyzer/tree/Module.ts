@@ -1,10 +1,13 @@
-import _ from 'lodash';
-import gzipSize from 'gzip-size';
+import * as _ from 'lodash';
+import * as gzipSize from 'gzip-size';
 
-import Node from './Node';
+import BaseNode from './Node';
 
-export default class Module extends Node {
-	constructor(name, data, parent) {
+export default class Module extends BaseNode {
+	public data: any;
+	private _gzipSize: any;
+
+	constructor(name: string, data: any, parent?: BaseNode) {
 		super(name, parent);
 		this.data = data;
 	}
@@ -38,7 +41,7 @@ export default class Module extends Node {
 		return this._gzipSize;
 	}
 
-	mergeData(data) {
+	mergeData(data: any) {
 		if (data.size) {
 			this.size += data.size;
 		}

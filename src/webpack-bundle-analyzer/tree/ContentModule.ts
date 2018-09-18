@@ -1,7 +1,9 @@
 import Module from './Module';
 
 export default class ContentModule extends Module {
-	constructor(name, data, ownerModule, parent) {
+	private ownerModule: any;
+
+	constructor(name: string, data: any, ownerModule: any, parent?: any) {
 		super(name, data, parent);
 		this.ownerModule = ownerModule;
 	}
@@ -14,7 +16,7 @@ export default class ContentModule extends Module {
 		return this.getSize('gzipSize');
 	}
 
-	getSize(sizeType) {
+	getSize(sizeType: any) {
 		const ownerModuleSize = this.ownerModule[sizeType];
 
 		if (ownerModuleSize !== undefined) {

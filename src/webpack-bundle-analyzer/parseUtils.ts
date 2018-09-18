@@ -1,5 +1,5 @@
-const fs = require('fs');
-const _ = require('lodash');
+import * as fs from 'fs';
+import * as _ from 'lodash';
 const acorn = require('acorn');
 const walk = require('acorn/dist/walk');
 
@@ -7,7 +7,7 @@ module.exports = {
 	parseBundle
 };
 
-function parseBundle(bundlePath) {
+function parseBundle(bundlePath: any) {
 	const content = fs.readFileSync(bundlePath, 'utf8');
 	const ast = acorn.parse(content, {
 		sourceType: 'script',
@@ -22,8 +22,10 @@ function parseBundle(bundlePath) {
 	};
 
 	walk.recursive(ast, walkState, {
-		CallExpression(node, state, c) {
-			if (state.sizes) return;
+		CallExpression(node: any, state: any, c: any) {
+			if (state.sizes) {
+				return;
+			}
 
 			const args = node.arguments;
 
@@ -91,16 +93,16 @@ function parseBundle(bundlePath) {
 
 	return {
 		src: content,
-		modules: _.mapValues(walkState.locations, (loc) => content.slice(loc.start, loc.end))
+		modules: _.mapValues(walkState.locations, (loc: any) => content.slice(loc.start, loc.end))
 	};
 }
 
-function isArgumentContainsChunkIds(arg) {
+function isArgumentContainsChunkIds(arg: any) {
 	// Array of numeric or string ids. Chunk IDs are strings when NamedChunksPlugin is used
 	return arg.type === 'ArrayExpression' && _.every(arg.elements, isModuleId);
 }
 
-function isArgumentContainsModulesList(arg) {
+function isArgumentContainsModulesList(arg: any) {
 	if (arg.type === 'ObjectExpression') {
 		return _(arg.properties)
 			.map('value')
@@ -121,7 +123,7 @@ function isArgumentContainsModulesList(arg) {
 	return false;
 }
 
-function isArgumentContainingChunkIdsAndModulesList(arg) {
+function isArgumentContainingChunkIdsAndModulesList(arg: any) {
 	if (
 		arg.type === 'ArrayExpression' &&
 		arg.elements.length >= 2 &&
@@ -133,7 +135,7 @@ function isArgumentContainingChunkIdsAndModulesList(arg) {
 	return false;
 }
 
-function isArgumentArrayConcatContainingChunks(arg) {
+function isArgumentArrayConcatContainingChunks(arg: any) {
 	if (
 		arg.type === 'CallExpression' &&
 		arg.callee.type === 'MemberExpression' &&
@@ -159,7 +161,7 @@ function isArgumentArrayConcatContainingChunks(arg) {
 	return false;
 }
 
-function isWindowPropertyPushExpression(node) {
+function isWindowPropertyPushExpression(node: any) {
 	return (
 		node.callee.type === 'MemberExpression' &&
 		node.callee.property.name === 'push' &&
@@ -168,7 +170,7 @@ function isWindowPropertyPushExpression(node) {
 	);
 }
 
-function isModuleWrapper(node) {
+function isModuleWrapper(node: any) {
 	return (
 		// It's an anonymous function expression that wraps module
 		((node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') && !node.id) ||
@@ -179,21 +181,21 @@ function isModuleWrapper(node) {
 	);
 }
 
-function isModuleId(node) {
+function isModuleId(node: any) {
 	return node.type === 'Literal' && (isNumericId(node) || typeof node.value === 'string');
 }
 
-function isNumericId(node) {
+function isNumericId(node: any) {
 	return node.type === 'Literal' && Number.isInteger(node.value) && node.value >= 0;
 }
 
-function getModulesLocationFromFunctionArgument(arg) {
+function getModulesLocationFromFunctionArgument(arg: any) {
 	if (arg.type === 'ObjectExpression') {
 		const modulesNodes = arg.properties;
 
 		return _.transform(
 			modulesNodes,
-			(result, moduleNode) => {
+			(result, moduleNode: any) => {
 				const moduleId = moduleNode.key.name || moduleNode.key.value;
 
 				result[moduleId] = getModuleLocation(moduleNode.value);
@@ -208,7 +210,9 @@ function getModulesLocationFromFunctionArgument(arg) {
 		return _.transform(
 			modulesNodes,
 			(result, moduleNode, i) => {
-				if (!moduleNode) return;
+				if (!moduleNode) {
+					return;
+				}
 
 				result[i] = getModuleLocation(moduleNode);
 			},
@@ -219,7 +223,7 @@ function getModulesLocationFromFunctionArgument(arg) {
 	return {};
 }
 
-function getModulesLocationFromArrayConcat(arg) {
+function getModulesLocationFromArrayConcat(arg: any) {
 	// arg(CallExpression) =
 	//   Array([minId]).concat([<minId module>, <minId+1 module>, ...])
 	//
@@ -231,7 +235,9 @@ function getModulesLocationFromArrayConcat(arg) {
 	return _.transform(
 		modulesNodes,
 		(result, moduleNode, i) => {
-			if (!moduleNode) return;
+			if (!moduleNode) {
+				return;
+			}
 
 			result[i + minId] = getModuleLocation(moduleNode);
 		},
@@ -239,6 +245,6 @@ function getModulesLocationFromArrayConcat(arg) {
 	);
 }
 
-function getModuleLocation(node) {
+function getModuleLocation(node: any) {
 	return _.pick(node, 'start', 'end');
 }

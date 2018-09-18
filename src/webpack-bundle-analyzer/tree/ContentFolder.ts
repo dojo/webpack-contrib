@@ -1,7 +1,9 @@
 import BaseFolder from './BaseFolder';
 
 export default class ContentFolder extends BaseFolder {
-	constructor(name, ownerModule, parent) {
+	private ownerModule: any;
+
+	constructor(name: string, ownerModule: any, parent?: any) {
 		super(name, parent);
 		this.ownerModule = ownerModule;
 	}
@@ -14,7 +16,7 @@ export default class ContentFolder extends BaseFolder {
 		return this.getSize('gzipSize');
 	}
 
-	getSize(sizeType) {
+	getSize(sizeType: any) {
 		const ownerModuleSize = this.ownerModule[sizeType];
 
 		if (ownerModuleSize !== undefined) {

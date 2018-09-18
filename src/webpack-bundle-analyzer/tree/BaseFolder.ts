@@ -1,18 +1,22 @@
-import _ from 'lodash';
+import * as _ from 'lodash';
+import BaseNode from './Node';
 
-import Node from './Node';
+export default class BaseFolder extends BaseNode {
+	private children: any = Object.create(null);
+	private _src: any;
+	private _size: any;
 
-export default class BaseFolder extends Node {
-	constructor(name, parent) {
+	constructor(name: string, parent?: BaseNode) {
 		super(name, parent);
-		this.children = Object.create(null);
 	}
 
 	get src() {
-		if (!_.has(this, '_src')) {
+		if (!this._src) {
 			this._src = this.walk(
-				(node, src, stop) => {
-					if (node.src === undefined) return stop(undefined);
+				(node: any, src: any, stop: any) => {
+					if (node.src === undefined) {
+						return stop(undefined);
+					}
 					return (src += node.src);
 				},
 				'',
@@ -25,22 +29,24 @@ export default class BaseFolder extends Node {
 
 	get size() {
 		if (!_.has(this, '_size')) {
-			this._size = this.walk((node, size) => size + node.size, 0, false);
+			this._size = this.walk((node: any, size: any) => size + node.size, 0, false);
 		}
 
 		return this._size;
 	}
 
-	getChild(name) {
+	getChild(name: any) {
 		return this.children[name];
 	}
 
-	addChildModule(module) {
+	addChildModule(module: any) {
 		const { name } = module;
 		const currentChild = this.children[name];
 
 		// For some reason we already have this node in children and it's a folder.
-		if (currentChild && currentChild instanceof BaseFolder) return;
+		if (currentChild && currentChild instanceof BaseFolder) {
+			return;
+		}
 
 		if (currentChild) {
 			// We already have this node in children and it's a module.
@@ -56,7 +62,7 @@ export default class BaseFolder extends Node {
 		delete this._src;
 	}
 
-	addChildFolder(folder) {
+	addChildFolder(folder: any) {
 		folder.parent = this;
 		this.children[folder.name] = folder;
 		delete this._size;
@@ -65,7 +71,7 @@ export default class BaseFolder extends Node {
 		return folder;
 	}
 
-	walk(walker, state = {}, deep = true) {
+	walk(walker: any, state = {}, deep = true) {
 		let stopped = false;
 
 		_.each(this.children, (child) => {
@@ -75,12 +81,14 @@ export default class BaseFolder extends Node {
 				state = walker(child, state, stop);
 			}
 
-			if (stopped) return false;
+			if (stopped) {
+				return false;
+			}
 		});
 
 		return state;
 
-		function stop(finalState) {
+		function stop(finalState: any) {
 			stopped = true;
 			return finalState;
 		}

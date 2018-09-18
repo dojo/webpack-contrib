@@ -17,6 +17,9 @@
 	"include": [
 		"./src/**/*.ts",
 		"./tests/**/*.ts"
+	],
+	"exclude": [
+		"./src/webpack-bundle-analyzer/client/**/*.ts"
 	]
 }
 

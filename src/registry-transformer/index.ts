@@ -184,12 +184,20 @@ class Visitor {
 				(outletName && this.outlets.indexOf(outletName) !== -1)
 			) {
 				this.registryItems[text] = this.modulesMap.get(text) as string;
+				const registryItem = ts.createPropertyAccess(
+					ts.createIdentifier('__autoRegistryItems'),
+					ts.createIdentifier(text)
+				);
+				const registryExpr = ts.createObjectLiteral([
+					ts.createPropertyAssignment(
+						ts.createIdentifier('label'),
+						ts.createLiteral(`__autoRegistryItem_${text}`)
+					),
+					ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
+				]);
 				const registryAttribute = ts.createJsxAttribute(
 					ts.createIdentifier('__autoRegistryItem'),
-					ts.createJsxExpression(
-						undefined,
-						ts.createPropertyAccess(ts.createIdentifier('__autoRegistryItems'), ts.createIdentifier(text))
-					)
+					ts.createJsxExpression(undefined, registryExpr)
 				);
 				this.setSharedModules(text, {
 					path: this.registryItems[text],
@@ -244,10 +252,17 @@ class Visitor {
 			(outletName && this.outlets.indexOf(outletName) !== -1)
 		) {
 			this.registryItems[text] = this.modulesMap.get(text) as string;
-			const registryExpr = ts.createPropertyAccess(
+			const registryItem = ts.createPropertyAccess(
 				ts.createIdentifier('__autoRegistryItems'),
 				ts.createIdentifier(text)
 			);
+			const registryExpr = ts.createObjectLiteral([
+				ts.createPropertyAssignment(
+					ts.createIdentifier('label'),
+					ts.createLiteral(`__autoRegistryItem_${text}`)
+				),
+				ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
+			]);
 			this.setSharedModules(text, { path: this.registryItems[text], outletName });
 			return ts.updateCall(node, node.expression, node.typeArguments, [registryExpr, ...node.arguments.slice(1)]);
 		}

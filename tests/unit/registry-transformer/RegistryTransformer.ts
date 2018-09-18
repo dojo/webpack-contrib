@@ -551,6 +551,7 @@ Foo = tslib_1.__decorate([
 ], Foo);
 export { Foo };
 `;
+		console.log(nl(result.outputText));
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
 			modules: {

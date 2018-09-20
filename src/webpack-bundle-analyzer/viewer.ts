@@ -3,17 +3,16 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as mkdir from 'mkdirp';
 import * as analyzer from './analyzer';
-import { Stats } from 'webpack';
 
-interface ReportDataOptions {
+export interface ReportDataOptions {
 	reportFileName: string;
 	bundleDir: string | null;
 }
 
-export function generateReportData(bundleStats: Stats, opts: Partial<ReportDataOptions> = {}) {
+export function generateReportData(bundleStats: any, opts: Partial<ReportDataOptions> = {}) {
 	const { reportFileName = 'report.html', bundleDir = null } = opts || {};
 
-	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir, {});
+	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir);
 	let reportFilePath = reportFileName;
 
 	if (!path.isAbsolute(reportFilePath)) {

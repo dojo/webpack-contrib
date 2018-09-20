@@ -7,7 +7,7 @@ import { parseBundle } from './parseUtils';
 
 const FILENAME_QUERY_REGEXP = /\?.*$/;
 
-export function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
+export function getViewerData(bundleStats: any, bundleDir: any) {
 	if (_.isEmpty(bundleStats.assets) && !_.isEmpty(bundleStats.children)) {
 		bundleStats = bundleStats.children[0];
 	}

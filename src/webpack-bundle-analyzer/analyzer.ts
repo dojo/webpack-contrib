@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as _ from 'lodash';
 import * as gzipSize from 'gzip-size';
@@ -7,7 +6,7 @@ import { parseBundle } from './parseUtils';
 
 const FILENAME_QUERY_REGEXP = /\?.*$/;
 
-export function getViewerData(bundleStats: any, bundleDir: any) {
+export function getViewerData(bundleStats: any, bundleDir?: string | null) {
 	if (_.isEmpty(bundleStats.assets) && !_.isEmpty(bundleStats.children)) {
 		bundleStats = bundleStats.children[0];
 	}
@@ -81,10 +80,6 @@ export function getViewerData(bundleStats: any, bundleDir: any) {
 		},
 		[]
 	);
-}
-
-export function readStatsFromFile(filename: any) {
-	return JSON.parse(fs.readFileSync(filename, 'utf8'));
 }
 
 function assetHasModule(statAsset: any, statModule: any) {

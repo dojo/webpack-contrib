@@ -71,7 +71,6 @@ export function parseBundle(bundlePath: any) {
 }
 
 function isArgumentContainsChunkIds(arg: any) {
-	// Array of numeric or string ids. Chunk IDs are strings when NamedChunksPlugin is used
 	return arg.type === 'ArrayExpression' && _.every(arg.elements, isModuleId);
 }
 
@@ -83,14 +82,7 @@ function isArgumentContainsModulesList(arg: any) {
 	}
 
 	if (arg.type === 'ArrayExpression') {
-		// Modules are contained in array.
-		// Array indexes are module ids
-		return _.every(
-			arg.elements,
-			(elem) =>
-				// Some of array items may be skipped because there is no module with such id
-				!elem || isModuleWrapper(elem)
-		);
+		return _.every(arg.elements, (elem) => !elem || isModuleWrapper(elem));
 	}
 
 	return false;
@@ -139,11 +131,8 @@ function isWindowPropertyPushExpression(node: any) {
 
 function isModuleWrapper(node: any) {
 	return (
-		// It's an anonymous function expression that wraps module
 		((node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') && !node.id) ||
-		// If `DedupePlugin` is used it can be an ID of duplicated module...
 		isModuleId(node) ||
-		// or an array of shape [<module_id>, ...args]
 		(node.type === 'ArrayExpression' && node.elements.length > 1 && isModuleId(node.elements[0]))
 	);
 }
@@ -191,12 +180,7 @@ function getModulesLocationFromFunctionArgument(arg: any) {
 }
 
 function getModulesLocationFromArrayConcat(arg: any) {
-	// arg(CallExpression) =
-	//   Array([minId]).concat([<minId module>, <minId+1 module>, ...])
-	//
-	// Get the [minId] value from the Array() call first argument literal value
 	const minId = arg.callee.object.arguments[0].value;
-	// The modules reside in the `concat()` function call arguments
 	const modulesNodes = arg.arguments[0].elements;
 
 	return _.transform(

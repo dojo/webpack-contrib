@@ -13,3 +13,6 @@ import './registry-transformer/RegistryTransformer';
 import './service-worker-plugin/service-worker-entry';
 import './service-worker-plugin/ServiceWorkerPlugin';
 import './istanbul-loader/all';
+import './webpack-bundle-analyzer/parseUtils';
+import './webpack-bundle-analyzer/analyzer';
+import './webpack-bundle-analyzer/viewer';

@@ -34,7 +34,6 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 			path.join(path.dirname(reportFilePath), `${path.parse(file).name}${path.parse(file).ext}`)
 		);
 	});
-	bundleContent;
 	fs.writeFileSync(
 		path.join(path.dirname(reportFilePath), `bundleContent.js`),
 		`window.__bundleContent = ${JSON.stringify(bundleContent)}`

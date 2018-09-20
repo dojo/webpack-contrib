@@ -196,13 +196,13 @@ let mockModule: MockModule;
 describe('webpack-bundle-analyzer - viewer', () => {
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/webpack-bundle-analyzer/viewer', require);
-		mockModule.dependencies(['fs', './analyzer', 'glob']);
+		mockModule.dependencies(['fs-extra', './analyzer', 'glob']);
 	});
 	afterEach(() => {
 		mockModule.destroy();
 	});
 	it('generateReportData', () => {
-		const fsMock = mockModule.getMock('fs');
+		const fsMock = mockModule.getMock('fs-extra');
 		const getViewerDataMock = mockModule.getMock('./analyzer').getViewerData;
 		const globMock = mockModule.getMock('glob').ctor;
 		globMock.sync = stub().returns(['file-one', 'file-two']);

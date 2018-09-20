@@ -29,10 +29,7 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 
 	const reporterFiles = glob.sync(path.join(__dirname, 'reporter', '**', '*.*'));
 	reporterFiles.forEach((file) => {
-		fs.copyFileSync(
-			file,
-			path.join(path.dirname(reportFilePath), `${path.parse(file).name}${path.parse(file).ext}`)
-		);
+		fs.copySync(file, path.join(path.dirname(reportFilePath), `${path.parse(file).name}${path.parse(file).ext}`));
 	});
 	fs.writeFileSync(
 		path.join(path.dirname(reportFilePath), `bundleContent.js`),

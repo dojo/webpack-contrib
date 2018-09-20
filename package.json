@@ -73,6 +73,7 @@
   },
   "devDependencies": {
     "@dojo/scripts": "~3.0.1",
+    "@types/acorn": "^4.0.3",
     "@types/estree": "0.0.37",
     "@types/glob": "^5.0.35",
     "@types/gzip-size": "^4.1.0",

@@ -1,33 +1,22 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as _ from 'lodash';
-const gzipSize = require('gzip-size');
-const Folder = require('./tree/Folder').default;
-const { parseBundle } = require('./parseUtils');
+import * as gzipSize from 'gzip-size';
+import Folder from './tree/Folder';
+import { parseBundle } from './parseUtils';
 
 const FILENAME_QUERY_REGEXP = /\?.*$/;
 
-module.exports = {
-	getViewerData,
-	readStatsFromFile
-};
-
-function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
-	// Sometimes all the information is located in `children` array (e.g. problem in #10)
+export function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
 	if (_.isEmpty(bundleStats.assets) && !_.isEmpty(bundleStats.children)) {
 		bundleStats = bundleStats.children[0];
 	}
 
-	// Picking only `*.js` assets from bundle that has non-empty `chunks` array
 	bundleStats.assets = _.filter(bundleStats.assets, (asset) => {
-		// Removing query part from filename (yes, somebody uses it for some reason and Webpack supports it)
-		// See #22
 		asset.name = asset.name.replace(FILENAME_QUERY_REGEXP, '');
-
 		return _.endsWith(asset.name, '.js') && !_.isEmpty(asset.chunks);
 	});
 
-	// Trying to parse bundle assets and get real module sizes if `bundleDir` is provided
 	let bundlesSources: any = null;
 	let parsedModules: any = null;
 
@@ -66,7 +55,6 @@ function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
 				asset.gzipSize = gzipSize.sync(bundlesSources[statAsset.name]);
 			}
 
-			// Picking modules from current bundle script
 			asset.modules = _(bundleStats.modules)
 				.filter((statModule) => assetHasModule(statAsset, statModule))
 				.each((statModule) => {
@@ -85,9 +73,6 @@ function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
 		(result: any, asset: any, filename: any) => {
 			result.push({
 				label: filename,
-				// Not using `asset.size` here provided by Webpack because it can be very confusing when `UglifyJsPlugin` is used.
-				// In this case all module sizes from stats file will represent unminified module sizes, but `asset.size` will
-				// be the size of minified bundle.
 				statSize: asset.tree.size,
 				parsedSize: asset.parsedSize,
 				gzipSize: asset.gzipSize,
@@ -98,7 +83,7 @@ function getViewerData(bundleStats: any, bundleDir: any, opts: any) {
 	);
 }
 
-function readStatsFromFile(filename: any) {
+export function readStatsFromFile(filename: any) {
 	return JSON.parse(fs.readFileSync(filename, 'utf8'));
 }
 

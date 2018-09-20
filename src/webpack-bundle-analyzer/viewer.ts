@@ -1,14 +1,20 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as glob from 'glob';
-const mkdir = require('mkdirp');
-const analyzer = require('./analyzer');
+import * as mkdir from 'mkdirp';
+import * as analyzer from './analyzer';
+import { Stats } from 'webpack';
 
-export function generateReportData(bundleStats: any, opts: any) {
-	const { reportFilename = 'report.html', bundleDir = null } = opts || {};
+interface ReportDataOptions {
+	reportFileName: string;
+	bundleDir: string | null;
+}
+
+export function generateReportData(bundleStats: Stats, opts: Partial<ReportDataOptions> = {}) {
+	const { reportFileName = 'report.html', bundleDir = null } = opts || {};
 
 	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir, {});
-	let reportFilePath = reportFilename;
+	let reportFilePath = reportFileName;
 
 	if (!path.isAbsolute(reportFilePath)) {
 		reportFilePath = path.resolve(bundleDir || process.cwd(), reportFilePath);

@@ -1,24 +1,31 @@
-const bfj = require('bfj-node4');
 import * as path from 'path';
 import * as mkdir from 'mkdirp';
 import * as viewer from './viewer';
+import { Compiler } from 'webpack';
+const bfj = require('bfj-node4');
+
+export interface BundleAnalyzerOptions {
+	reportFileName: string;
+	generateStatsFile: boolean;
+	statsFileName: string;
+	statsOptions: string | null;
+}
 
 export default class BundleAnalyzerPlugin {
-	private opts: any;
+	private opts: BundleAnalyzerOptions;
 	private compiler: any;
 
-	constructor(opts: any) {
+	constructor(opts: Partial<BundleAnalyzerOptions>) {
 		this.opts = {
-			reportFilename: 'report.html',
-			defaultSizes: 'parsed',
+			reportFileName: 'report.html',
 			generateStatsFile: false,
-			statsFilename: 'stats.json',
+			statsFileName: 'stats.json',
 			statsOptions: null,
 			...opts
 		};
 	}
 
-	apply(compiler: any) {
+	apply(compiler: Compiler) {
 		this.compiler = compiler;
 		const done = (stats: any) => {
 			stats = stats.toJson(this.opts.statsOptions);
@@ -28,19 +35,15 @@ export default class BundleAnalyzerPlugin {
 			this.generateStaticReport(stats);
 		};
 
-		if (compiler.hooks) {
-			compiler.hooks.done.tap('webpack-bundle-analyzer', done);
-		} else {
-			compiler.plugin('done', done);
-		}
+		compiler.plugin('done', done);
 	}
 
 	async generateStatsFile(stats: any) {
-		const statsFilepath = path.resolve(this.compiler.outputPath, this.opts.statsFilename);
-		mkdir.sync(path.dirname(statsFilepath));
+		const statsFilePath = path.resolve(this.compiler.outputPath, this.opts.statsFileName);
+		mkdir.sync(path.dirname(statsFilePath));
 
 		try {
-			await bfj.write(statsFilepath, stats, {
+			await bfj.write(statsFilePath, stats, {
 				promises: 'ignore',
 				buffers: 'ignore',
 				maps: 'ignore',
@@ -52,7 +55,7 @@ export default class BundleAnalyzerPlugin {
 
 	generateStaticReport(stats: any) {
 		viewer.generateReportData(stats, {
-			reportFilename: path.resolve(this.compiler.outputPath, this.opts.reportFilename),
+			reportFileName: path.resolve(this.compiler.outputPath, this.opts.reportFileName),
 			bundleDir: this.getBundleDirFromCompiler()
 		});
 	}

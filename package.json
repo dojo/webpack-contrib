@@ -26,7 +26,7 @@
     "build:static:dev": "cpx \"{src,tests}/**/*.{d.ts,html,md,json,js,css,txt}\" dist/dev && rimraf dist/dev/src/webpack-bundle-analyzer/client",
     "build:static:release": "cpx \"src/**/*.{d.ts,json}\" dist/release && rimraf dist/release/webpack-bundle-analyzer/client",
     "build:cjs": "tsc",
-    "build": "npm-run-all -s clean -p build:** -s webpack-bundle-analyzer:** -s dojo-package -s && rimraf src/webpack-bundle-analyzer/client/node_modules",
+    "build": "npm-run-all -s clean -p build:** -s webpack-bundle-analyzer -s dojo-package -s && rimraf src/webpack-bundle-analyzer/client/node_modules",
     "clean": "rimraf dist coverage",
     "dojo-package": "dojo-package",
     "dojo-release": "dojo-release",

@@ -30,7 +30,6 @@ export class App extends WidgetBase {
 		if (this._item) {
 			const label =
 				this._item.label.indexOf(this._selectedBundle) === -1 ? this._item.label : this._selectedBundle;
-			console.log(label, this._item.label, this._selectedBundle);
 			segmentDescription = v('div', { classes: [css.infoInner] }, [
 				v('div', { classes: [css.filename] }, [label]),
 				v('div', { classes: [css.contents] }, [

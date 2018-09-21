@@ -1,4 +1,5 @@
 import global from '@dojo/framework/shim/global';
+import has from '@dojo/framework/has/has';
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { v, w } from '@dojo/framework/widget-core/d';
 import { Sunburst } from './components/Sunburst';
@@ -7,8 +8,8 @@ import * as filesize from 'filesize';
 import content from './data/bundleContent';
 import list from './data/bundleList';
 
-const bundleContent = global.window.__bundleContent || content || {};
-const bundleList = global.window.__bundleList || list || [];
+const bundleContent: any = global.window.__bundleContent || has('env') === 'dev' ? content : {};
+const bundleList = global.window.__bundleList || has('env') === 'dev' ? list : [];
 
 import * as css from './App.m.css';
 import dojo from '@dojo/themes/dojo';
@@ -65,7 +66,7 @@ export class App extends WidgetBase {
 					  }),
 				segmentDescription
 			]),
-			v('div', { classes: [css.sunburst] }, [
+			v('div', { key: 'container', classes: [css.sunburst] }, [
 				this._chartData
 					? w(Sunburst, { key: this._selectedBundle, chartData: this._chartData, onHover: this._onHover })
 					: null

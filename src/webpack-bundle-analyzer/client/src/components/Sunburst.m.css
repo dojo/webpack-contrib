@@ -19,3 +19,9 @@ path {
 	right: 50px;
 	transform: translateY(-50%);
 }
+
+@media (max-width: 800px) {
+	.sunburst svg {
+		right: 0;
+	}
+}

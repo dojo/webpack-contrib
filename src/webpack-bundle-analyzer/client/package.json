@@ -3,14 +3,15 @@
 	"version": "1.0.0",
 	"scripts": {
 		"build:dev": "npm install && dojo build -m dev",
-		"build:dist": "npm install && dojo build"
+		"build:dist": "npm install && dojo build -f env=prod --single-bundle"
 	},
 	"dependencies": {
 		"@dojo/framework": "~3.0.0",
-		"@dojo/themes": "^3.0.1",
+		"@dojo/themes": "~3.0.1",
 		"@dojo/widgets": "~3.0.0",
 		"d3": "3.5.17",
 		"filesize": "3.5.11",
+		"resize-observer-polyfill": "^1.5.0",
 		"tslib": "~1.8.1"
 	},
 	"devDependencies": {

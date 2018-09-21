@@ -1,6 +1,7 @@
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { dom } from '@dojo/framework/widget-core/d';
 import * as d3 from 'd3';
+import Resize from '@dojo/framework/widget-core/meta/Resize';
 
 import * as css from './Sunburst.m.css';
 
@@ -16,6 +17,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 	private _y: any;
 	private _sunburst: HTMLDivElement;
 	private _path: any;
+	private _svg: any;
 
 	constructor() {
 		super();
@@ -23,14 +25,20 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 	}
 
 	protected render() {
+		this.meta(Resize).get('sunburst');
+		this._createSunburst();
+
 		return dom({
 			node: this._sunburst,
-			props: { classes: [css.sunburst] }
+			props: { key: 'sunburst', classes: [css.sunburst] }
 		});
 	}
 
-	protected onAttach() {
+	private _createSunburst() {
 		if (this.properties.chartData) {
+			if (this._svg) {
+				this._svg.remove();
+			}
 			const color = d3.scale.category20c();
 			const width = Math.min(this._sunburst.offsetWidth, this._sunburst.offsetHeight);
 			const height = width + 50;
@@ -39,7 +47,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 			this._x = d3.scale.linear().range([0, 2 * Math.PI]);
 			this._y = d3.scale.sqrt().range([0, this._radius]);
 
-			const svg = d3
+			this._svg = d3
 				.select(this._sunburst)
 				.append('svg')
 				.attr('width', width)
@@ -59,7 +67,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 				.innerRadius((d: any) => Math.max(0, this._y(d.y)))
 				.outerRadius((d: any) => Math.max(0, this._y(d.y + d.dy)));
 
-			this._path = svg
+			this._path = this._svg
 				.selectAll('path')
 				.data(partition.nodes(this.properties.chartData))
 				.enter()
@@ -71,6 +79,10 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 
 			this.onMouseOver(this.properties.chartData);
 		}
+	}
+
+	protected onAttach() {
+		this._createSunburst();
 	}
 
 	onClick(d: any) {

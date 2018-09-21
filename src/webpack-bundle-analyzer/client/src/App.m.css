@@ -15,7 +15,7 @@
 .stats {
 	margin-top: 10px;
 	margin-left: 10px;
-	width: 30%;
+	flex: 30%;
 }
 
 .selectOverride {
@@ -23,7 +23,13 @@
 }
 
 .sunburst {
-	width: 70%;
+	flex: 100%;
+}
+
+@media (max-width: 800px) {
+	.root {
+		flex-direction: column;
+	}
 }
 
 .filename {
@@ -40,10 +46,8 @@
 .infoInner {
 	line-height: 1;
 	font-weight: lighter;
+	margin-top: 10px;
 	width: 100%;
-	top: 50%;
-	position: absolute;
-	transform: translateY(-50%);
 	white-space: nowrap;
 }
 

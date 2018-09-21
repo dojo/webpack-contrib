@@ -1,0 +1,9 @@
+{
+	"build-app": {
+		"features": {
+			"env": "dev"
+		}
+	},
+	"test-intern": {},
+	"create-app": {}
+}

@@ -5,11 +5,15 @@ import { v, w } from '@dojo/framework/widget-core/d';
 import { Sunburst } from './components/Sunburst';
 import Select from '@dojo/widgets/select';
 import * as filesize from 'filesize';
-import content from './data/bundleContent';
-import list from './data/bundleList';
 
-const bundleContent: any = global.window.__bundleContent || has('env') === 'dev' ? content : {};
-const bundleList = global.window.__bundleList || has('env') === 'dev' ? list : [];
+let bundleContent: any = global.window.__bundleContent || {};
+let bundleList = global.window.__bundleList || [];
+
+if (has('env') === 'dev') {
+	console.log('In development mode; using static test data');
+	bundleContent = require('./data/bundleContent').default;
+	bundleList = require('./data/bundleList').default;
+}
 
 import * as css from './App.m.css';
 import dojo from '@dojo/themes/dojo';

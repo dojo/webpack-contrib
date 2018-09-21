@@ -14,12 +14,13 @@
 		"tslib": "~1.8.1"
 	},
 	"devDependencies": {
-		"@types/d3": "~3.5.17",
-		"@types/filesize": "^3.6.0",
 		"@dojo/cli": "~3.0.0",
 		"@dojo/cli-build-app": "~3.0.0",
 		"@dojo/cli-test-intern": "~3.0.0",
+		"@types/d3": "~3.5.17",
+		"@types/filesize": "^3.6.0",
 		"@types/node": "~9.6.5",
+		"shx": "^0.3.2",
 		"typescript": "~2.6.1"
 	}
 }

@@ -7,10 +7,16 @@ import * as analyzer from './analyzer';
 export interface ReportDataOptions {
 	reportFilename: string;
 	bundleDir: string | null;
+	excludeBundle: string;
 }
 
 export function generateReportData(bundleStats: any, opts: Partial<ReportDataOptions> = {}) {
-	const { reportFilename = 'report.html', bundleDir = null } = opts || {};
+	const { reportFilename = 'report.html', bundleDir = null, excludeBundle } = opts;
+
+	let excludeBundleRegex: RegExp;
+	if (excludeBundle) {
+		excludeBundleRegex = new RegExp(excludeBundle);
+	}
 
 	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir);
 	let reportFilePath = reportFilename;
@@ -22,6 +28,9 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 	const bundlesList: string[] = [];
 	const bundleContent = chartData.reduce((bundleContent: any, data: any) => {
 		const bundleFilename = data && data.label && data.label.split('/').slice(-1)[0];
+		if (excludeBundle && excludeBundleRegex.test(bundleFilename)) {
+			return bundleContent;
+		}
 		bundlesList.push(bundleFilename);
 		bundleContent[bundleFilename] = data;
 		return bundleContent;

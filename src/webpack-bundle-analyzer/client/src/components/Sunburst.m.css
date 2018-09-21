@@ -16,6 +16,6 @@ path {
 .sunburst svg {
 	position: absolute;
 	top: 50%;
-	left: 0;
+	right: 50px;
 	transform: translateY(-50%);
 }

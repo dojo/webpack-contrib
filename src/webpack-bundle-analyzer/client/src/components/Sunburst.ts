@@ -35,7 +35,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 			const width = Math.min(this._sunburst.offsetWidth, this._sunburst.offsetHeight);
 			const height = width + 50;
 
-			this._radius = Math.min(width, height) / 2;
+			this._radius = Math.min(width, height) / 2.2;
 			this._x = d3.scale.linear().range([0, 2 * Math.PI]);
 			this._y = d3.scale.sqrt().range([0, this._radius]);
 

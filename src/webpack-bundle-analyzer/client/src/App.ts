@@ -4,32 +4,45 @@ import { v, w } from '@dojo/framework/widget-core/d';
 import { Sunburst } from './components/Sunburst';
 import Select from '@dojo/widgets/select';
 import * as filesize from 'filesize';
+import content from './data/bundleContent';
+import list from './data/bundleList';
+
+const bundleContent = global.window.__bundleContent || content || {};
+const bundleList = global.window.__bundleList || list || [];
 
 import * as css from './App.m.css';
 import dojo from '@dojo/themes/dojo';
 
-interface AppProperties {
-	bundles: string[];
-}
-
-export class App extends WidgetBase<AppProperties> {
-	private _chartData: any;
+export class App extends WidgetBase {
+	private _selectedBundle = bundleList[0];
+	private _chartData = bundleContent[this._selectedBundle];
 	private _item: any;
-	private _selectedBundle = '';
 
 	private _onHover(item: any) {
 		this._item = item;
 		this.invalidate();
 	}
 
-	protected onAttach() {
-		this._selectedBundle = this.properties.bundles[0];
-		this._chartData = global.window.__bundleContent[this._selectedBundle];
-		this.invalidate();
-	}
-
 	protected render() {
-		const singleBundle = this.properties.bundles.length === 1;
+		const singleBundle = bundleList.length <= 1;
+
+		let segmentDescription: any = null;
+		if (this._item) {
+			const label =
+				this._item.label.indexOf(this._selectedBundle) === -1 ? this._item.label : this._selectedBundle;
+			console.log(label, this._item.label, this._selectedBundle);
+			segmentDescription = v('div', { classes: [css.infoInner] }, [
+				v('div', { classes: [css.filename] }, [label]),
+				v('div', { classes: [css.contents] }, [
+					v('div', { classes: [css.size] }, [filesize(this._item.statSize)]),
+					v('div', { classes: [css.type] }, ['stat']),
+					v('div', { classes: [css.size] }, [this._item.parsedSize ? filesize(this._item.parsedSize) : null]),
+					v('div', { classes: [css.type] }, [this._item.parsedSize ? 'parsed' : null]),
+					v('div', { classes: [css.size] }, [this._item.gzipSize ? filesize(this._item.gzipSize) : null]),
+					v('div', { classes: [css.type] }, [this._item.gzipSize ? 'gzip' : null])
+				])
+			]);
+		}
 
 		return v('div', { classes: [css.root] }, [
 			v('div', { classes: [css.stats] }, [
@@ -40,34 +53,18 @@ export class App extends WidgetBase<AppProperties> {
 							extraClasses: {
 								root: css.selectOverride
 							},
-							options: this.properties.bundles,
+							options: bundleList,
 							getOptionSelected: (result: any) => {
 								return result === this._selectedBundle;
 							},
 							onChange: (result: any) => {
 								this._selectedBundle = result;
-								this._chartData = global.window.__bundleContent[result];
+								this._chartData = bundleContent[result];
 								this.invalidate();
 							},
 							value: this._selectedBundle
 					  }),
-				this._item
-					? v('div', { classes: [css.infoInner] }, [
-							v('div', { classes: [css.filename] }, [this._item.label]),
-							v('div', { classes: [css.contents] }, [
-								v('div', { classes: [css.size] }, [filesize(this._item.statSize)]),
-								v('div', { classes: [css.type] }, ['stat']),
-								v('div', { classes: [css.size] }, [
-									this._item.parsedSize ? filesize(this._item.parsedSize) : null
-								]),
-								v('div', { classes: [css.type] }, [this._item.parsedSize ? 'parsed' : null]),
-								v('div', { classes: [css.size] }, [
-									this._item.gzipSize ? filesize(this._item.gzipSize) : null
-								]),
-								v('div', { classes: [css.type] }, [this._item.gzipSize ? 'gzip' : null])
-							])
-					  ])
-					: null
+				segmentDescription
 			]),
 			v('div', { classes: [css.sunburst] }, [
 				this._chartData

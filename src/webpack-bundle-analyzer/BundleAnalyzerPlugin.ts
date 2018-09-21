@@ -11,6 +11,7 @@ export interface BundleAnalyzerOptions {
 	statsOptions: string | null;
 	analyzerMode: string;
 	openAnalyzer: boolean;
+	excludeBundles?: string;
 }
 
 export default class BundleAnalyzerPlugin {
@@ -60,7 +61,8 @@ export default class BundleAnalyzerPlugin {
 	generateStaticReport(stats: any) {
 		viewer.generateReportData(stats, {
 			reportFilename: path.resolve(this.compiler.outputPath, this.opts.reportFilename),
-			bundleDir: this.getBundleDirFromCompiler()
+			bundleDir: this.getBundleDirFromCompiler(),
+			excludeBundle: this.opts.excludeBundles
 		});
 	}
 

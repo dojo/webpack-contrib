@@ -15,7 +15,7 @@
 .stats {
 	margin-top: 10px;
 	margin-left: 10px;
-	flex: 0 0 40%;
+	width: 30%;
 }
 
 .selectOverride {
@@ -23,7 +23,7 @@
 }
 
 .sunburst {
-	flex: 0 0 60%;
+	width: 70%;
 }
 
 .filename {

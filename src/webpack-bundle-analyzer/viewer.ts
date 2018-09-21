@@ -5,15 +5,15 @@ import * as mkdir from 'mkdirp';
 import * as analyzer from './analyzer';
 
 export interface ReportDataOptions {
-	reportFileName: string;
+	reportFilename: string;
 	bundleDir: string | null;
 }
 
 export function generateReportData(bundleStats: any, opts: Partial<ReportDataOptions> = {}) {
-	const { reportFileName = 'report.html', bundleDir = null } = opts || {};
+	const { reportFilename = 'report.html', bundleDir = null } = opts || {};
 
 	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir);
-	let reportFilePath = reportFileName;
+	let reportFilePath = reportFilename;
 
 	if (!path.isAbsolute(reportFilePath)) {
 		reportFilePath = path.resolve(bundleDir || process.cwd(), reportFilePath);
@@ -21,9 +21,9 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 	mkdir.sync(path.dirname(reportFilePath));
 	const bundlesList: string[] = [];
 	const bundleContent = chartData.reduce((bundleContent: any, data: any) => {
-		const bundleFileName = data && data.label && data.label.split('/').slice(-1)[0];
-		bundlesList.push(bundleFileName);
-		bundleContent[bundleFileName] = data;
+		const bundleFilename = data && data.label && data.label.split('/').slice(-1)[0];
+		bundlesList.push(bundleFilename);
+		bundleContent[bundleFilename] = data;
 		return bundleContent;
 	}, {});
 

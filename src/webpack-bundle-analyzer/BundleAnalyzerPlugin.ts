@@ -5,10 +5,12 @@ import { Compiler } from 'webpack';
 const bfj = require('bfj-node4');
 
 export interface BundleAnalyzerOptions {
-	reportFileName: string;
+	reportFilename: string;
 	generateStatsFile: boolean;
-	statsFileName: string;
+	statsFilename: string;
 	statsOptions: string | null;
+	analyzerMode: string;
+	openAnalyzer: boolean;
 }
 
 export default class BundleAnalyzerPlugin {
@@ -17,10 +19,12 @@ export default class BundleAnalyzerPlugin {
 
 	constructor(opts: Partial<BundleAnalyzerOptions>) {
 		this.opts = {
-			reportFileName: 'report.html',
+			reportFilename: 'report.html',
 			generateStatsFile: false,
-			statsFileName: 'stats.json',
+			statsFilename: 'stats.json',
 			statsOptions: null,
+			analyzerMode: '',
+			openAnalyzer: false,
 			...opts
 		};
 	}
@@ -39,7 +43,7 @@ export default class BundleAnalyzerPlugin {
 	}
 
 	async generateStatsFile(stats: any) {
-		const statsFilePath = path.resolve(this.compiler.outputPath, this.opts.statsFileName);
+		const statsFilePath = path.resolve(this.compiler.outputPath, this.opts.statsFilename);
 		mkdir.sync(path.dirname(statsFilePath));
 
 		try {
@@ -55,7 +59,7 @@ export default class BundleAnalyzerPlugin {
 
 	generateStaticReport(stats: any) {
 		viewer.generateReportData(stats, {
-			reportFileName: path.resolve(this.compiler.outputPath, this.opts.reportFileName),
+			reportFilename: path.resolve(this.compiler.outputPath, this.opts.reportFilename),
 			bundleDir: this.getBundleDirFromCompiler()
 		});
 	}

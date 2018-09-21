@@ -45,7 +45,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 				.attr('width', width)
 				.attr('height', height)
 				.append('g')
-				.attr('transform', `translate(${width / 2}, ${height / 2 + 10})`);
+				.attr('transform', `translate(${width / 2 + 10}, ${height / 2 - 10})`);
 
 			const partition = d3.layout
 				.partition()

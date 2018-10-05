@@ -15,9 +15,8 @@ path {
 
 .sunburst svg {
 	position: absolute;
-	top: 50%;
-	right: 50px;
-	transform: translateY(-50%);
+	top: 0px;
+	left: 0px;
 }
 
 @media (max-width: 800px) {

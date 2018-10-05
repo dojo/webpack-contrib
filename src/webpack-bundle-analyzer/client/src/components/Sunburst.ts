@@ -1,7 +1,6 @@
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { dom } from '@dojo/framework/widget-core/d';
 import * as d3 from 'd3';
-import Resize from '@dojo/framework/widget-core/meta/Resize';
 
 import * as css from './Sunburst.m.css';
 
@@ -15,17 +14,12 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 	private _radius: any;
 	private _x: any;
 	private _y: any;
-	private _sunburst: HTMLDivElement;
 	private _path: any;
 	private _svg: any;
 
-	constructor() {
-		super();
-		this._sunburst = document.createElement('div');
-	}
+	private _sunburst = document.createElement('div');
 
 	protected render() {
-		this.meta(Resize).get('sunburst');
 		this._createSunburst();
 
 		return dom({
@@ -40,7 +34,7 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 				this._svg.remove();
 			}
 			const color = d3.scale.category20c();
-			const width = Math.min(this._sunburst.offsetWidth, this._sunburst.offsetHeight);
+			const width = 1000;
 			const height = width + 50;
 
 			this._radius = Math.min(width, height) / 2.2;
@@ -50,10 +44,12 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 			this._svg = d3
 				.select(this._sunburst)
 				.append('svg')
-				.attr('width', width)
-				.attr('height', height)
+				.attr('width', '100%')
+				.attr('height', '100%')
+				.attr('viewBox', `0 0 ${Math.min(width, height)} ${Math.min(width, height)}`)
+				.attr('preserveAspectRatio', 'xMinYMin')
 				.append('g')
-				.attr('transform', `translate(${width / 2 + 10}, ${height / 2 - 10})`);
+				.attr('transform', `translate(${Math.min(width, height) / 2}, ${Math.min(width, height) / 2})`);
 
 			const partition = d3.layout
 				.partition()
@@ -74,8 +70,8 @@ export class Sunburst extends WidgetBase<SunburstProperties> {
 				.append('path')
 				.attr('d', this._arc)
 				.style('fill', (d: any) => color((d.children || !d.parent ? d : d.parent).label))
-				.on('click', this.onClick.bind(this))
-				.on('mouseover', this.onMouseOver.bind(this));
+				.on('click', (d: any) => this.onClick(d))
+				.on('mouseover', (d: any) => this.onMouseOver(d));
 
 			this.onMouseOver(this.properties.chartData);
 		}

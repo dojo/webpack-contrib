@@ -19,7 +19,6 @@ interface VisitorOptions {
 	legacyModule: boolean;
 	all: boolean;
 	outlets: string[];
-	traceOnly: boolean;
 }
 
 function createArrowFuncForDefaultImport(modulePath: string) {
@@ -40,7 +39,6 @@ class Visitor {
 	private all = false;
 	private outlets: string[] = [];
 	private registryItems: any = {};
-	private traceOnly = false;
 
 	constructor(options: VisitorOptions) {
 		this.context = options.context;
@@ -49,7 +47,6 @@ class Visitor {
 		this.basePath = options.basePath;
 		this.all = options.all;
 		this.outlets = options.outlets;
-		this.traceOnly = options.traceOnly;
 	}
 
 	public visit(node: ts.Node) {
@@ -80,7 +77,7 @@ class Visitor {
 	public end(node: ts.SourceFile) {
 		let statements = [...node.statements];
 
-		if (Object.keys(this.registryItems).length && !this.traceOnly) {
+		if (Object.keys(this.registryItems).length) {
 			const registryItems = Object.keys(this.registryItems).map((label) => {
 				const modulePath = this.registryItems[label];
 				const importCall = createArrowFuncForDefaultImport(modulePath);
@@ -194,51 +191,48 @@ class Visitor {
 
 			const outletName = this.outletName ? this.getOutletName(node) : undefined;
 			if (
-				this.traceOnly ||
 				this.all ||
 				this.bundlePaths.indexOf(targetPath) !== -1 ||
 				(outletName && this.outlets.indexOf(outletName) !== -1)
 			) {
 				this.registryItems[text] = this.modulesMap.get(text) as string;
+				const registryItem = ts.createPropertyAccess(
+					ts.createIdentifier('__autoRegistryItems'),
+					ts.createIdentifier(text)
+				);
+				const registryExpr = ts.createObjectLiteral([
+					ts.createPropertyAssignment(
+						ts.createIdentifier('label'),
+						ts.createLiteral(`__autoRegistryItem_${text}`)
+					),
+					ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
+				]);
+				const registryAttribute = ts.createJsxAttribute(
+					ts.createIdentifier('__autoRegistryItem'),
+					ts.createJsxExpression(undefined, registryExpr)
+				);
 				this.setSharedModules(`__autoRegistryItem_${text}`, {
 					path: this.registryItems[text],
 					outletName
 				});
-				if (!this.traceOnly) {
-					const registryItem = ts.createPropertyAccess(
-						ts.createIdentifier('__autoRegistryItems'),
-						ts.createIdentifier(text)
+				const attrs = ts.updateJsxAttributes(node.attributes, [
+					...node.attributes.properties,
+					registryAttribute
+				]);
+				this.needsLoadable = true;
+				if (ts.isJsxElement(inputNode)) {
+					const openingElement = ts.updateJsxOpeningElement(
+						node as ts.JsxOpeningElement,
+						ts.createIdentifier(fakeComponentName),
+						attrs
 					);
-					const registryExpr = ts.createObjectLiteral([
-						ts.createPropertyAssignment(
-							ts.createIdentifier('label'),
-							ts.createLiteral(`__autoRegistryItem_${text}`)
-						),
-						ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
-					]);
-					const registryAttribute = ts.createJsxAttribute(
-						ts.createIdentifier('__autoRegistryItem'),
-						ts.createJsxExpression(undefined, registryExpr)
+					const closingElement = ts.updateJsxClosingElement(
+						inputNode.closingElement,
+						ts.createIdentifier(fakeComponentName)
 					);
-					const attrs = ts.updateJsxAttributes(node.attributes, [
-						...node.attributes.properties,
-						registryAttribute
-					]);
-					this.needsLoadable = true;
-					if (ts.isJsxElement(inputNode)) {
-						const openingElement = ts.updateJsxOpeningElement(
-							node as ts.JsxOpeningElement,
-							ts.createIdentifier(fakeComponentName),
-							attrs
-						);
-						const closingElement = ts.updateJsxClosingElement(
-							inputNode.closingElement,
-							ts.createIdentifier(fakeComponentName)
-						);
-						return ts.updateJsxElement(inputNode, openingElement, inputNode.children, closingElement);
-					} else {
-						return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
-					}
+					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, closingElement);
+				} else {
+					return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
 				}
 			}
 		}
@@ -265,30 +259,24 @@ class Visitor {
 
 		const outletName = this.outletName ? this.getOutletName(node) : undefined;
 		if (
-			this.traceOnly ||
 			this.all ||
 			this.bundlePaths.indexOf(targetPath) !== -1 ||
 			(outletName && this.outlets.indexOf(outletName) !== -1)
 		) {
 			this.registryItems[text] = this.modulesMap.get(text) as string;
+			const registryItem = ts.createPropertyAccess(
+				ts.createIdentifier('__autoRegistryItems'),
+				ts.createIdentifier(text)
+			);
+			const registryExpr = ts.createObjectLiteral([
+				ts.createPropertyAssignment(
+					ts.createIdentifier('label'),
+					ts.createLiteral(`__autoRegistryItem_${text}`)
+				),
+				ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
+			]);
 			this.setSharedModules(`__autoRegistryItem_${text}`, { path: this.registryItems[text], outletName });
-			if (!this.traceOnly) {
-				const registryItem = ts.createPropertyAccess(
-					ts.createIdentifier('__autoRegistryItems'),
-					ts.createIdentifier(text)
-				);
-				const registryExpr = ts.createObjectLiteral([
-					ts.createPropertyAssignment(
-						ts.createIdentifier('label'),
-						ts.createLiteral(`__autoRegistryItem_${text}`)
-					),
-					ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
-				]);
-				return ts.updateCall(node, node.expression, node.typeArguments, [
-					registryExpr,
-					...node.arguments.slice(1)
-				]);
-			}
+			return ts.updateCall(node, node.expression, node.typeArguments, [registryExpr, ...node.arguments.slice(1)]);
 		}
 		return node;
 	}
@@ -370,14 +358,13 @@ class Visitor {
 }
 
 const registryTransformer = function(
-	this: { basePath: string; bundlePaths: string[]; all: boolean; outlets: string[]; traceOnly: boolean },
+	this: { basePath: string; bundlePaths: string[]; all: boolean; outlets: string[] },
 	context: ts.TransformationContext
 ) {
 	const basePath = this.basePath;
 	const bundlePaths = this.bundlePaths;
 	const all = this.all;
 	const outlets = this.outlets;
-	const traceOnly = this.traceOnly;
 	const opts = context.getCompilerOptions();
 	const { module } = opts;
 	const legacyModule =
@@ -385,26 +372,11 @@ const registryTransformer = function(
 	return function(node: ts.SourceFile) {
 		const root = node;
 		const contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
-		const visitor = new Visitor({
-			context,
-			contextPath,
-			bundlePaths,
-			basePath,
-			legacyModule,
-			root,
-			all,
-			outlets,
-			traceOnly
-		});
+		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root, all, outlets });
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
 		return visitor.end(result);
 	};
 };
 
-export default (
-	basePath: string,
-	bundlePaths: string[],
-	all: boolean = false,
-	outlets: string[] = [],
-	traceOnly: boolean = false
-) => registryTransformer.bind({ bundlePaths, basePath, all, outlets, traceOnly });
+export default (basePath: string, bundlePaths: string[], all: boolean = false, outlets: string[] = []) =>
+	registryTransformer.bind({ bundlePaths, basePath, all, outlets });

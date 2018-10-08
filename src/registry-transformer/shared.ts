@@ -1,1 +1,1 @@
-exports = { modules: {} };
+exports = { modules: {}, all: {} };

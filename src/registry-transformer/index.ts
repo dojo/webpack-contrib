@@ -189,6 +189,7 @@ class Visitor {
 				.resolve(this.contextPath, importPath)
 				.replace(`${this.basePath}${path.posix.sep}`, '');
 
+			this.log(text, targetPath);
 			const outletName = this.outletName ? this.getOutletName(node) : undefined;
 			if (
 				this.all ||
@@ -250,6 +251,10 @@ class Visitor {
 		}
 	}
 
+	private log(name: string, path: string) {
+		shared.all[name] = path;
+	}
+
 	private replaceWidgetClassWithString(node: ts.CallExpression) {
 		const text = node.arguments[0].getText();
 		const importPath = this.modulesMap.get(text) as string;
@@ -258,6 +263,7 @@ class Visitor {
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 
 		const outletName = this.outletName ? this.getOutletName(node) : undefined;
+		this.log(text, targetPath);
 		if (
 			this.all ||
 			this.bundlePaths.indexOf(targetPath) !== -1 ||

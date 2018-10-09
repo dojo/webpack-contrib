@@ -19,6 +19,7 @@ interface VisitorOptions {
 	legacyModule: boolean;
 	all: boolean;
 	outlets: string[];
+	sync: boolean;
 }
 
 function createArrowFuncForDefaultImport(modulePath: string) {
@@ -39,6 +40,7 @@ class Visitor {
 	private all = false;
 	private outlets: string[] = [];
 	private registryItems: any = {};
+	private sync = false;
 
 	constructor(options: VisitorOptions) {
 		this.context = options.context;
@@ -47,6 +49,7 @@ class Visitor {
 		this.basePath = options.basePath;
 		this.all = options.all;
 		this.outlets = options.outlets;
+		this.sync = options.sync;
 	}
 
 	public visit(node: ts.Node) {
@@ -80,11 +83,14 @@ class Visitor {
 		if (Object.keys(this.registryItems).length) {
 			const registryItems = Object.keys(this.registryItems).map((label) => {
 				const modulePath = this.registryItems[label];
-				const importCall = createArrowFuncForDefaultImport(modulePath);
-				return ts.createPropertyAssignment(
-					label,
-					ts.createArrowFunction(undefined, undefined, [], undefined, undefined, importCall)
-				);
+				if (!this.sync) {
+					const importCall = createArrowFuncForDefaultImport(modulePath);
+					return ts.createPropertyAssignment(
+						label,
+						ts.createArrowFunction(undefined, undefined, [], undefined, undefined, importCall)
+					);
+				}
+				return ts.createPropertyAssignment(label, ts.createIdentifier(label));
 			});
 
 			const registryStmt = ts.createVariableStatement(
@@ -107,7 +113,9 @@ class Visitor {
 			}
 
 			statements.splice(index, 0, registryStmt);
-			statements = this.removeImportStatements(statements);
+			if (!this.sync) {
+				statements = this.removeImportStatements(statements);
+			}
 		}
 
 		if (this.needsLoadable) {
@@ -358,7 +366,7 @@ class Visitor {
 }
 
 const registryTransformer = function(
-	this: { basePath: string; bundlePaths: string[]; all: boolean; outlets: string[] },
+	this: { basePath: string; bundlePaths: string[]; all: boolean; outlets: string[]; sync: boolean },
 	context: ts.TransformationContext
 ) {
 	const basePath = this.basePath;
@@ -366,17 +374,33 @@ const registryTransformer = function(
 	const all = this.all;
 	const outlets = this.outlets;
 	const opts = context.getCompilerOptions();
+	const sync = this.sync;
 	const { module } = opts;
 	const legacyModule =
 		module === ts.ModuleKind.CommonJS || module === ts.ModuleKind.AMD || module === ts.ModuleKind.UMD;
 	return function(node: ts.SourceFile) {
 		const root = node;
 		const contextPath = path.dirname(path.relative(basePath, node.getSourceFile().fileName));
-		const visitor = new Visitor({ context, contextPath, bundlePaths, basePath, legacyModule, root, all, outlets });
+		const visitor = new Visitor({
+			context,
+			contextPath,
+			bundlePaths,
+			basePath,
+			legacyModule,
+			root,
+			all,
+			outlets,
+			sync
+		});
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
 		return visitor.end(result);
 	};
 };
 
-export default (basePath: string, bundlePaths: string[], all: boolean = false, outlets: string[] = []) =>
-	registryTransformer.bind({ bundlePaths, basePath, all, outlets });
+export default (
+	basePath: string,
+	bundlePaths: string[],
+	all: boolean = false,
+	outlets: string[] = [],
+	sync: boolean = false
+) => registryTransformer.bind({ bundlePaths, basePath, all, outlets, sync });

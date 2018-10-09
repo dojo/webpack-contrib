@@ -79,6 +79,7 @@ describe('registry-transformer', () => {
 	beforeEach(() => {
 		shared = require('../../../src/registry-transformer/shared');
 		shared.modules = {};
+		shared.all = {};
 	});
 
 	it('does not modify when no modules specified', () => {
@@ -278,6 +279,11 @@ export default HelloWorld;
 `;
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
+			all: {
+				Bar: 'widgets/Bar',
+				Baz: 'Baz',
+				Quz: 'Quz'
+			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
 				__autoRegistryItem_Baz: { path: 'Baz', outletName: [] },
@@ -380,6 +386,13 @@ export default HelloWorld;
 `;
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
+			all: {
+				Bar: 'widgets/Bar',
+				Baz: 'Baz',
+				Blah: 'Qux',
+				Quz: 'Quz',
+				Something: 'Something'
+			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
 				__autoRegistryItem_Blah: { path: 'Qux', outletName: ['my-blah-outlet'] },
@@ -447,6 +460,10 @@ export class Foo extends WidgetBase {
 `;
 		assert.equal(nl(result.outputText), expected);
 		assert.deepEqual(shared, {
+			all: {
+				Bar: 'widgets/Bar',
+				Baz: 'Baz'
+			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: ['my-bar-outlet'] }
 			}

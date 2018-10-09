@@ -452,4 +452,51 @@ export class Foo extends WidgetBase {
 			}
 		});
 	});
+
+	it('replaces widgets with out an async import in sync mode', () => {
+		const transformer = registryTransformer(process.cwd(), [], true, [], true);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import Bar from './widgets/Bar';
+import Baz from './Baz';
+import Quz from './Quz';
+import { Blah } from './Qux';
+var __autoRegistryItems = { Bar: Bar, Baz: Baz, Quz: Quz };
+export class Foo extends WidgetBase {
+    render() {
+        return v('div'[v('div', ['Foo']),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
+            w(Blah, {})]);
+    }
+}
+export class Another extends WidgetBase {
+    render() {
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
+            w({ label: "__autoRegistryItem_Quz", registryItem: __autoRegistryItems.Quz }, {})]);
+    }
+}
+export default HelloWorld;
+`;
+		assert.equal(nl(result.outputText), expected);
+		assert.deepEqual(shared, {
+			modules: {
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
+				__autoRegistryItem_Baz: { path: 'Baz', outletName: [] },
+				__autoRegistryItem_Quz: { path: 'Quz', outletName: [] }
+			}
+		});
+	});
 });

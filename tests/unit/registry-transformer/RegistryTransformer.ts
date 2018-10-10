@@ -470,7 +470,7 @@ export class Foo extends WidgetBase {
 		});
 	});
 
-	it('replaces widgets with out an async import in sync mode', () => {
+	it('replaces widgets without an async import in sync mode', () => {
 		const transformer = registryTransformer(process.cwd(), [], true, [], true);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
@@ -508,12 +508,10 @@ export class Another extends WidgetBase {
 export default HelloWorld;
 `;
 		assert.equal(nl(result.outputText), expected);
-		assert.deepEqual(shared, {
-			modules: {
-				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
-				__autoRegistryItem_Baz: { path: 'Baz', outletName: [] },
-				__autoRegistryItem_Quz: { path: 'Quz', outletName: [] }
-			}
+		assert.deepEqual(shared.modules, {
+			__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: [] },
+			__autoRegistryItem_Baz: { path: 'Baz', outletName: [] },
+			__autoRegistryItem_Quz: { path: 'Quz', outletName: [] }
 		});
 	});
 });

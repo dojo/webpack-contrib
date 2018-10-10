@@ -260,6 +260,7 @@ class Visitor {
 	}
 
 	private log(name: string, path: string) {
+		shared.all = shared.all || {};
 		shared.all[name] = path;
 	}
 

@@ -36,6 +36,7 @@ class Visitor {
 	private wPragma: undefined | string;
 	private outletName: undefined | string;
 	private modulesMap = new Map<string, string>();
+	private ctorCountMap = new Map<string, number>();
 	private needsLoadable = false;
 	private all = false;
 	private outlets: string[] = [];
@@ -192,6 +193,7 @@ class Visitor {
 		}
 		const text = node.tagName.getText();
 		const importPath = this.modulesMap.get(text) as string;
+		this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) + 1);
 		if (importPath) {
 			const targetPath = path.posix
 				.resolve(this.contextPath, importPath)
@@ -229,6 +231,7 @@ class Visitor {
 					registryAttribute
 				]);
 				this.needsLoadable = true;
+				this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);
 				if (ts.isJsxElement(inputNode)) {
 					const openingElement = ts.updateJsxOpeningElement(
 						node as ts.JsxOpeningElement,
@@ -272,12 +275,14 @@ class Visitor {
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 
 		const outletName = this.outletName ? this.getOutletName(node) : undefined;
+		this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) + 1);
 		this.log(text, targetPath);
 		if (
 			this.all ||
 			this.bundlePaths.indexOf(targetPath) !== -1 ||
 			(outletName && this.outlets.indexOf(outletName) !== -1)
 		) {
+			this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);
 			this.registryItems[text] = this.modulesMap.get(text) as string;
 			const registryItem = ts.createPropertyAccess(
 				ts.createIdentifier('__autoRegistryItems'),
@@ -299,7 +304,9 @@ class Visitor {
 	private removeImportStatements(nodes: ts.Statement[]) {
 		const importsToRemove: string[] = [];
 		Object.keys(this.registryItems).forEach((label) => {
-			importsToRemove.push(this.registryItems[label]);
+			if (this.ctorCountMap.get(label) === 0) {
+				importsToRemove.push(this.registryItems[label]);
+			}
 		});
 		return nodes.filter((node: ts.Node) => {
 			if (

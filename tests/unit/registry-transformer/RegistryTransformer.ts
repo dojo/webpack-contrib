@@ -307,6 +307,7 @@ export default HelloWorld;
 			protected render() {
 				return v('div' [
 					v('div', ['Foo']),
+					w(Blah, {}),
 					w(Outlet, {
 						id: 'my-foo-outlet',
 						renderer: () => {
@@ -355,10 +356,12 @@ export default HelloWorld;
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import { Outlet } from '@dojo/framework/routing/Outlet';
 import Baz from './Baz';
+import Blah from './Qux';
 var __autoRegistryItems = { Something: () => import("./Something"), Blah: () => import("./Qux"), Bar: () => import("./widgets/Bar"), Quz: () => import("./Quz") };
 export class Foo extends WidgetBase {
     render() {
         return v('div'[v('div', ['Foo']),
+            w(Blah, {}),
             w(Outlet, {
                 id: 'my-foo-outlet',
                 renderer: () => {
@@ -407,6 +410,7 @@ export default HelloWorld;
 import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
+import Blah from './Qux';
 import Outlet from '@dojo/framework/routing/Outlet';
 
 export class Foo extends WidgetBase {
@@ -414,18 +418,20 @@ export class Foo extends WidgetBase {
 		return (
 			<div>
 				<div>
+					<Blah />
 					<div>Foo</div>
 					<Baz>
 						<div>child</div>
 					</Baz>
 					<Outlet id="my-bar-outlet" renderer={ () => (<Bar />) } />
+					<Outlet id="my-blah-outlet" renderer={ () => (<Blah />) } />
 				</div>
 			</div>
 		);
 	}
 }
 `;
-		const transformer = registryTransformer(process.cwd(), [], false, ['my-bar-outlet']);
+		const transformer = registryTransformer(process.cwd(), [], false, ['my-bar-outlet', 'my-blah-outlet']);
 		const result = ts.transpileModule(source, {
 			compilerOptions: {
 				importHelpers: true,
@@ -441,18 +447,21 @@ export class Foo extends WidgetBase {
 
 		const expected = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
 import Baz from './Baz';
+import Blah from './Qux';
 import Outlet from '@dojo/framework/routing/Outlet';
 var Loadable__ = { type: "registry" };
-var __autoRegistryItems = { Bar: () => import("./widgets/Bar") };
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Blah: () => import("./Qux") };
 export class Foo extends WidgetBase {
     render() {
         return (<div>
 				<div>
+					<Blah />
 					<div>Foo</div>
 					<Baz>
 						<div>child</div>
 					</Baz>
 					<Outlet id="my-bar-outlet" renderer={() => (<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>)}/>
+					<Outlet id="my-blah-outlet" renderer={() => (<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }}/>)}/>
 				</div>
 			</div>);
     }
@@ -462,10 +471,12 @@ export class Foo extends WidgetBase {
 		assert.deepEqual(shared, {
 			all: {
 				Bar: 'widgets/Bar',
-				Baz: 'Baz'
+				Baz: 'Baz',
+				Blah: 'Qux'
 			},
 			modules: {
-				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: ['my-bar-outlet'] }
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', outletName: ['my-bar-outlet'] },
+				__autoRegistryItem_Blah: { path: 'Qux', outletName: ['my-blah-outlet'] }
 			}
 		});
 	});

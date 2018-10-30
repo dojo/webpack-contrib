@@ -10,6 +10,7 @@ import './i18n-plugin/templates/setLocaleData';
 import './promise-loader/all';
 import './build-time-render/all';
 import './registry-transformer/RegistryTransformer';
+import './element-transformer/ElementTransformer';
 import './service-worker-plugin/service-worker-entry';
 import './service-worker-plugin/ServiceWorkerPlugin';
 import './istanbul-loader/all';

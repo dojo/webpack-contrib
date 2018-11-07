@@ -7,14 +7,16 @@
 span {
   width: 100%;
 }
-</style>
+.other {
+  color: pink;
+}</style>
 	</head>
 	<body>
 		<div id="app"></div>
 		<script>
 	(function () {
 		var paths = ["",{"path":"#my-path"}];
-		var html = ["<div id=\"app\"><div class=\"hello\">Hello</div></div>","<div id=\"app\"><div class=\"hello\">Root</div></div>"];
+		var html = ["<div id=\"app\"><div class=\"hello\">Hello</div></div>","<div id=\"app\"><div class=\"other\">Root</div></div>"];
 		var element = document.getElementById('app');
 		var target;
 		paths.some(function (path, i) {
@@ -29,6 +31,6 @@ span {
 			element.parentNode.replaceChild(frag, element);
 		}
 	}())
-</script><link rel="stylesheet" href="main.css" media="none" onload="if(media!='all')media='all'" /><script type="text/javascript" src="runtime.js"></script><script type="text/javascript" src="main.js"></script>
+	</script><link rel="stylesheet" href="main.css" media="none" onload="if(media!='all')media='all'" /><script type="text/javascript" src="runtime.js"></script><script type="text/javascript" src="main.js"></script>
 	</body>
 </html>

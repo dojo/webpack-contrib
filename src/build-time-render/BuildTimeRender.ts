@@ -43,19 +43,21 @@ class BuildTimeRender {
 	private _manifest: any;
 	private _output: string;
 	private _originalEntries: string[];
+	private _inlinedCssClassNames: string[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', useManifest = false, entries, useHistory } = args;
 		let initialPath = paths[0];
+
 		initialPath = typeof initialPath === 'object' ? initialPath.path : initialPath;
-		this._useHistory = useHistory !== undefined ? useHistory : /^\#.*/.test(initialPath);
-		this._paths = paths;
+		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
+		this._paths = this._useHistory ? [...paths] : ['', ...paths];
 		this._hasPaths = paths.length > 0;
 		this._root = root;
-		this._entries = [...entries];
+		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useManifest = useManifest;
 		this._originalEntries = [...entries];
-		if (root === '' || paths.length === 0) {
+		if (root === '' || this._paths.length === 0) {
 			this._disabled = true;
 		}
 	}
@@ -64,44 +66,54 @@ class BuildTimeRender {
 		let replacement = '';
 		if (this._hasPaths) {
 			replacement = `<script>
-(function () {
-	var paths = ${JSON.stringify(this._paths)};
-	var html = ${JSON.stringify(html)};
-	var element = document.getElementById('${this._root}');
-	var target;
-	paths.some(function (path, i) {
-		var match = (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
-		if (match) {
-			target = html[i];
+	(function () {
+		var paths = ${JSON.stringify(this._paths)};
+		var html = ${JSON.stringify(html)};
+		var element = document.getElementById('${this._root}');
+		var target;
+		paths.some(function (path, i) {
+			var match = (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
+			if (match) {
+				target = html[i];
+			}
+			return match;
+		});
+		if (target && element) {
+			var frag = document.createRange().createContextualFragment(target);
+			element.parentNode.replaceChild(frag, element);
 		}
-		return match;
-	});
-	if (target && element) {
-		var frag = document.createRange().createContextualFragment(target);
-		element.parentNode.replaceChild(frag, element);
-	}
-}())
-</script>`;
+	}())
+	</script>`;
 		}
 		return replacement;
 	}
 
 	private _filterCss(classes: string[], cssFiles: string[]) {
 		return cssFiles.reduce((result, entry: string) => {
-			const filteredCss = filterCss(path.join(this._output, entry), (context: string, value: string) => {
+			let filteredCss: string = filterCss(path.join(this._output, entry), (context: string, value: string) => {
 				if (context === 'selector') {
 					value = value.replace(/(:| ).*/, '');
-					value = value.split('.')[0];
+					value = value
+						.split('.')
+						.slice(0, 2)
+						.join('.');
 					const firstChar = value.substr(0, 1);
+					if (!this._useHistory && this._inlinedCssClassNames.indexOf(value) !== -1) {
+						return true;
+					}
 					if (classes.indexOf(value) !== -1 || ['.', '#'].indexOf(firstChar) === -1) {
+						this._inlinedCssClassNames.push(value);
 						return false;
 					}
 					return true;
 				}
-			})
+			});
+
+			filteredCss = filteredCss
 				.replace(/\/\*.*\*\//g, '')
-				.replace(/^(\s*)(\r\n?|\n)/gm, '');
-			result = `${result}\n${filteredCss}`;
+				.replace(/^(\s*)(\r\n?|\n)/gm, '')
+				.trim();
+			result = `${result}${filteredCss}`;
 			return result;
 		}, '');
 	}
@@ -111,7 +123,7 @@ class BuildTimeRender {
 		html: string,
 		styles: string,
 		cssFiles: string[],
-		route: string = '',
+		route: string,
 		other: string = ''
 	) {
 		let updatedIndexContent = indexContent;
@@ -135,7 +147,7 @@ class BuildTimeRender {
 		outputFileSync(path.join(this._output, ...route.split('/'), 'index.html'), updatedIndexContent);
 	}
 
-	private _getPrefix(route = '') {
+	private _getPrefix(route: string) {
 		return route
 			? `${route
 					.split('/')
@@ -167,14 +179,11 @@ class BuildTimeRender {
 		}).window;
 		const document: Document = window.document;
 		const parent = document.getElementById(root)!;
-		if (!this._btrRoot) {
-			this._btrRoot = parent.outerHTML;
-		}
-		window.eval(`
-window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`);
+		window.eval(`window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`);
 
+		this._btrRoot = parent.outerHTML;
 		this._entries.forEach((entry) => {
-			const entryContent = readFileSync(path.join(this._output, `${entry}.js`), 'utf-8');
+			const entryContent = readFileSync(path.join(this._output, entry), 'utf-8');
 			window.eval(entryContent);
 		});
 
@@ -207,14 +216,12 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 				if (this._useManifest) {
 					this._manifest = JSON.parse(readFileSync(path.join(this._output, 'manifest.json'), 'utf-8'));
 					const extraEntries = Object.keys(this._manifest)
-						.filter(
-							(key) => this._entries.indexOf(`${key.replace('.js', '')}`) === -1 && /.*\.js$/.test(key)
-						)
-						.map((key) => this._manifest[key].replace('.js', ''));
-					this._entries = [this._manifest['runtime'], ...extraEntries, this._manifest['main']];
+						.filter((key) => this._entries.indexOf(key) === -1 && /.*\.js$/.test(key))
+						.map((key) => this._manifest[key]);
+					this._entries = [this._manifest['runtime.js'], ...extraEntries, this._manifest['main.js']];
 				}
 			} else {
-				return;
+				return Promise.resolve();
 			}
 			let htmlContent = readFileSync(path.join(this._output, 'index.html'), 'utf-8');
 			const cssFiles = this._originalEntries.reduce(
@@ -238,7 +245,7 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 				return this._render(compiler, path, htmlContent, this._root, cssFiles);
 			});
 
-			Promise.all(renderPromises).then((results) => {
+			return Promise.all(renderPromises).then((results) => {
 				if (this._useHistory) {
 					results.map((result) => {
 						this._writeIndexHtml(htmlContent, result.html, result.styles, cssFiles, result.path);
@@ -246,7 +253,7 @@ window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`)
 				} else {
 					const combinedResults = results.reduce(
 						(combined, result) => {
-							combined.styles = `${combined.styles}\n${result.styles}`;
+							combined.styles = result.styles ? `${combined.styles}\n${result.styles}` : combined.styles;
 							combined.html.push(result.html);
 							return combined;
 						},

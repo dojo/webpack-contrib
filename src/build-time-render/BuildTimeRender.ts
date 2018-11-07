@@ -21,6 +21,7 @@ export interface RenderResult {
 	path: string;
 	html: string;
 	styles: string;
+	script: string;
 }
 
 export interface BuildTimeRenderArguments {
@@ -88,6 +89,12 @@ class BuildTimeRender {
 		return replacement;
 	}
 
+	private _generateBasePath(route = '__app_root__') {
+		return `<script>
+window.__public_path__ = window.location.href.replace('${route}/', '');
+</script>`;
+	}
+
 	private _filterCss(classes: string[], cssFiles: string[]): string {
 		return cssFiles.reduce((result, entry: string) => {
 			let filteredCss: string = filterCss(path.join(this._output, entry), (context: string, value: string) => {
@@ -124,6 +131,7 @@ class BuildTimeRender {
 		styles: string,
 		cssFiles: string[],
 		route: string,
+		script: string,
 		other: string = ''
 	) {
 		let updatedIndexContent = indexContent;
@@ -139,9 +147,9 @@ class BuildTimeRender {
 
 		updatedIndexContent = updatedIndexContent.replace(
 			this._createScripts(),
-			`${other}${css}${this._createScripts(route)}`
+			`${script}${other}${css}${this._createScripts(route)}`
 		);
-		if (!this._hasPaths || this._useHistory) {
+		if ((!this._hasPaths || this._useHistory) && html) {
 			updatedIndexContent = updatedIndexContent.replace(this._btrRoot, html);
 		}
 		outputFileSync(path.join(this._output, ...route.split('/'), 'index.html'), updatedIndexContent);
@@ -200,11 +208,13 @@ class BuildTimeRender {
 				classes = classes.map((className) => `.${className}`);
 				let styles = this._filterCss(classes, cssFiles);
 				let html = parent.outerHTML;
+				let script = '';
 				if (this._useHistory) {
 					styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${this._getPrefix(location)}$3"`);
 					html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${this._getPrefix(location)}$3"`);
+					script = this._generateBasePath(location);
 				}
-				resolve({ html, styles, path: location });
+				resolve({ html, styles, path: location, script });
 			}, 500);
 		});
 		return promise;
@@ -251,8 +261,16 @@ class BuildTimeRender {
 
 			return Promise.all(renderPromises).then((results) => {
 				if (this._useHistory) {
+					results.push({ html: '', styles: '', path: '', script: this._generateBasePath() });
 					results.map((result) => {
-						this._writeIndexHtml(htmlContent, result.html, result.styles, cssFiles, result.path);
+						this._writeIndexHtml(
+							htmlContent,
+							result.html,
+							result.styles,
+							cssFiles,
+							result.path,
+							result.script
+						);
 					});
 				} else {
 					const combinedResults = results.reduce(
@@ -268,6 +286,7 @@ class BuildTimeRender {
 						combinedResults.html[0],
 						combinedResults.styles,
 						cssFiles,
+						'',
 						'',
 						this._generateRouteInjectionScript(combinedResults.html)
 					);

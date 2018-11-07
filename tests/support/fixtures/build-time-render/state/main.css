@@ -10,6 +10,14 @@
 
 .other.another {
 	color: pink;
+	background: url("relative.png");
+	background: url("/root.png");
+	background: url("./relative.png");
+	background: url("../relative.png");
+	background: url("https://image.png");
+	background: url("http://image.png");
+	background: url(https://image.png);
+	background: url(http://image.png);
 }
 
 span {

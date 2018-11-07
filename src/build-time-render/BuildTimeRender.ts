@@ -88,7 +88,7 @@ class BuildTimeRender {
 		return replacement;
 	}
 
-	private _filterCss(classes: string[], cssFiles: string[]) {
+	private _filterCss(classes: string[], cssFiles: string[]): string {
 		return cssFiles.reduce((result, entry: string) => {
 			let filteredCss: string = filterCss(path.join(this._output, entry), (context: string, value: string) => {
 				if (context === 'selector') {
@@ -198,10 +198,12 @@ class BuildTimeRender {
 				}
 
 				classes = classes.map((className) => `.${className}`);
-				const styles = this._filterCss(classes, cssFiles);
-				const html = this._useHistory
-					? parent.outerHTML.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${this._getPrefix(location)}$3"`)
-					: parent.outerHTML;
+				let styles = this._filterCss(classes, cssFiles);
+				let html = parent.outerHTML;
+				if (this._useHistory) {
+					styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${this._getPrefix(location)}$3"`);
+					html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${this._getPrefix(location)}$3"`);
+				}
 				resolve({ html, styles, path: location });
 			}, 500);
 		});

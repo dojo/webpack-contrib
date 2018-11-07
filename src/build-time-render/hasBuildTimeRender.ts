@@ -9,4 +9,5 @@ if (!has.exists('build-time-render')) {
 if (globals.default.__public_path__) {
 	// @ts-ignore
 	__webpack_public_path__ = globals.default.__public_path__;
+	has.add('public-path', globals.default.__public_path__, true);
 }

@@ -181,7 +181,7 @@ describe('build-time-render', () => {
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
 			return runBtr().then(() => {
-				assert.strictEqual(outputFileSync.callCount, 3);
+				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
 					outputFileSync.firstCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
@@ -235,7 +235,7 @@ describe('build-time-render', () => {
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
 			return runBtr().then(() => {
-				assert.strictEqual(outputFileSync.callCount, 3);
+				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
 					outputFileSync.firstCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')

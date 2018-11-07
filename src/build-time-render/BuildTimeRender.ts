@@ -199,7 +199,9 @@ class BuildTimeRender {
 
 				classes = classes.map((className) => `.${className}`);
 				const styles = this._filterCss(classes, cssFiles);
-				const html = parent.outerHTML.replace(/src="(.*?)"/g, `src="${this._getPrefix(location)}$1"`);
+				const html = this._useHistory
+					? parent.outerHTML.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${this._getPrefix(location)}$3"`)
+					: parent.outerHTML;
 				resolve({ html, styles, path: location });
 			}, 500);
 		});

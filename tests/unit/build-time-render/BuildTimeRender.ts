@@ -238,17 +238,17 @@ describe('build-time-render', () => {
 				assert.strictEqual(outputFileSync.callCount, 3);
 				assert.isTrue(
 					outputFileSync.firstCall.args[0].indexOf(
-						'support/fixtures/build-time-render/state/my-path/index.html'
+						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
 					outputFileSync.secondCall.args[0].indexOf(
-						'support/fixtures/build-time-render/state/other/index.html'
+						path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
 					outputFileSync.thirdCall.args[0].indexOf(
-						'support/fixtures/build-time-render/state/my-path/other/index.html'
+						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'other', 'index.html')
 					) > -1
 				);
 				assert.strictEqual(

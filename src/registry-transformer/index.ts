@@ -245,7 +245,7 @@ class Visitor {
 						openingElement = (ts as any).updateJsxOpeningElement(
 							node as ts.JsxOpeningElement,
 							ts.createIdentifier(fakeComponentName),
-							undefined,
+							(node as any).typeArguments,
 							attrs
 						);
 					}
@@ -261,7 +261,7 @@ class Visitor {
 						return (ts as any).updateJsxSelfClosingElement(
 							inputNode,
 							ts.createIdentifier(fakeComponentName),
-							undefined,
+							(inputNode as any).typeArguments,
 							attrs
 						);
 					}

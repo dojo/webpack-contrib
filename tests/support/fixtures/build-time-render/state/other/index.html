@@ -1,5 +1,4 @@
-<html>
-	<head>
+<html><head>
 		<style>.hello {
   background: red;
 }
@@ -8,9 +7,8 @@ span {
 }</style>
 	</head>
 	<body>
-		<div id="app"><div class="hello">Hello</div><img src="https://localhost.com"><img src="http://localhost.com"><img src="/image.svg"><img src=".././relative-image.svg"><img src="../../other-relative-image.svg"></div>
+		<div id="app"><div class="hello">{"staticFeatures":{"build-time-render":true}}<img src="https://example.com"><img src="http://example.com"><img src="/image.svg"><img src=".././relative-image.svg"><img src="../../other-relative-image.svg"></div></div>
 		<script>
 window.__public_path__ = window.location.href.replace('other/', '');
 </script><link rel="stylesheet" href="../main.css" media="none" onload="if(media!='all')media='all'" /><script type="text/javascript" src="../runtime.js"></script><script type="text/javascript" src="../main.js"></script>
-	</body>
-</html>
+</body></html>

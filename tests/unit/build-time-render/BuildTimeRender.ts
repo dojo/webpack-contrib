@@ -16,6 +16,10 @@ const pluginStub = (type: string, cb: Function) => {
 	runBtr = cb;
 };
 
+function normalise(value: string) {
+	return value.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
+}
+
 describe('build-time-render', () => {
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/BuildTimeRender', require);
@@ -57,7 +61,7 @@ describe('build-time-render', () => {
 			return runBtr().then(() => {
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected);
+				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
 			});
 		});
 
@@ -79,7 +83,7 @@ describe('build-time-render', () => {
 			return runBtr().then(() => {
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected);
+				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
 			});
 		});
 
@@ -105,7 +109,7 @@ describe('build-time-render', () => {
 			return runBtr().then(() => {
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected);
+				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
 			});
 		});
 
@@ -183,31 +187,41 @@ describe('build-time-render', () => {
 			return runBtr().then(() => {
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
-					outputFileSync.firstCall.args[0].indexOf(
+					outputFileSync.secondCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
-					outputFileSync.secondCall.args[0].indexOf(
+					outputFileSync.thirdCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
-					outputFileSync.thirdCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'other', 'index.html')
-					) > -1
-				);
-				assert.strictEqual(
-					outputFileSync.firstCall.args[1],
-					readFileSync(outputFileSync.firstCall.args[0], 'utf8')
+					outputFileSync
+						.getCall(3)
+						.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'my-path',
+								'other',
+								'index.html'
+							)
+						) > -1
 				);
 				assert.strictEqual(
 					outputFileSync.secondCall.args[1],
-					readFileSync(outputFileSync.secondCall.args[0], 'utf8')
+					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
 				);
 				assert.strictEqual(
 					outputFileSync.thirdCall.args[1],
-					readFileSync(outputFileSync.thirdCall.args[0], 'utf8')
+					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[1],
+					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
 				);
 			});
 		});
@@ -237,31 +251,41 @@ describe('build-time-render', () => {
 			return runBtr().then(() => {
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
-					outputFileSync.firstCall.args[0].indexOf(
+					outputFileSync.secondCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
-					outputFileSync.secondCall.args[0].indexOf(
+					outputFileSync.thirdCall.args[0].indexOf(
 						path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
 					) > -1
 				);
 				assert.isTrue(
-					outputFileSync.thirdCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'other', 'index.html')
-					) > -1
-				);
-				assert.strictEqual(
-					outputFileSync.firstCall.args[1],
-					readFileSync(outputFileSync.firstCall.args[0], 'utf8')
+					outputFileSync
+						.getCall(3)
+						.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'my-path',
+								'other',
+								'index.html'
+							)
+						) > -1
 				);
 				assert.strictEqual(
 					outputFileSync.secondCall.args[1],
-					readFileSync(outputFileSync.secondCall.args[0], 'utf8')
+					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
 				);
 				assert.strictEqual(
 					outputFileSync.thirdCall.args[1],
-					readFileSync(outputFileSync.thirdCall.args[0], 'utf8')
+					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[1],
+					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
 				);
 			});
 		});

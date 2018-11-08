@@ -14,10 +14,10 @@
 	background: url("/root.png");
 	background: url("./relative.png");
 	background: url("../relative.png");
-	background: url("https://image.png");
-	background: url("http://image.png");
-	background: url(https://image.png);
-	background: url(http://image.png);
+	background: url("https://example.com");
+	background: url("http://example.com");
+	background: url(https://example.com);
+	background: url(http://example.com);
 }
 
 span {

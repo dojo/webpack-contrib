@@ -57,7 +57,8 @@ describe('build-time-render', () => {
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -80,7 +81,8 @@ describe('build-time-render', () => {
 				paths: [],
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -107,7 +109,8 @@ describe('build-time-render', () => {
 				],
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -129,7 +132,8 @@ describe('build-time-render', () => {
 			const btr = new Btr({
 				paths: [],
 				useManifest: true,
-				entries: ['runtime', 'main']
+				entries: ['runtime', 'main'],
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isFalse(pluginRegistered);
@@ -146,7 +150,8 @@ describe('build-time-render', () => {
 				paths: [],
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
@@ -187,7 +192,8 @@ describe('build-time-render', () => {
 				],
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -252,7 +258,8 @@ describe('build-time-render', () => {
 				useHistory: true,
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				root: 'app'
+				root: 'app',
+				args: ['--no-sandbox']
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);

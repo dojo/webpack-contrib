@@ -33,6 +33,7 @@ export interface BuildTimeRenderArguments {
 	useManifest?: boolean;
 	paths?: (BuildTimePath | string)[];
 	useHistory?: boolean;
+	puppeteerOptions?: any;
 }
 
 export default class BuildTimeRender {
@@ -46,12 +47,14 @@ export default class BuildTimeRender {
 	private _useHistory = false;
 	private _inlinedCssClassNames: string[] = [];
 	private _head: string;
+	private _puppeteerOptions: any;
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', useManifest = false, entries, useHistory } = args;
+		const { paths = [], root = '', useManifest = false, entries, useHistory, puppeteerOptions } = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
+		this._puppeteerOptions = puppeteerOptions;
 		this._paths = paths;
 		this._root = root;
 		this._useManifest = useManifest;
@@ -172,7 +175,7 @@ export default class BuildTimeRender {
 				[] as string[]
 			);
 
-			const browser = await puppeteer.launch();
+			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);
 			try {
 				const page = await browser.newPage();

@@ -89,7 +89,8 @@ export default class BuildTimeRender {
 	private _createScripts(path = '') {
 		const prefix = this._useHistory ? getPrefix(path) : '';
 		return this._entries.reduce(
-			(script, entry) => `${script}<script type="text/javascript" src="${prefix}${entry}"></script>`,
+			(script, entry) =>
+				`${script}<script type="text/javascript" src="${prefix}${this._manifest[entry]}"></script>`,
 			''
 		);
 	}

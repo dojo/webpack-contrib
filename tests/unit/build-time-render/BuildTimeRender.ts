@@ -58,7 +58,7 @@ describe('build-time-render', () => {
 			const btr = new Btr({
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -82,7 +82,7 @@ describe('build-time-render', () => {
 				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -110,7 +110,7 @@ describe('build-time-render', () => {
 				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -133,7 +133,7 @@ describe('build-time-render', () => {
 				paths: [],
 				useManifest: true,
 				entries: ['runtime', 'main'],
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isFalse(pluginRegistered);
@@ -151,7 +151,7 @@ describe('build-time-render', () => {
 				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
@@ -193,7 +193,7 @@ describe('build-time-render', () => {
 				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -259,7 +259,7 @@ describe('build-time-render', () => {
 				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				args: ['--no-sandbox']
+				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);

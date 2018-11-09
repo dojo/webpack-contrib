@@ -45,6 +45,7 @@ export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _useHistory = false;
 	private _inlinedCssClassNames: string[] = [];
+	private _head: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', useManifest = false, entries, useHistory } = args;
@@ -68,6 +69,9 @@ export default class BuildTimeRender {
 	private _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
 		path = typeof path === 'object' ? path.path : path;
 		const prefix = getPrefix(path);
+		if (this._head) {
+			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, this._head);
+		}
 		const css = this._cssFiles.reduce((css, entry: string | undefined) => {
 			html = html.replace(`<link href="${entry}" rel="stylesheet">`, `<style>${styles}</style>`);
 			css = `${css}<link rel="stylesheet" href="${prefix}${entry}" media="none" onload="if(media!='all')media='all'" />`;
@@ -149,6 +153,11 @@ export default class BuildTimeRender {
 				this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
 			}
 
+			let originalIndexHtml = readFileSync(join(this._output, 'index.html'), 'utf-8');
+			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(originalIndexHtml);
+			if (matchingHead) {
+				this._head = matchingHead[0];
+			}
 			this._cssFiles = this._entries.reduce(
 				(files, entry) => {
 					const fileName = this._manifest[entry.replace('.js', '.css')] || entry.replace('.js', '.css');

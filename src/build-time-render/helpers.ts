@@ -7,6 +7,7 @@ export async function navigate(page: any, useHistory: boolean, route: string) {
 		await page.evaluate(
 			(route: string, useHistory: boolean) => {
 				if (useHistory) {
+					route = route[0] === '/' ? route : `/${route}`;
 					window.history.pushState({}, '', route);
 					window.dispatchEvent(new Event('popstate'));
 				} else {
@@ -59,6 +60,8 @@ export async function setHasFlags(page: any): Promise<void> {
 	await page.evaluateOnNewDocument(() => {
 		// @ts-ignore
 		window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
+		// @ts-ignore
+		window.__public_path__ = '/';
 	});
 }
 

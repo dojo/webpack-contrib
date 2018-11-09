@@ -143,10 +143,12 @@ export default class BuildTimeRender {
 		if (!this._root) {
 			return;
 		}
-		compiler.plugin('done', async () => {
+		compiler.plugin('after-emit', async (compilation, callback) => {
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
-				return Promise.resolve();
+				return Promise.resolve().then(() => {
+					callback();
+				});
 			}
 
 			if (this._useManifest) {
@@ -223,6 +225,7 @@ export default class BuildTimeRender {
 			} finally {
 				await browser.close();
 				await app.server.close();
+				callback();
 			}
 		});
 	}

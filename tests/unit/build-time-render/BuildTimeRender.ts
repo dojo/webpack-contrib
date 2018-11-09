@@ -20,6 +20,8 @@ function normalise(value: string) {
 	return value.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
 }
 
+const callbackStub = stub();
+
 describe('build-time-render', () => {
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/BuildTimeRender', require);
@@ -29,6 +31,7 @@ describe('build-time-render', () => {
 	afterEach(() => {
 		pluginRegistered = false;
 		mockModule.destroy();
+		callbackStub.reset();
 		runBtr = () => {};
 	});
 
@@ -58,7 +61,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
 				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
@@ -80,7 +84,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
 				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
@@ -106,7 +111,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
 				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
@@ -144,7 +150,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				assert.isTrue(outputFileSync.notCalled);
 			});
 		});
@@ -184,7 +191,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
 					outputFileSync.secondCall.args[0].indexOf(
@@ -248,7 +256,8 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr().then(() => {
+			return runBtr('', callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
 					outputFileSync.secondCall.args[0].indexOf(

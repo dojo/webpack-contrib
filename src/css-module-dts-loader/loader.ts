@@ -1,7 +1,7 @@
-import webpack = require('webpack');
-import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import { statSync } from 'fs';
 import { dirname } from 'path';
+import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
+import * as webpack from 'webpack';
 const DtsCreator = require('typed-css-modules');
 const { getOptions } = require('loader-utils');
 const instances = require('ts-loader/dist/instances');
@@ -39,7 +39,7 @@ function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<vo
 	});
 }
 
-function getCssImport(node: Node, loaderContext: webpack.LoaderContext): Promise<string> | void {
+function getCssImport(node: Node, loaderContext: webpack.loader.LoaderContext): Promise<string> | void {
 	if (node.kind === SyntaxKind.StringLiteral) {
 		const importPath = node.getText().replace(/\'|\"/g, '');
 		if (/\.css$/.test(importPath)) {
@@ -62,7 +62,7 @@ function getCssImport(node: Node, loaderContext: webpack.LoaderContext): Promise
 function traverseNode(
 	node: Node,
 	filePaths: Promise<string>[],
-	loaderContext: webpack.LoaderContext
+	loaderContext: webpack.loader.LoaderContext
 ): Promise<string>[] {
 	switch (node.kind) {
 		case SyntaxKind.SourceFile:
@@ -80,8 +80,8 @@ function traverseNode(
 	return filePaths;
 }
 
-export default function(this: webpack.LoaderContext, content: string, sourceMap?: string) {
-	const callback = this.async();
+export default function(this: webpack.loader.LoaderContext, content: string, sourceMap?: string) {
+	const callback = this.async() as Function;
 	const { type = 'ts', instanceName, sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
 	const sourceFilesRegex =
 		typeof sourceFilesPattern === 'string' ? new RegExp(sourceFilesPattern) : sourceFilesPattern;

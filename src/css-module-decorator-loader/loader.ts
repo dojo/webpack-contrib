@@ -1,6 +1,6 @@
-import webpack = require('webpack');
 import { join, basename } from 'path';
 import { existsSync } from 'fs';
+import * as webpack from 'webpack';
 
 const themeKey = ' _key';
 
@@ -9,7 +9,7 @@ const packageJsonPath = join(basePath, 'package.json');
 const packageJson = existsSync(packageJsonPath) ? require(packageJsonPath) : {};
 const packageName = packageJson.name || '';
 
-export default function(this: webpack.LoaderContext, content: string, map?: any): string {
+export default function(this: webpack.loader.LoaderContext, content: string, map?: any): string {
 	let response = content;
 	const localsRexExp = /exports.locals = {([.\s\S]*)};/;
 	const matches = content.match(localsRexExp);

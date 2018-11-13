@@ -1,6 +1,7 @@
-import Compiler = require('../../support/webpack/Compiler');
+import { spy, stub } from 'sinon';
+import { Compiler } from 'webpack';
 import MockModule from '../../support/MockModule';
-import { spy } from 'sinon';
+import { createCompilation, createCompiler } from '../../support/util';
 
 const { assert } = intern.getPlugin('chai');
 const { describe, it, beforeEach, afterEach } = intern.getInterface('bdd');
@@ -10,10 +11,11 @@ let mockModule: MockModule;
 
 describe('ServiceWorkerPlugin', () => {
 	beforeEach(() => {
-		compiler = new Compiler();
+		compiler = createCompiler();
 		mockModule = new MockModule('../../../src/service-worker-plugin/ServiceWorkerPlugin', require);
-		mockModule.dependencies(['copy-webpack-plugin']);
-		mockModule.dependencies(['workbox-webpack-plugin']);
+		mockModule.dependencies(['copy-webpack-plugin', 'workbox-webpack-plugin']);
+		mockModule.getMock('copy-webpack-plugin').ctor.returns({ apply: stub() });
+		mockModule.getMock('workbox-webpack-plugin').GenerateSW.returns({ apply: stub() });
 	});
 
 	afterEach(() => {
@@ -27,7 +29,8 @@ describe('ServiceWorkerPlugin', () => {
 		const next = spy();
 		const CopyPlugin = mockModule.getMock('copy-webpack-plugin').ctor;
 		plugin.apply(compiler);
-		compiler.mockApply('before-run', compiler, next);
+		const compilation = createCompilation(compiler);
+		compiler.hooks.beforeRun.callAsync(compilation, next);
 		assert.isTrue(next.called);
 		assert.deepEqual(CopyPlugin.firstCall.args, [{ from: swPath }]);
 	});

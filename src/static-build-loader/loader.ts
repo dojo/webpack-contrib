@@ -1,5 +1,5 @@
 import getFeatures from './getFeatures';
-import { LoaderContext, RawSourceMap } from 'webpack';
+import * as webpack from 'webpack';
 import * as recast from 'recast';
 import { ExpressionStatement, BaseNode } from 'estree';
 
@@ -67,7 +67,11 @@ function setComment<T>(
  * @param content The JavaScript code to optimize
  * @param sourceMap Optional Source map for the code. If provided it will be updated to reflect the optimizations made
  */
-export default function loader(this: LoaderContext, content: string, sourceMap?: RawSourceMap): string | void {
+export default function loader(
+	this: webpack.loader.LoaderContext,
+	content: string,
+	sourceMap?: webpack.RawSourceMap
+): string | void {
 	if (content.indexOf('/has') < 0 && content.indexOf('has(') < 0) {
 		if (sourceMap) {
 			this.callback(null, content, sourceMap);
@@ -294,7 +298,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			sourceMap,
 			result.map
 		);
-		this.callback(null, result.code, map, ast);
+		this.callback(null, result.code, map);
 		return;
 	}
 	return recast.print(ast).code;

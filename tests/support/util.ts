@@ -1,21 +1,19 @@
-/**
- * Thenable represents any object with a callable `then` property.
- */
-export interface Thenable<T> {
-	then<U>(onFulfilled?: (value?: T) => U | Thenable<U>, onRejected?: (error?: any) => U | Thenable<U>): Thenable<U>;
+import { Compiler } from 'webpack';
+
+export function createCompiler() {
+	// `@types/webpack` currently misses the `context` argument for the Compiler constructor
+	return new (Compiler as any)('');
 }
 
-export function isEventuallyRejected<T>(promise: Thenable<T>): Thenable<boolean> {
-	return promise.then<any>(
-		function() {
-			throw new Error('unexpected code path');
-		},
-		function() {
-			return true; // expect rejection
-		}
-	);
-}
-
-export function throwImmediatly() {
-	throw new Error('unexpected code path');
+export function createCompilation(compiler: Compiler) {
+	const { options = {} } = compiler;
+	compiler.options = {
+		...options,
+		module: {
+			...options.module,
+			rules: [],
+			defaultRules: []
+		} as any
+	};
+	return compiler.newCompilation(compiler.newCompilationParams());
 }

@@ -1,33 +1,58 @@
-import Compilation = require('../../support/webpack/Compilation');
-import CompilationParams = require('../../support/webpack/CompilationParams');
-import Compiler = require('../../support/webpack/Compiler');
-import NormalModule = require('../../support/webpack/NormalModule');
-import I18nPlugin from '../../../src/i18n-plugin/I18nPlugin';
-import InjectedModuleDependency from '../../../src/i18n-plugin/dependencies/InjectedModuleDependency';
-
 import { join } from 'path';
+import * as sinon from 'sinon';
+import { Compiler } from 'webpack';
+import NormalModule = require('webpack/lib/NormalModule');
+import _I18nPlugin, { default as I18nPlugin } from '../../../src/i18n-plugin/I18nPlugin';
+import MockModule from '../../support/MockModule';
+import { createCompilation, createCompiler } from '../../support/util';
 
 const { assert } = intern.getPlugin('chai');
-const { describe, it, beforeEach } = intern.getInterface('bdd');
+const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
 
 const entryPath = 'some/entry/point.ts';
-let compiler: Compiler;
 
-function applyModule(plugin: I18nPlugin, target = entryPath) {
-	const compilation = new Compilation();
-	const params = new CompilationParams();
-	const module = new NormalModule(target, target, target, [], target, {});
-
+function applyModule(compiler: Compiler, plugin: I18nPlugin, target = entryPath) {
 	plugin.apply(compiler);
-	compiler.mockApply('compilation', compilation, params);
-	compilation.mockApply('succeed-module', module);
+
+	const compilation = createCompilation(compiler);
+	const module = new NormalModule({
+		type: 'javascript',
+		request: target,
+		userRequest: target,
+		rawRequest: target,
+		loaders: [],
+		resource: target,
+		parser: { parse: () => {} }
+	});
+	compilation.hooks.succeedModule.call(module);
 
 	return module;
 }
 
 describe('I18nPlugin', () => {
+	let compiler: Compiler;
+	let I18nPlugin: typeof _I18nPlugin;
+	let InjectedModuleDependency: any;
+	let mockModule: MockModule;
+	let sandbox: sinon.SinonSandbox;
+
 	beforeEach(() => {
-		compiler = new Compiler();
+		sandbox = sinon.sandbox.create();
+		mockModule = new MockModule('../../../src/i18n-plugin/I18nPlugin', require);
+		mockModule.dependencies(['./dependencies/InjectedModuleDependency']);
+		mockModule.proxy('webpack', {
+			DefinePlugin: sinon.stub().returns({ apply: () => {} })
+		});
+		I18nPlugin = mockModule.getModuleUnderTest().default;
+		InjectedModuleDependency = mockModule.getMock('./dependencies/InjectedModuleDependency').default;
+		InjectedModuleDependency.callsFake((request: string) => ({ request }));
+		InjectedModuleDependency.Template = class {};
+		compiler = createCompiler();
+	});
+
+	afterEach(() => {
+		sandbox.restore();
+		mockModule.destroy();
 	});
 
 	it('should convert its target to a regular expression', () => {
@@ -43,34 +68,31 @@ describe('I18nPlugin', () => {
 	});
 
 	it('should register the custom dependency with the compilation', () => {
-		const compilation = new Compilation();
-		const params = new CompilationParams();
 		const plugin = new I18nPlugin({ defaultLocale: 'en' });
 
 		plugin.apply(compiler);
-		compiler.mockApply('compilation', compilation, params);
-
-		assert.strictEqual(compilation.dependencyFactories.get(InjectedModuleDependency), params.normalModuleFactory);
-		assert.instanceOf(
-			compilation.dependencyTemplates.get(InjectedModuleDependency),
-			InjectedModuleDependency.Template
-		);
+		compiler.hooks.compilation.tap('I18nPluginTest', (compilation: any, params: any) => {
+			const { dependencyFactories, dependencyTemplates } = compilation;
+			const { normalModuleFactory } = params;
+			assert.strictEqual(dependencyFactories.get(InjectedModuleDependency), normalModuleFactory);
+			assert.instanceOf(dependencyTemplates.get(InjectedModuleDependency), InjectedModuleDependency.Template);
+		});
+		createCompilation(compiler);
 	});
 
 	it(`should inject the module into the application's entry point`, () => {
 		const plugin = new I18nPlugin({ defaultLocale: 'en', target: entryPath });
-		const entry = applyModule(plugin);
-		const dep = entry.dependencies[0];
+		const entry = applyModule(compiler, plugin);
+		const dep: any = entry.dependencies[0];
 
 		assert.lengthOf(entry.dependencies, 1);
-		assert.instanceOf(dep, InjectedModuleDependency);
 		assert.include(dep.request, join('i18n-plugin', 'templates', 'setLocaleData.js'));
 	});
 
 	it('should not inject data into other modules', () => {
 		const resource = '/resource';
 		const plugin = new I18nPlugin({ defaultLocale: 'en' });
-		const module = applyModule(plugin, resource);
+		const module = applyModule(compiler, plugin, resource);
 
 		assert.lengthOf(module.dependencies, 0);
 	});
@@ -88,9 +110,9 @@ describe('I18nPlugin', () => {
 				join(process.cwd(), 'tests/support/fixtures/cldr/', file)
 			)
 		});
-		applyModule(plugin);
+		applyModule(compiler, plugin);
 
-		const { definitions } = compiler.applied[0];
+		const [definitions] = mockModule.getMock('webpack').DefinePlugin.firstCall.args;
 		assert.deepEqual(definitions, {
 			__defaultLocale__: `'en'`,
 			__supportedLocales__: JSON.stringify(['fr']),
@@ -109,9 +131,9 @@ describe('I18nPlugin', () => {
 				return `./tests/support/fixtures/cldr/${file}`;
 			})
 		});
-		applyModule(plugin);
+		applyModule(compiler, plugin);
 
-		const { definitions } = compiler.applied[0];
+		const [definitions] = mockModule.getMock('webpack').DefinePlugin.firstCall.args;
 		assert.deepEqual(definitions, {
 			__defaultLocale__: `'en'`,
 			__supportedLocales__: '[]',
@@ -124,9 +146,9 @@ describe('I18nPlugin', () => {
 			defaultLocale: 'en',
 			cldrPaths: []
 		});
-		applyModule(plugin);
+		applyModule(compiler, plugin);
 
-		const { definitions } = compiler.applied[0];
+		const [definitions] = mockModule.getMock('webpack').DefinePlugin.firstCall.args;
 		assert.deepEqual(definitions, {
 			__defaultLocale__: `'en'`,
 			__supportedLocales__: '[]',

@@ -1,7 +1,7 @@
 import global from '@dojo/framework/shim/global';
 import has, { add } from '@dojo/framework/has/has';
-import MockModule from '../../support/MockModule';
 import { SinonStub, stub } from 'sinon';
+import MockModule from '../../support/MockModule';
 
 const { assert } = intern.getPlugin('chai');
 const { describe, it, beforeEach, afterEach } = intern.getInterface('bdd');

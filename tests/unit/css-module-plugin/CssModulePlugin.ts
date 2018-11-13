@@ -1,9 +1,8 @@
 import * as path from 'path';
-import MockModule from '../../support/MockModule';
 import * as sinon from 'sinon';
-import Compilation = require('../../support/webpack/Compilation');
-import Compiler = require('../../support/webpack/Compiler');
 import _CssModulePlugin, { default as CssModulePlugin } from '../../../src/css-module-plugin/CssModulePlugin';
+import MockModule from '../../support/MockModule';
+import { createCompilation, createCompiler } from '../../support/util';
 
 const { assert } = intern.getPlugin('chai');
 const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
@@ -14,46 +13,52 @@ interface ModuleInfo {
 	issuer?: string;
 }
 
-function runCompilation(plugin: CssModulePlugin, moduleInfo: ModuleInfo, compiler?: Compiler) {
-	compiler = compiler || new Compiler({ callSuper: true });
-	const compilation = new Compilation();
-
+function runCompilation(plugin: CssModulePlugin, moduleInfo: ModuleInfo) {
+	const compiler = createCompiler();
 	plugin.apply(compiler);
-	compiler.mockApply('compilation', compilation);
-	const { normalModuleFactory } = compilation.params;
-	compiler.mockApply('normal-module-factory', normalModuleFactory);
-	normalModuleFactory.mockApply('before-resolve', moduleInfo, () => undefined);
+
+	compiler.hooks.compilation.tap('CssModulePluginTest', (compilation: any, params: any) => {
+		const { normalModuleFactory } = params;
+		normalModuleFactory.hooks.beforeResolve.callAsync(moduleInfo, () => undefined);
+	});
+	createCompilation(compiler);
 }
+
 describe('css-module-plugin', () => {
 	let mockModule: MockModule;
 	let sandbox: sinon.SinonSandbox;
 	let mockFs: any;
 	let mockPath: any;
+	let webpackProxy: any;
 	let CssModulePlugin: typeof _CssModulePlugin;
 
 	beforeEach(() => {
 		sandbox = sinon.sandbox.create();
 		mockModule = new MockModule('../../../src/css-module-plugin/CssModulePlugin', require);
 		mockModule.dependencies(['fs', 'path']);
+		webpackProxy = {};
+		mockModule.proxy('webpack', webpackProxy);
 		mockFs = mockModule.getMock('fs');
 		mockPath = mockModule.getMock('path');
 		CssModulePlugin = mockModule.getModuleUnderTest().default;
 	});
 
+	afterEach(() => {
+		sandbox.restore();
+		mockModule.destroy();
+	});
+
 	it('should target .m.css modules and use a function to update requests', () => {
-		const compiler = new Compiler({ callSuper: true });
+		const nmrPluginStub = (webpackProxy.NormalModuleReplacementPlugin = sandbox
+			.stub()
+			.returns({ apply: () => {} }));
+		const compiler = createCompiler();
 		const plugin = new CssModulePlugin('.');
 		plugin.apply(compiler);
 
-		const replacementPlugin = compiler.applied[0];
-		const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
-		assert.instanceOf(replacementPlugin, NormalModuleReplacementPlugin);
-		assert.strictEqual(
-			replacementPlugin.resourceRegExp.toString(),
-			'/\\.m\\.css$/',
-			'Regex does not match css module files'
-		);
-		assert.equal(typeof replacementPlugin.newResource, 'function', 'Not using a function for module replacement');
+		const [resourceRegExp, newResource] = nmrPluginStub.firstCall.args;
+		assert.strictEqual(resourceRegExp.toString(), '/\\.m\\.css$/', 'Regex does not match css module files');
+		assert.equal(typeof newResource, 'function', 'Not using a function for module replacement');
 	});
 
 	it('should not modify the request if it does not end with the css module extension', () => {
@@ -71,8 +76,7 @@ describe('css-module-plugin', () => {
 		];
 
 		moduleInfo.forEach((moduleInfo) => {
-			const compiler = new Compiler({ callSuper: true });
-			runCompilation(plugin, moduleInfo, compiler);
+			runCompilation(plugin, moduleInfo);
 			assert.isFalse(mockPath.isAbsolute.called, 'Should not have checked for non-css-module request');
 		});
 	});
@@ -94,8 +98,7 @@ describe('css-module-plugin', () => {
 
 		mockPath.isAbsolute.returns(true);
 		moduleInfo.forEach((moduleInfo) => {
-			const compiler = new Compiler({ callSuper: true });
-			runCompilation(plugin, moduleInfo, compiler);
+			runCompilation(plugin, moduleInfo);
 		});
 
 		assert.equal(mockPath.isAbsolute.callCount, 3, 'Should have called isAbsolute for each matching module');
@@ -131,8 +134,7 @@ describe('css-module-plugin', () => {
 		mockFs.existsSync.returns(false);
 
 		moduleInfo.forEach((moduleInfo) => {
-			const compiler = new Compiler({ callSuper: true });
-			runCompilation(plugin, moduleInfo, compiler);
+			runCompilation(plugin, moduleInfo);
 		});
 
 		const expectedResolveArgs = [
@@ -190,8 +192,7 @@ describe('css-module-plugin', () => {
 		mockFs.existsSync.returns(true);
 
 		moduleInfo.forEach((moduleInfo) => {
-			const compiler = new Compiler({ callSuper: true });
-			runCompilation(plugin, moduleInfo, compiler);
+			runCompilation(plugin, moduleInfo);
 		});
 
 		assert.equal(mockPath.isAbsolute.callCount, 3, 'Should have called isAbsolute for each matching module');
@@ -205,10 +206,5 @@ describe('css-module-plugin', () => {
 			}),
 			'Should alter module info if files exist'
 		);
-	});
-
-	afterEach(() => {
-		sandbox.restore();
-		mockModule.destroy();
 	});
 });

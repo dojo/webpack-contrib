@@ -1,7 +1,6 @@
 import { existsSync } from 'fs';
 import { normalize, sep, isAbsolute, resolve } from 'path';
 import { Compiler, NormalModuleReplacementPlugin } from 'webpack';
-import NormalModuleFactory = require('webpack/lib/NormalModuleFactory');
 
 /**
  * Test whether a module ID is relative or absolute.
@@ -25,20 +24,19 @@ export default class CssModulePlugin {
 	}
 
 	apply(compiler: Compiler) {
-		compiler.apply(
-			new NormalModuleReplacementPlugin(/\.m\.css$/, (result: NormalModuleFactory.BeforeData) => {
-				if (isAbsolute(result.request)) {
-					return;
-				}
-				const requestFileName = isRelative(result.request)
-					? resolve(result.context, result.request)
-					: resolve(this.basePath, 'node_modules', result.request);
-				const jsFileName = requestFileName + '.js';
+		const nmrPlugin = new NormalModuleReplacementPlugin(/\.m\.css$/, (result: any) => {
+			if (isAbsolute(result.request)) {
+				return;
+			}
+			const requestFileName = isRelative(result.request)
+				? resolve(result.context, result.request)
+				: resolve(this.basePath, 'node_modules', result.request);
+			const jsFileName = requestFileName + '.js';
 
-				if (existsSync(jsFileName)) {
-					result.request = result.request.replace(/\.m\.css$/, '.m.css.js');
-				}
-			})
-		);
+			if (existsSync(jsFileName)) {
+				result.request = result.request.replace(/\.m\.css$/, '.m.css.js');
+			}
+		});
+		nmrPlugin.apply(compiler);
 	}
 }

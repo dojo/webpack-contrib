@@ -104,39 +104,38 @@ export default class ServiceWorkerPlugin {
 			return precacheProperties;
 		}, Object.create(null));
 
-		compiler.apply(
-			new GenerateSW(
-				this._getDefinedOptions({
-					...precacheProperties,
-					cacheId: cachePrefix,
-					chunks: bundles,
-					clientsClaim,
-					excludeChunks: excludeBundles,
-					importScripts,
-					importWorkboxFrom: 'local',
-					skipWaiting,
-					runtimeCaching: routes.map((route) => {
-						const { options = {}, strategy, urlPattern } = route;
-						const { cacheName, cacheableResponse, expiration, networkTimeoutSeconds } = options;
+		const generateSW = new GenerateSW(
+			this._getDefinedOptions({
+				...precacheProperties,
+				cacheId: cachePrefix,
+				chunks: bundles,
+				clientsClaim,
+				excludeChunks: excludeBundles,
+				importScripts,
+				importWorkboxFrom: 'local',
+				skipWaiting,
+				runtimeCaching: routes.map((route) => {
+					const { options = {}, strategy, urlPattern } = route;
+					const { cacheName, cacheableResponse, expiration, networkTimeoutSeconds } = options;
 
-						if (!urlPattern || !strategy) {
-							throw new Error('Each route must have both a `urlPattern` and `strategy`');
-						}
+					if (!urlPattern || !strategy) {
+						throw new Error('Each route must have both a `urlPattern` and `strategy`');
+					}
 
-						return {
-							urlPattern: new RegExp(urlPattern),
-							handler: strategy,
-							options: this._getDefinedOptions({
-								cacheName,
-								cacheableResponse,
-								expiration,
-								networkTimeoutSeconds
-							})
-						};
-					})
+					return {
+						urlPattern: new RegExp(urlPattern),
+						handler: strategy,
+						options: this._getDefinedOptions({
+							cacheName,
+							cacheableResponse,
+							expiration,
+							networkTimeoutSeconds
+						})
+					};
 				})
-			)
+			})
 		);
+		generateSW.apply(compiler);
 	}
 
 	/**
@@ -150,8 +149,8 @@ export default class ServiceWorkerPlugin {
 			throw new Error('The service worker path must be a non-empty string');
 		}
 
-		compiler.plugin('before-run', (compiler, next) => {
-			compiler.apply(new CopyWebpackPlugin({ from: this._serviceWorker }));
+		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler, next) => {
+			new CopyWebpackPlugin({ from: this._serviceWorker }).apply(compiler);
 			next();
 		});
 	}

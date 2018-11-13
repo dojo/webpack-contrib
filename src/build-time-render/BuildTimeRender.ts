@@ -37,17 +37,17 @@ export interface BuildTimeRenderArguments {
 }
 
 export default class BuildTimeRender {
-	private _paths: any[];
-	private _useManifest: boolean;
-	private _manifest: any;
-	private _entries: string[];
-	private _root: string;
-	private _output?: string;
 	private _cssFiles: string[] = [];
-	private _useHistory = false;
-	private _inlinedCssClassNames: string[] = [];
+	private _entries: string[];
 	private _head: string;
+	private _inlinedCssClassNames: string[] = [];
+	private _manifest: any;
+	private _output?: string;
+	private _paths: any[];
 	private _puppeteerOptions: any;
+	private _root: string;
+	private _useHistory = false;
+	private _useManifest: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', useManifest = false, entries, useHistory, puppeteerOptions } = args;
@@ -149,7 +149,7 @@ export default class BuildTimeRender {
 		if (!this._root) {
 			return;
 		}
-		compiler.plugin('after-emit', async (compilation, callback) => {
+		compiler.hooks.afterEmit.tap(this.constructor.name, async (compilation, callback) => {
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
 				return Promise.resolve().then(() => {

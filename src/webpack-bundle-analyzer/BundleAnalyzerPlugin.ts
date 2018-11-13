@@ -40,7 +40,7 @@ export default class BundleAnalyzerPlugin {
 			this.generateStaticReport(stats);
 		};
 
-		compiler.plugin('done', done);
+		compiler.hooks.done.tap(this.constructor.name, done);
 	}
 
 	async generateStatsFile(stats: any) {

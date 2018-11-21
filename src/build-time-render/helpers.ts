@@ -93,7 +93,7 @@ export function generateRouteInjectionScript(html: string[], paths: any[], root:
 
 export function generateBasePath(route = '__app_root__') {
 	return `<script>
-window.__public_path__ = window.location.href.replace('${route}/', '');
+window.__public_path__ = window.location.pathname.replace('${route}/', '');
 </script>`;
 }
 

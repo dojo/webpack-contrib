@@ -135,6 +135,7 @@ export default class BuildTimeRender {
 		let html = allContents ? await page.content() : await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
+		html = html.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
 			html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);

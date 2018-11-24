@@ -23,6 +23,13 @@ require('foo');
 // !has('baz')
 require("qat");
 
+// !has('bar')
+// elided: import 'bar'
+// !has('bar')
+// elided: import 'default-import'
+// !has('bar')
+// elided: import 'no-var-import'
+var newVar = '';
 somename.default.add('foo');
 
 var dynamicHas = somename.default(foo);

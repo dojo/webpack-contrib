@@ -15,7 +15,11 @@ declare module 'recast/main' {
 		ExpressionStatement,
 		VariableDeclaration,
 		MemberExpression,
-		ImportDeclaration
+		ImportDeclaration,
+		AssignmentExpression,
+		TemplateLiteral,
+		TemplateElement,
+		VariableDeclarator
 	} from 'estree';
 
 	namespace recast {
@@ -32,6 +36,10 @@ declare module 'recast/main' {
 			ExpressionStatement: ExpressionStatement;
 			VariableDeclaration: VariableDeclaration;
 			ImportDeclaration: ImportDeclaration;
+			AssignmentExpression: AssignmentExpression;
+			TemplateLiteral: TemplateLiteral;
+			TemplateElement: TemplateElement;
+			VariableDeclarator: VariableDeclarator;
 		}
 
 		interface AST {

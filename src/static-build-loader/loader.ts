@@ -1,6 +1,7 @@
 import getFeatures from './getFeatures';
 import { LoaderContext, RawSourceMap } from 'webpack';
 import * as recast from 'recast';
+import { ExpressionStatement, BaseNode } from 'estree';
 
 const { getOptions } = require('loader-utils');
 const types = recast.types;
@@ -29,6 +30,33 @@ function hasCheck(hasIdentifier: string, args: any, callee: any) {
 			callee.property.name === 'default' &&
 			args.length === 1)
 	);
+}
+
+function getExpressionValue(node: ExpressionStatement): string | undefined {
+	if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
+		return node.expression.value;
+	}
+	if (namedTypes.TemplateLiteral.check(node.expression)) {
+		if (
+			node.expression.quasis.length === 1 &&
+			namedTypes.TemplateElement.check(node.expression.quasis[0]) &&
+			typeof node.expression.quasis[0].value.raw === 'string'
+		) {
+			return node.expression.quasis[0].value.raw;
+		}
+	}
+}
+
+function setComment<T>(
+	node: T,
+	path: recast.Path<T>,
+	comment: string,
+	parentPath: recast.Path<BaseNode>,
+	name: string
+) {
+	const next = (Array.isArray(parentPath.value) && parentPath.value[Number(name) + 1]) || parentPath.node;
+	next.comments = [...((node as any).comments || []), ...(next.comments || []), builders.commentLine(comment)];
+	path.replace(null);
 }
 
 /**
@@ -69,7 +97,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	let features: StaticHasFeatures;
 	let elideNextImport = false;
 	let hasIdentifier: string | undefined;
-
+	let comment: string | undefined;
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption);
 	} else {
@@ -79,9 +107,9 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 	types.visit(ast, {
 		visitExpressionStatement(path) {
 			const { node, parentPath, name } = path;
-			let comment;
-			if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
-				const hasPragma = HAS_PRAGMA.exec(node.expression.value);
+			const expressionValue = getExpressionValue(node);
+			if (expressionValue) {
+				const hasPragma = HAS_PRAGMA.exec(expressionValue);
 				if (hasPragma) {
 					const [, negate, flag] = hasPragma;
 					comment = ` ${negate}has('${flag}')`;
@@ -109,25 +137,35 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 			}
 
 			if (comment && parentPath && typeof name !== 'undefined') {
-				const next = (Array.isArray(parentPath.value) && parentPath.value[Number(name) + 1]) || parentPath.node;
-				next.comments = [
-					...((node as any).comments || []),
-					...(next.comments || []),
-					builders.commentLine(comment)
-				];
-				path.replace(null);
+				setComment(node, path, comment, parentPath, name);
+				comment = undefined;
 				return false;
 			}
 
+			comment = undefined;
 			this.traverse(path);
 		},
 
 		visitDeclaration(path) {
+			const { node, parentPath, name } = path;
 			if (namedTypes.ImportDeclaration.check(path.node)) {
 				const value = path.node.source.value;
-				if (typeof value === 'string' && HAS_MID.test(value)) {
-					const specifier = path.node.specifiers[0];
-					if (specifier.type === 'ImportDefaultSpecifier') {
+				const specifier = path.node.specifiers[0];
+
+				if (elideNextImport) {
+					comment = ` elided: import '${value}'`;
+					elideNextImport = false;
+				}
+				if (comment && parentPath && typeof name !== 'undefined') {
+					setComment(node, path, comment, parentPath, name);
+					comment = undefined;
+					return false;
+				}
+
+				comment = undefined;
+
+				if (specifier && specifier.type === 'ImportDefaultSpecifier') {
+					if (typeof value === 'string' && HAS_MID.test(value)) {
 						hasIdentifier = specifier.local.name;
 					}
 				}
@@ -138,9 +176,42 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 		// Look for `require('*/has');` and set the variable name to `hasIdentifier`
 		visitVariableDeclaration(path) {
 			const {
+				name,
+				node,
+				parentPath,
 				parentPath: { node: parentNode },
 				node: { declarations }
 			} = path;
+
+			if (elideNextImport === true && declarations.length === 1) {
+				const callExpression = declarations[0];
+				if (namedTypes.VariableDeclarator.check(callExpression)) {
+					if (
+						callExpression.init &&
+						namedTypes.CallExpression.check(callExpression.init) &&
+						namedTypes.Identifier.check(callExpression.init.callee)
+					) {
+						if (
+							callExpression.init.callee.name === 'require' &&
+							callExpression.init.arguments.length === 1
+						) {
+							const [arg] = callExpression.init.arguments;
+							if (namedTypes.Literal.check(arg)) {
+								comment = ` elided: import '${arg.value}'`;
+								elideNextImport = false;
+							}
+						}
+					}
+				}
+
+				if (comment && parentPath && typeof name !== 'undefined') {
+					setComment(node, path, comment, parentPath, name);
+					comment = undefined;
+					return false;
+				}
+				comment = undefined;
+			}
+
 			// Get all the top level variable declarations
 			if (ast.program === parentNode && !hasIdentifier) {
 				declarations.forEach(({ id, init }) => {

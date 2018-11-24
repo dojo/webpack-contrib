@@ -20,7 +20,14 @@ require(foo);
 // elided: import 'foo'
 // !has('baz')
 require("qat");
+// !has('bar')
+var importedValue = require('bar');
+// !has('bar')
+import another from 'default-import';
+// !has('bar')
+import 'no-var-import';
 
+var newVar = '';
 somename.default.add('foo');
 
 var dynamicHas = somename.default(foo);

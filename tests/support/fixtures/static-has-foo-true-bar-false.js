@@ -1,4 +1,4 @@
-// has('foo')
+// !has('foo')
 // elided: import 'elided'
 const { destructured } = { destructured: 1 };
 const someOtherVariable = require('something/someothermodule');
@@ -7,27 +7,27 @@ const value = notRequire('something/has');
 const somename = require('something/has'),
 	chainedDeclarations = true;
 const afterHasRequire = true;
-// has('foo')
+// !has('foo')
 "use strict";
 exports.__esModule = true;
 // elided: import 'foo'
-// !has('bar')
+// has('bar')
 // elided: import 'bar'
 require("baz");
-// has('qat')
+// !has('qat')
 require("qat");
-// has('qat')
+// !has('qat')
 const foo = 'bar';
 require(foo);
 require('foo');
 // !has('baz')
 require("qat");
 
-// !has('bar')
+// has('bar')
 // elided: import 'bar'
-// !has('bar')
+// has('bar')
 // elided: import 'default-import'
-// !has('bar')
+// has('bar')
 // elided: import 'no-var-import'
 var newVar = '';
 somename.default.add('foo');

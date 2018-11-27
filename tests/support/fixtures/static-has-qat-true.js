@@ -5,26 +5,26 @@ const value = notRequire('something/has');
 const somename = require('something/has'),
 	chainedDeclarations = true;
 const afterHasRequire = true;
-// has('foo')
+// !has('foo')
 "use strict";
 exports.__esModule = true;
 require("foo");
-// !has('bar')
+// has('bar')
 require("bar");
 require("baz");
-// has('qat')
+// !has('qat')
 // elided: import 'qat'
-// has('qat')
+// !has('qat')
 const foo = 'bar';
 require(foo);
 // elided: import 'foo'
 // !has('baz')
 require("qat");
-// !has('bar')
+// has('bar')
 var importedValue = require('bar');
-// !has('bar')
+// has('bar')
 import another from 'default-import';
-// !has('bar')
+// has('bar')
 import 'no-var-import';
 
 var newVar = '';
@@ -68,5 +68,5 @@ if (somename.default('foo'))
 
 var variable = somename.default('bar') || returnArg(somename.default('foo'));
 
-// has('foo')
+// !has('foo')
 require('elided');

@@ -114,7 +114,7 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 					const [, negate, flag] = hasPragma;
 					comment = ` ${negate}has('${flag}')`;
 					if (flag in features) {
-						elideNextImport = negate ? !features[flag] : features[flag];
+						elideNextImport = negate ? !!features[flag] : !features[flag];
 					}
 				}
 			}

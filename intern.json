@@ -1,7 +1,7 @@
 {
 	"extends": "./node_modules/@dojo/scripts/intern/base.json",
 	"coverage": [
-		"./dist/dev/src/**/*.js"
+		"./dist/dev/src/**/*.js", "!./dist/dev/src/build-time-render/helpers.js"
 	],
 	"capabilities+": {
 		"name": "@dojo/webpack-contrib"

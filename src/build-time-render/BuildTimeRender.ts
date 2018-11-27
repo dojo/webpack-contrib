@@ -1,15 +1,25 @@
 import { Compiler } from 'webpack';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import * as path from 'path';
+import { readFileSync, outputFileSync, existsSync } from 'fs-extra';
 
-const jsdom = require('jsdom');
-const { JSDOM } = jsdom;
+import { join } from 'path';
+import {
+	serve,
+	navigate,
+	getClasses,
+	getPrefix,
+	generateBasePath,
+	generateRouteInjectionScript,
+	getForSelector,
+	setHasFlags
+} from './helpers';
+const filterCss = require('filter-css');
+const puppeteer = require('puppeteer');
 
-declare global {
-	interface Window {
-		eval: Function;
-		NodeFilter: any;
-	}
+export interface RenderResult {
+	path?: string | BuildTimePath;
+	html: string;
+	styles: string;
+	script: string;
 }
 
 export interface BuildTimePath {
@@ -22,162 +32,206 @@ export interface BuildTimeRenderArguments {
 	entries: string[];
 	useManifest?: boolean;
 	paths?: (BuildTimePath | string)[];
+	useHistory?: boolean;
+	puppeteerOptions?: any;
 }
 
-class BuildTimeRender {
+export default class BuildTimeRender {
 	private _paths: any[];
-	private _disabled = false;
-	private _root: string;
-	private _entries: string[];
 	private _useManifest: boolean;
-	private _hasPaths: boolean;
-	private _btrRoot: string;
+	private _manifest: any;
+	private _entries: string[];
+	private _root: string;
+	private _output?: string;
+	private _cssFiles: string[] = [];
+	private _useHistory = false;
+	private _inlinedCssClassNames: string[] = [];
+	private _head: string;
+	private _puppeteerOptions: any;
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', useManifest = false, entries } = args;
-		this._paths = ['', ...paths];
-		this._hasPaths = paths.length > 0;
+		const { paths = [], root = '', useManifest = false, entries, useHistory, puppeteerOptions } = args;
+		const path = paths[0];
+		const initialPath = typeof path === 'object' ? path.path : path;
+
+		this._puppeteerOptions = puppeteerOptions;
+		this._paths = paths;
 		this._root = root;
-		this._entries = entries;
 		this._useManifest = useManifest;
-		if (root === '') {
-			this._disabled = true;
-		}
+		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
+		this._manifest = this._entries.reduce(
+			(manifest, entry) => {
+				manifest[entry] = entry;
+				return manifest;
+			},
+			{} as any
+		);
+		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 	}
 
-	private _render(compiler: Compiler, location: string, htmlContent: string, root: string, output: string) {
-		const window: Window = new JSDOM(htmlContent, { runScripts: 'outside-only', pretendToBeVisual: true }).window;
-		const document: Document = window.document;
-		const parent = document.getElementById(root)!;
-		if (!this._btrRoot) {
-			this._btrRoot = parent.outerHTML;
+	private _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
+		path = typeof path === 'object' ? path.path : path;
+		const prefix = getPrefix(path);
+		if (this._head) {
+			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, this._head);
 		}
-		let manifest: any = {};
-		if (this._useManifest) {
-			manifest = JSON.parse(readFileSync(path.join(output, 'manifest.json'), 'utf-8'));
+		const css = this._cssFiles.reduce((css, entry: string | undefined) => {
+			html = html.replace(`<link href="${entry}" rel="stylesheet">`, `<style>${styles}</style>`);
+			css = `${css}<link rel="stylesheet" href="${prefix}${entry}" media="none" onload="if(media!='all')media='all'" />`;
+			return css;
+		}, '');
+
+		html = html.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
+		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
+		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
+	}
+
+	private _createScripts(path = '') {
+		const prefix = this._useHistory ? getPrefix(path) : '';
+		return this._entries.reduce(
+			(script, entry) =>
+				`${script}<script type="text/javascript" src="${prefix}${this._manifest[entry]}"></script>`,
+			''
+		);
+	}
+
+	private _filterCss(classes: string[]): string {
+		return this._cssFiles.reduce((result, entry: string) => {
+			let filteredCss: string = filterCss(join(this._output!, entry), (context: string, value: string) => {
+				if (context === 'selector') {
+					value = value.replace(/(:| ).*/, '');
+					value = value
+						.split('.')
+						.slice(0, 2)
+						.join('.');
+					const firstChar = value.substr(0, 1);
+					if (!this._useHistory && this._inlinedCssClassNames.indexOf(value) !== -1) {
+						return true;
+					}
+					if (classes.indexOf(value) !== -1 || ['.', '#'].indexOf(firstChar) === -1) {
+						this._inlinedCssClassNames.push(value);
+						return false;
+					}
+					return true;
+				}
+			});
+
+			filteredCss = filteredCss
+				.replace(/\/\*.*\*\//g, '')
+				.replace(/^(\s*)(\r\n?|\n)/gm, '')
+				.trim();
+			result = `${result}${filteredCss}`;
+			return result;
+		}, '');
+	}
+
+	private async _getRenderResult(
+		page: any,
+		path: BuildTimePath | string | undefined = undefined,
+		allContents = true
+	): Promise<RenderResult> {
+		const classes: any[] = await getClasses(page);
+		let pathValue = typeof path === 'object' ? path.path : path;
+		let html = allContents ? await page.content() : await getForSelector(page, `#${this._root}`);
+		let styles = this._filterCss(classes);
+		let script = '';
+		html = html.replace(/http:\/\/localhost:\d+\//g, '');
+		if (this._useHistory) {
+			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
+			html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
+			script = generateBasePath(pathValue);
 		}
-		window.eval(`
-window.location.hash = '${location}';
-window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };`);
-
-		this._entries.forEach((entry) => {
-			entry = this._useManifest ? manifest[`${entry}.js`] : `${entry}.js`;
-			const entryContent = readFileSync(path.join(output, entry), 'utf-8');
-			window.eval(entryContent);
-		});
-
-		const treeWalker = document.createTreeWalker(document.body, window.NodeFilter.SHOW_ELEMENT);
-		let classes: string[] = [];
-
-		while (treeWalker.nextNode()) {
-			const node = treeWalker.currentNode as HTMLElement;
-			node.classList.length && classes.push.apply(classes, node.classList);
-		}
-
-		classes = classes.map((className) => `.${className}`);
-		return { html: parent.outerHTML, classes };
+		return { html, styles, script, path };
 	}
 
 	public apply(compiler: Compiler) {
-		if (this._disabled) {
+		if (!this._root) {
 			return;
 		}
-		compiler.plugin('done', () => {
-			const output = compiler.options.output && compiler.options.output.path;
-			if (!output) {
-				return;
+		compiler.plugin('after-emit', async (compilation, callback) => {
+			this._output = compiler.options.output && compiler.options.output.path;
+			if (!this._output) {
+				return Promise.resolve().then(() => {
+					callback();
+				});
 			}
-			let htmlContent = readFileSync(path.join(output, 'index.html'), 'utf-8');
-			let manifest: any = {};
+
 			if (this._useManifest) {
-				manifest = JSON.parse(readFileSync(path.join(output, 'manifest.json'), 'utf-8'));
+				this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
 			}
-			const filterCss = require('filter-css');
 
-			let html: string[] = [];
-			let classes: string[] = [];
-			const cssFiles: string[] = [];
+			let originalIndexHtml = readFileSync(join(this._output, 'index.html'), 'utf-8');
+			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(originalIndexHtml);
+			if (matchingHead) {
+				this._head = matchingHead[0];
+			}
+			this._cssFiles = this._entries.reduce(
+				(files, entry) => {
+					const fileName = this._manifest[entry.replace('.js', '.css')] || entry.replace('.js', '.css');
+					const exists = existsSync(join(this._output!, fileName));
+					if (exists) {
+						files.push(fileName);
+					}
+					return files;
+				},
+				[] as string[]
+			);
 
-			this._paths.forEach((path) => {
-				path = typeof path === 'object' ? path.path : path;
-				const result = this._render(compiler, path, htmlContent, this._root, output);
-				classes = [...classes, ...result.classes];
-				html = [...html, result.html];
-			});
+			const browser = await puppeteer.launch(this._puppeteerOptions);
+			const app = await serve(`${this._output}`);
+			try {
+				const page = await browser.newPage();
+				await setHasFlags(page);
+				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
+				await page.goto(`http://localhost:${app.port}/`);
+				await wait;
 
-			const result = this._entries.reduce((result, entry: string | undefined) => {
-				if (this._useManifest) {
-					entry = manifest[`${entry}.css`];
+				if (this._paths.length === 0) {
+					const result = await this._getRenderResult(page, undefined);
+					this._writeIndexHtml(result);
 				} else {
-					entry = `${entry}.css`;
-					const cssExists = existsSync(path.join(output, entry));
-					if (!cssExists) {
-						entry = undefined;
+					let renderResults: RenderResult[] = [];
+					renderResults.push(await this._getRenderResult(page, undefined, this._useHistory));
+
+					for (let i = 0; i < this._paths.length; i++) {
+						let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
+						await navigate(page, this._useHistory, path);
+						let result = await this._getRenderResult(page, this._paths[i], this._useHistory);
+						renderResults.push(result);
+					}
+
+					if (this._useHistory) {
+						renderResults.forEach((result) => {
+							this._writeIndexHtml(result);
+						});
+					} else {
+						const combined = renderResults.reduce(
+							(combined, result) => {
+								combined.styles = result.styles
+									? `${combined.styles}\n${result.styles}`
+									: combined.styles;
+								combined.html.push(result.html);
+								combined.paths.push(result.path || '');
+								return combined;
+							},
+							{ styles: '', html: [], paths: [] } as {
+								paths: (string | BuildTimePath)[];
+								styles: string;
+								html: string[];
+							}
+						);
+						let html = readFileSync(join(this._output, 'index.html'), 'utf-8');
+						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
+						this._writeIndexHtml({ styles: combined.styles, html, script });
 					}
 				}
-				if (entry) {
-					cssFiles.push(entry);
-					const filteredCss = filterCss(path.join(output, entry), (context: string, value: string) => {
-						if (context === 'selector') {
-							value = value.replace(/(:| ).*/, '');
-							const firstChar = value.substr(0, 1);
-							if (classes.indexOf(value) !== -1 || ['.', '#'].indexOf(firstChar) === -1) {
-								return false;
-							}
-							return true;
-						}
-					})
-						.replace(/\/\*.*\*\//g, '')
-						.replace(/^(\s*)(\r\n?|\n)/gm, '');
-					result = `${result}\n${filteredCss}`;
-				}
-				return result;
-			}, '');
-
-			let replacement = '';
-			if (this._hasPaths) {
-				replacement = `<script>
-	(function () {
-		var paths = ${JSON.stringify(this._paths)};
-		var html = ${JSON.stringify(html)};
-		var element = document.getElementById('${this._root}');
-		var target;
-		paths.some(function (path, i) {
-			var match = (typeof path === 'string' && path === window.location.hash) || path && (typeof path === 'object' && path.match && new RegExp(path.match.join('|')).test(window.location.hash));
-			if (match) {
-				target = html[i];
+			} catch (error) {
+				throw error;
+			} finally {
+				await browser.close();
+				await app.server.close();
+				callback();
 			}
-			return match;
-		});
-		if (target && element) {
-			var frag = document.createRange().createContextualFragment(target);
-			element.parentNode.replaceChild(frag, element);
-		}
-	}())
-</script>`;
-			}
-
-			const script = this._entries.reduce((script, entry) => {
-				entry = this._useManifest ? manifest[`${entry}.js`] : `${entry}.js`;
-				script = `${script}<script type="text/javascript" src="${entry}"></script>`;
-				return script;
-			}, '');
-			const css = cssFiles.reduce((css, entry: string | undefined) => {
-				htmlContent = htmlContent.replace(
-					`<link href="${entry}" rel="stylesheet">`,
-					`<style>${result}</style>`
-				);
-				css = `${css}<link rel="stylesheet" href="${entry}" media="none" onload="if(media!='all')media='all'" />`;
-				return css;
-			}, '');
-
-			htmlContent = htmlContent.replace(script, `${replacement}${css}${script}`);
-			if (!this._hasPaths) {
-				htmlContent = htmlContent.replace(this._btrRoot, html[0]);
-			}
-			writeFileSync(path.join(output, 'index.html'), htmlContent);
 		});
 	}
 }
-
-export default BuildTimeRender;

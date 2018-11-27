@@ -1,0 +1,22 @@
+<html><head>
+		<style>.other.another {
+  color: pink;
+  background: url("../../relative.png");
+  background: url("/root.png");
+  background: url("../.././relative.png");
+  background: url("../../../relative.png");
+  background: url("https://example.com");
+  background: url("http://example.com");
+  background: url(https://example.com);
+  background: url(http://example.com);
+}
+span {
+  width: 100%;
+}</style>
+	</head>
+	<body>
+		<div id="app"><div class="other">Other</div></div>
+		<script>
+window.__public_path__ = window.location.pathname.replace('my-path/other/', '');
+</script><link rel="stylesheet" href="../../main.css" media="none" onload="if(media!='all')media='all'" /><script type="text/javascript" src="../../runtime.js"></script><script type="text/javascript" src="../../main.js"></script>
+</body></html>

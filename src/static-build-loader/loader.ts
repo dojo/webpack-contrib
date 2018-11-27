@@ -52,11 +52,12 @@ function setComment<T>(
 	path: recast.Path<T>,
 	comment: string,
 	parentPath: recast.Path<BaseNode>,
-	name: string
+	name: string,
+	replacement: any = null
 ) {
 	const next = (Array.isArray(parentPath.value) && parentPath.value[Number(name) + 1]) || parentPath.node;
 	next.comments = [...((node as any).comments || []), ...(next.comments || []), builders.commentLine(comment)];
-	path.replace(null);
+	path.replace(replacement);
 }
 
 /**
@@ -157,7 +158,17 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 					elideNextImport = false;
 				}
 				if (comment && parentPath && typeof name !== 'undefined') {
-					setComment(node, path, comment, parentPath, name);
+					let replacement: any = null;
+					if (path.node.specifiers.length) {
+						replacement = builders.variableDeclaration(
+							'var',
+							path.node.specifiers.map((specifier) => {
+								return builders.variableDeclarator(specifier.local, builders.identifier('undefined'));
+							})
+						);
+					}
+
+					setComment(node, path, comment, parentPath, name, replacement);
 					comment = undefined;
 					return false;
 				}
@@ -183,6 +194,8 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 				node: { declarations }
 			} = path;
 
+			let identifier: any = undefined;
+
 			if (elideNextImport === true && declarations.length === 1) {
 				const callExpression = declarations[0];
 				if (namedTypes.VariableDeclarator.check(callExpression)) {
@@ -195,6 +208,10 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 							callExpression.init.callee.name === 'require' &&
 							callExpression.init.arguments.length === 1
 						) {
+							if (callExpression.id) {
+								identifier = callExpression.id;
+							}
+
 							const [arg] = callExpression.init.arguments;
 							if (namedTypes.Literal.check(arg)) {
 								comment = ` elided: import '${arg.value}'`;
@@ -205,7 +222,11 @@ export default function loader(this: LoaderContext, content: string, sourceMap?:
 				}
 
 				if (comment && parentPath && typeof name !== 'undefined') {
-					setComment(node, path, comment, parentPath, name);
+					const replacement = builders.variableDeclaration('var', [
+						builders.variableDeclarator(identifier, builders.identifier('undefined'))
+					]);
+					setComment(node, path, comment, parentPath, name, replacement);
+
 					comment = undefined;
 					return false;
 				}

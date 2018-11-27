@@ -62,8 +62,11 @@ declare module 'recast/main' {
 			export const namedTypes: { [type in keyof NamedTypes]: NamedType<NamedTypes[type]> };
 
 			export const builders: {
+				identifier(id: string): Identifier;
 				commentLine(comment: string, trailing?: boolean, leading?: boolean): Comment;
 				literal(value: boolean | string | number | null | RegExp): Literal;
+				variableDeclarator(id: Identifier, value: Literal | Identifier): VariableDeclarator;
+				variableDeclaration(value: string, declarators: VariableDeclarator[]): VariableDeclaration;
 			};
 			export function visit(
 				ast: AST,

@@ -23,7 +23,7 @@ require("qat");
 "has('bar')";
 var importedValue = require('bar');
 `has('bar')`;
-import another from 'default-import';
+import another, { namedExport } from 'default-import';
 "has('bar')";
 import 'no-var-import';
 

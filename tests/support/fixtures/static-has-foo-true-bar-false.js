@@ -22,6 +22,8 @@ require(foo);
 require('foo');
 // !has('baz')
 require("qat");
+var importedValue = undefined;
+var another = undefined, namedExport = undefined;
 
 // has('bar')
 // elided: import 'bar'

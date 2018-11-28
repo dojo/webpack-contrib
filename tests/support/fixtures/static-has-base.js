@@ -5,22 +5,29 @@ const value = notRequire('something/has');
 const somename = require('something/has'),
 	chainedDeclarations = true;
 const afterHasRequire = true;
-'has("foo")';
+'!has("foo")';
 "use strict";
 exports.__esModule = true;
 require("foo");
-'!has("bar")';
+'has("bar")';
 require("bar");
 require("baz");
-"has('qat')";
+"!has('qat')";
 require("qat");
-"has('qat')";
+"!has('qat')";
 const foo = 'bar';
 require(foo);
 require('foo');
 "!has('baz')";
 require("qat");
+"has('bar')";
+var importedValue = require('bar');
+`has('bar')`;
+import another, { namedExport } from 'default-import';
+"has('bar')";
+import 'no-var-import';
 
+var newVar = '';
 somename.default.add('foo');
 
 var dynamicHas = somename.default(foo);
@@ -61,5 +68,5 @@ if (somename.default('foo'))
 
 var variable = somename.default('bar') || returnArg(somename.default('foo'));
 
-'has("foo")';
+'!has("foo")';
 require('elided');

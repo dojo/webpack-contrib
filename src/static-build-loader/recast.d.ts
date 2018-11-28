@@ -15,7 +15,11 @@ declare module 'recast/main' {
 		ExpressionStatement,
 		VariableDeclaration,
 		MemberExpression,
-		ImportDeclaration
+		ImportDeclaration,
+		AssignmentExpression,
+		TemplateLiteral,
+		TemplateElement,
+		VariableDeclarator
 	} from 'estree';
 
 	namespace recast {
@@ -32,6 +36,10 @@ declare module 'recast/main' {
 			ExpressionStatement: ExpressionStatement;
 			VariableDeclaration: VariableDeclaration;
 			ImportDeclaration: ImportDeclaration;
+			AssignmentExpression: AssignmentExpression;
+			TemplateLiteral: TemplateLiteral;
+			TemplateElement: TemplateElement;
+			VariableDeclarator: VariableDeclarator;
 		}
 
 		interface AST {
@@ -54,8 +62,11 @@ declare module 'recast/main' {
 			export const namedTypes: { [type in keyof NamedTypes]: NamedType<NamedTypes[type]> };
 
 			export const builders: {
+				identifier(id: string): Identifier;
 				commentLine(comment: string, trailing?: boolean, leading?: boolean): Comment;
 				literal(value: boolean | string | number | null | RegExp): Literal;
+				variableDeclarator(id: Identifier, value: Literal | Identifier): VariableDeclarator;
+				variableDeclaration(value: string, declarators: VariableDeclarator[]): VariableDeclaration;
 			};
 			export function visit(
 				ast: AST,

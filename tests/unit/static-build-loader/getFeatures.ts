@@ -10,67 +10,46 @@ registerSuite('getFeatures', {
 	},
 
 	'single feature set'() {
-		assert.deepEqual(getFeatures('ie11'), {
+		assert.deepEqual(getFeatures('modern'), {
 			arraybuffer: true,
 			blob: true,
-			'dom-mutationobserver': false,
-			'dom-webanimation': false,
-			'dom-pointer-events': true,
-			'dom-intersection-observer': false,
+			'dom-mutationobserver': true,
 			'es-observable': false,
-			'es2017-object': false,
-			'es2017-string': false,
-			'es6-array': false,
-			'es6-array-fill': false,
-			'es6-map': false,
-			'es6-math': false,
-			'es6-math-imul': false,
-			'es6-object': false,
-			'es6-promise': false,
-			'es6-set': false,
-			'es6-string': false,
-			'es6-string-raw': false,
-			'es6-symbol': false,
-			'es6-weakmap': false,
-			'es7-array': false,
-			fetch: false,
+			'es2017-object': true,
+			'es2017-string': true,
+			'es6-array': true,
+			'es6-array-fill': true,
+			'es6-map': true,
+			'es6-math': true,
+			'es6-math-imul': true,
+			'es6-object': true,
+			'es6-promise': true,
+			'es6-set': true,
+			'es6-string': true,
+			'es6-string-raw': true,
+			'es6-symbol': true,
+			'es6-weakmap': true,
+			'es7-array': true,
+			fetch: true,
 			filereader: true,
 			float32array: true,
-			formdata: false,
+			formdata: true,
 			'host-node': false,
 			'host-browser': true,
 			microtasks: true,
 			'node-buffer': false,
-			'object-assign': false,
+			'object-assign': true,
 			postmessage: true,
 			raf: true,
-			setimmediate: true,
+			setimmediate: false,
 			xhr: true,
 			xhr2: true
 		});
 	},
 
-	'two feature sets'() {
-		assert.deepEqual(getFeatures(['ie11', 'node']), {
-			arraybuffer: true,
-			blob: true,
-			'dom-intersection-observer': false,
-			'dom-mutationobserver': false,
-			'dom-webanimation': false,
-			'es2017-object': false,
-			'es2017-string': false,
-			'es-observable': false,
-			fetch: false,
-			float32array: true,
-			formdata: false,
-			microtasks: true,
-			setimmediate: true
-		});
-	},
-
 	'not found feature set'() {
 		const logStub = stub(console, 'log');
-		const features = getFeatures(['ie11', 'foo']);
+		const features = getFeatures(['foo']);
 		logStub.restore();
 		assert.deepEqual(features, {});
 		assert.isTrue(logStub.calledOnce, 'log should have been called');

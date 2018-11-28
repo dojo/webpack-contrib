@@ -1,3 +1,5 @@
+import global from '@dojo/framework/shim/global';
+import has, { add } from '@dojo/framework/has/has';
 import MockModule from '../../support/MockModule';
 import { SinonStub, stub } from 'sinon';
 
@@ -12,20 +14,21 @@ describe('service worker entry', () => {
 
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/service-worker-plugin/service-worker-entry', require);
+		mockModule.dependencies(['@dojo/framework/has/has']);
+		mockModule.getMock('@dojo/framework/has/has').default = has;
 		registerSpy = stub();
 		addEventListenerSpy = stub().callsFake((event: string, callback: () => void) => callback());
-		(global as any).window = {
-			addEventListener: addEventListenerSpy
-		};
+		global.addEventListener = addEventListenerSpy;
 	});
 
 	afterEach(() => {
 		mockModule.destroy();
-		(global as any).window = (global as any).navigator = undefined;
+		global.addEventListener = global.navigator = undefined;
+		add('public-path', undefined, true);
 	});
 
 	it('should register the service worker', () => {
-		(global as any).navigator = {
+		global.navigator = {
 			serviceWorker: {
 				register: registerSpy
 			}
@@ -33,11 +36,37 @@ describe('service worker entry', () => {
 		mockModule.getModuleUnderTest();
 		assert.strictEqual(addEventListenerSpy.callCount, 1);
 		assert.isTrue(addEventListenerSpy.calledWith('load'));
-		assert.isTrue(registerSpy.calledWith('./service-worker.js'));
+		assert.isTrue(registerSpy.calledWith('service-worker.js'));
+	});
+
+	it('should register the service worker for the public path', () => {
+		global.navigator = {
+			serviceWorker: {
+				register: registerSpy
+			}
+		};
+		add('public-path', '/foo', true);
+		mockModule.getModuleUnderTest();
+		assert.strictEqual(addEventListenerSpy.callCount, 1);
+		assert.isTrue(addEventListenerSpy.calledWith('load'));
+		assert.isTrue(registerSpy.calledWith('/foo/service-worker.js'));
+	});
+
+	it('should register the service worker for the public path with trailing slash ', () => {
+		global.navigator = {
+			serviceWorker: {
+				register: registerSpy
+			}
+		};
+		add('public-path', '/foo/', true);
+		mockModule.getModuleUnderTest();
+		assert.strictEqual(addEventListenerSpy.callCount, 1);
+		assert.isTrue(addEventListenerSpy.calledWith('load'));
+		assert.isTrue(registerSpy.calledWith('/foo/service-worker.js'));
 	});
 
 	it('should not register the service worker without support', () => {
-		(global as any).navigator = {};
+		global.navigator = {};
 		mockModule.getModuleUnderTest();
 		assert.isFalse(addEventListenerSpy.called);
 	});

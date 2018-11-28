@@ -73,10 +73,11 @@ export default class BuildTimeRender {
 		path = typeof path === 'object' ? path.path : path;
 		const prefix = getPrefix(path);
 		if (this._head) {
-			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, this._head);
+			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
+			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
 		}
 		const css = this._cssFiles.reduce((css, entry: string | undefined) => {
-			html = html.replace(`<link href="${entry}" rel="stylesheet">`, `<style>${styles}</style>`);
+			html = html.replace(`<link href="${prefix}${entry}" rel="stylesheet">`, `<style>${styles}</style>`);
 			css = `${css}<link rel="stylesheet" href="${prefix}${entry}" media="none" onload="if(media!='all')media='all'" />`;
 			return css;
 		}, '');

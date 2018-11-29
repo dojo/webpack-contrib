@@ -233,18 +233,38 @@ class Visitor {
 				this.needsLoadable = true;
 				this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);
 				if (ts.isJsxElement(inputNode)) {
-					const openingElement = ts.updateJsxOpeningElement(
-						node as ts.JsxOpeningElement,
-						ts.createIdentifier(fakeComponentName),
-						attrs
-					);
+					let openingElement;
+
+					if (ts.updateJsxOpeningElement.length === 3) {
+						openingElement = ts.updateJsxOpeningElement(
+							node as ts.JsxOpeningElement,
+							ts.createIdentifier(fakeComponentName),
+							attrs
+						);
+					} else {
+						openingElement = (ts as any).updateJsxOpeningElement(
+							node as ts.JsxOpeningElement,
+							ts.createIdentifier(fakeComponentName),
+							(node as any).typeArguments,
+							attrs
+						);
+					}
 					const closingElement = ts.updateJsxClosingElement(
 						inputNode.closingElement,
 						ts.createIdentifier(fakeComponentName)
 					);
 					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, closingElement);
 				} else {
-					return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
+					if (ts.updateJsxSelfClosingElement.length === 3) {
+						return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
+					} else {
+						return (ts as any).updateJsxSelfClosingElement(
+							inputNode,
+							ts.createIdentifier(fakeComponentName),
+							(inputNode as any).typeArguments,
+							attrs
+						);
+					}
 				}
 			}
 		}

@@ -149,7 +149,7 @@ export default class BuildTimeRender {
 		if (!this._root) {
 			return;
 		}
-		compiler.hooks.afterEmit.tap(this.constructor.name, async (compilation, callback) => {
+		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
 				return Promise.resolve().then(() => {

@@ -41,7 +41,7 @@ describe('build-time-render', () => {
 			compiler = {
 				hooks: {
 					afterEmit: {
-						tap: tapStub
+						tapAsync: tapStub
 					}
 				},
 				options: {
@@ -172,7 +172,7 @@ describe('build-time-render', () => {
 			compiler = {
 				hooks: {
 					afterEmit: {
-						tap: tapStub
+						tapAsync: tapStub
 					}
 				},
 				options: {

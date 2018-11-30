@@ -71,25 +71,26 @@ export default class I18nPlugin {
 	apply(compiler: Compiler) {
 		const { defaultLocale, supportedLocales = [] } = this;
 
-		compiler.apply(
-			new DefinePlugin({
-				__defaultLocale__: `'${defaultLocale}'`,
-				__supportedLocales__: JSON.stringify(supportedLocales),
-				__cldrData__: JSON.stringify(this._loadCldrData())
-			})
-		);
+		const definePlugin = new DefinePlugin({
+			__defaultLocale__: `'${defaultLocale}'`,
+			__supportedLocales__: JSON.stringify(supportedLocales),
+			__cldrData__: JSON.stringify(this._loadCldrData())
+		});
+		definePlugin.apply(compiler);
 
-		compiler.plugin('compilation', (compilation, params) => {
+		compiler.hooks.compilation.tap(this.constructor.name, (compilation, params) => {
 			compilation.dependencyFactories.set(InjectedModuleDependency as any, params.normalModuleFactory);
 			compilation.dependencyTemplates.set(
 				InjectedModuleDependency as any,
-				new InjectedModuleDependency.Template()
+				// `@types/webpack` defines `Compilation#dependencyTemplates` as `Map<typeof Dependency, Tapable>`,
+				// which is incorrect. The templates used throughout webpack do *not* extend Tapable.
+				new InjectedModuleDependency.Template() as any
 			);
 
-			compilation.plugin('succeed-module', (module: NormalModule) => {
-				if (this.target.test(module.resource)) {
+			compilation.hooks.succeedModule.tap(this.constructor.name, (module) => {
+				if (this.target.test((module as NormalModule).resource)) {
 					const dep = new InjectedModuleDependency(join(__dirname, './templates/setLocaleData.js'));
-					module.addDependency(dep);
+					(module as NormalModule).addDependency(dep);
 				}
 			});
 		});

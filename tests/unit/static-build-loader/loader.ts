@@ -118,7 +118,7 @@ registerSuite('static-build-loader', {
 			assert.isTrue(context.callback.calledOnce, 'Should have called provided callback');
 			assert.deepEqual(
 				context.callback.firstCall.args,
-				[null, returnedCode, map, modifiedAst],
+				[null, returnedCode, map],
 				'Should have called callback with the final code, the modified sourcemap, and the modified AST'
 			);
 			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');

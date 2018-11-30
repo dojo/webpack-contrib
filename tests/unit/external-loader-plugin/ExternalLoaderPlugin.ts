@@ -1,17 +1,24 @@
-import Compiler = require('../../support/webpack/Compiler');
+import { SinonStub, stub } from 'sinon';
 import ExternalLoaderPlugin from '../../../src/external-loader-plugin/ExternalLoaderPlugin';
 import MockModule from '../../support/MockModule';
-import { SinonSpy } from 'sinon';
+import { createCompiler } from '../../support/util';
 
 const { assert } = intern.getPlugin('chai');
 const { describe, it, beforeEach, afterEach } = intern.getInterface('bdd');
 
 let mockModule: MockModule;
 let Plugin: typeof ExternalLoaderPlugin;
+
 describe('ExternalLoaderPlugin', () => {
+	function resetMocks() {
+		mockModule.getMock('copy-webpack-plugin').ctor.returns({ apply: stub() });
+		mockModule.getMock('html-webpack-include-assets-plugin').ctor.returns({ apply: stub() });
+	}
+
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/external-loader-plugin/ExternalLoaderPlugin', require);
 		mockModule.dependencies(['copy-webpack-plugin', 'html-webpack-include-assets-plugin']);
+		resetMocks();
 		Plugin = mockModule.getModuleUnderTest().default;
 	});
 
@@ -20,10 +27,10 @@ describe('ExternalLoaderPlugin', () => {
 	});
 
 	it('should apply created configuration to the compiler', () => {
-		const copyMock: SinonSpy = mockModule.getMock('copy-webpack-plugin').ctor;
-		const assetsMock: SinonSpy = mockModule.getMock('html-webpack-include-assets-plugin').ctor;
+		const copyMock: SinonStub = mockModule.getMock('copy-webpack-plugin').ctor;
+		const assetsMock: SinonStub = mockModule.getMock('html-webpack-include-assets-plugin').ctor;
 
-		const compiler = new Compiler();
+		const compiler = createCompiler();
 		const dependencies = [
 			'a',
 			{ from: 'abc', inject: true },
@@ -63,7 +70,6 @@ describe('ExternalLoaderPlugin', () => {
 				files: 'index.html'
 			};
 
-			assert.equal(compiler.applied.length, 2);
 			const copyArgs = copyMock.args[0][0];
 			const assetIncludeArgs = assetsMock.args[0][0];
 			assert.deepEqual(copyArgs, expectedCopy);
@@ -71,7 +77,7 @@ describe('ExternalLoaderPlugin', () => {
 
 			copyMock.reset();
 			assetsMock.reset();
-			compiler.applied = [];
+			resetMocks();
 		}
 
 		let plugin = new Plugin({ dependencies });
@@ -85,10 +91,10 @@ describe('ExternalLoaderPlugin', () => {
 	});
 
 	it('should allow a prefix to be specified for copied file paths', () => {
-		const copyMock: SinonSpy = mockModule.getMock('copy-webpack-plugin').ctor;
-		const assetsMock: SinonSpy = mockModule.getMock('html-webpack-include-assets-plugin').ctor;
+		const copyMock: SinonStub = mockModule.getMock('copy-webpack-plugin').ctor;
+		const assetsMock: SinonStub = mockModule.getMock('html-webpack-include-assets-plugin').ctor;
 
-		const compiler = new Compiler();
+		const compiler = createCompiler();
 		const dependencies = [{ from: 'abc', to: 'def', inject: true }];
 		let plugin = new Plugin({ dependencies, pathPrefix: 'prefix' });
 
@@ -102,7 +108,6 @@ describe('ExternalLoaderPlugin', () => {
 		};
 
 		plugin.apply(compiler);
-		assert.equal(compiler.applied.length, 2);
 		const copyArgs = copyMock.args[0][0];
 		const assetIncludeArgs = assetsMock.args[0][0];
 		assert.deepEqual(copyArgs, expectedCopyArgs);

@@ -1,7 +1,7 @@
-import MockModule from '../../support/MockModule';
-import { stub } from 'sinon';
-import * as path from 'path';
 import { readFileSync, existsSync } from 'fs-extra';
+import * as path from 'path';
+import { stub } from 'sinon';
+import MockModule from '../../support/MockModule';
 
 const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
@@ -11,7 +11,7 @@ let outputPath: string;
 let compiler: any;
 let pluginRegistered = false;
 let runBtr: Function = () => {};
-const pluginStub = (type: string, cb: Function) => {
+const tapStub = (name: string, cb: Function) => {
 	pluginRegistered = true;
 	runBtr = cb;
 };
@@ -39,7 +39,11 @@ describe('build-time-render', () => {
 		beforeEach(() => {
 			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'hash');
 			compiler = {
-				plugin: pluginStub,
+				hooks: {
+					afterEmit: {
+						tap: tapStub
+					}
+				},
 				options: {
 					output: {
 						path: outputPath
@@ -166,7 +170,11 @@ describe('build-time-render', () => {
 		beforeEach(() => {
 			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state');
 			compiler = {
-				plugin: pluginStub,
+				hooks: {
+					afterEmit: {
+						tap: tapStub
+					}
+				},
 				options: {
 					output: {
 						path: outputPath

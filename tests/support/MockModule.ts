@@ -24,12 +24,7 @@ export default class MockModule {
 
 	dependencies(dependencies: string[]): void {
 		dependencies.forEach((dependencyName) => {
-			let dependency;
-			try {
-				dependency = require(resolvePath(this.basePath, dependencyName));
-			} catch (e) {
-				dependency = {};
-			}
+			const dependency = this.requireDependency(dependencyName);
 			const mock: any = {};
 
 			for (let prop in dependency) {
@@ -52,6 +47,12 @@ export default class MockModule {
 		});
 	}
 
+	destroy(): void {
+		this.sandbox.restore();
+		mockery.deregisterAll();
+		mockery.disable();
+	}
+
 	getMock(dependencyName: string): any {
 		return this.mocks[dependencyName];
 	}
@@ -62,9 +63,24 @@ export default class MockModule {
 		return require(this.moduleUnderTestPath);
 	}
 
-	destroy(): void {
-		this.sandbox.restore();
-		mockery.deregisterAll();
-		mockery.disable();
+	proxy(dependencyName: string, mock: any) {
+		const dependency = this.requireDependency(dependencyName);
+		const proxy = new Proxy(mock, {
+			get(obj: any, prop: string) {
+				return prop in obj ? obj[prop] : dependency[prop];
+			}
+		});
+		mockery.registerMock(dependencyName, proxy);
+		this.mocks[dependencyName] = proxy;
+	}
+
+	private requireDependency(dependencyName: string) {
+		let dependency: any;
+		try {
+			dependency = require(resolvePath(this.basePath, dependencyName));
+		} catch (e) {
+			dependency = {};
+		}
+		return dependency;
 	}
 }

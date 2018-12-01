@@ -1,4 +1,4 @@
-const { beforeEach, describe, it } = intern.getInterface('bdd');
+const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 import MockModule from '../../support/MockModule';
 import { stub } from 'sinon';
@@ -36,6 +36,10 @@ describe('bootstrap-plugin', () => {
 				}
 			}
 		};
+	});
+
+	afterEach(() => {
+		mockModule.destroy();
 	});
 
 	it('bootstrap', () => {

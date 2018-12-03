@@ -17,8 +17,8 @@ const staticLoaderRegExp = new RegExp(path.normalize('@dojo/webpack-contrib/stat
 const shimModuleRegExp = new RegExp(path.normalize('@dojo/framework/shim'));
 
 export class BootstrapPlugin {
+	public hasFlagMap: { [index: string]: boolean };
 	private _entryPath: string;
-	private _hasFlagMap: { [index: string]: boolean };
 	private _shimModules: ShimModules[];
 	private _defineConfiguration: { [index: string]: string } = {
 		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),
@@ -30,7 +30,7 @@ export class BootstrapPlugin {
 		const { shimModules, entryPath } = options;
 		this._entryPath = entryPath;
 		this._shimModules = shimModules;
-		this._hasFlagMap = shimModules.reduce(
+		this.hasFlagMap = shimModules.reduce(
 			(flags, module) => {
 				flags[module.has.toLowerCase()] = false;
 				return flags;
@@ -47,10 +47,6 @@ export class BootstrapPlugin {
 		});
 	}
 
-	get hasFlagMap() {
-		return this._hasFlagMap;
-	}
-
 	apply(compiler: webpack.Compiler) {
 		compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
 			compilation.hooks.seal.tap(this.constructor.name, () => {
@@ -61,7 +57,7 @@ export class BootstrapPlugin {
 							const pattern = new RegExp(path.normalize(shimModule.module));
 							if (pattern.test(module.userRequest)) {
 								matchedModule = index;
-								this._hasFlagMap[shimModule.has.toLowerCase()] = true;
+								this.hasFlagMap[shimModule.has.toLowerCase()] = true;
 								return true;
 							}
 							return false;
@@ -79,7 +75,7 @@ export class BootstrapPlugin {
 		const wrapper = new WrapperPlugin({
 			test: /(bootstrap.*(\.js$))/,
 			header: () => {
-				return `var shimFeatures = ${JSON.stringify(this._hasFlagMap)};
+				return `var shimFeatures = ${JSON.stringify(this.hasFlagMap)};
 if (window.DojoHasEnvironment && window.DojoHasEnvironment.staticFeatures) {
 	Object.keys(window.DojoHasEnvironment.staticFeatures).forEach(function (key) {
 		shimFeatures[key] = window.DojoHasEnvironment.staticFeatures[key];

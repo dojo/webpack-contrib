@@ -20,6 +20,11 @@ export class BootstrapPlugin {
 	private _entryPath: string;
 	private _hasFlagMap: { [index: string]: boolean };
 	private _shimModules: ShimModules[];
+	private _defineConfiguration: { [index: string]: string } = {
+		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),
+		__dojoframeworkshimWebAnimations: JSON.stringify('no-bootstrap'),
+		__dojoframeworkshimResizeObserver: JSON.stringify('no-bootstrap')
+	};
 
 	constructor(options: BootstrapPluginOptions) {
 		const { shimModules, entryPath } = options;
@@ -27,11 +32,19 @@ export class BootstrapPlugin {
 		this._shimModules = shimModules;
 		this._hasFlagMap = shimModules.reduce(
 			(flags, module) => {
-				flags[`bootstrap-${module.has.toLowerCase()}`] = false;
+				flags[module.has.toLowerCase()] = false;
 				return flags;
 			},
-			{} as any
+			{
+				'no-bootstrap': true
+			} as any
 		);
+		this._defineConfiguration.__MAIN_ENTRY = JSON.stringify(this._entryPath);
+		shimModules.forEach((shimModule) => {
+			this._defineConfiguration[`__${shimModule.module.replace(/(\/|@)/g, '')}`] = JSON.stringify(
+				shimModule.has.toLowerCase()
+			);
+		});
 	}
 
 	get hasFlagMap() {
@@ -48,7 +61,7 @@ export class BootstrapPlugin {
 							const pattern = new RegExp(path.normalize(shimModule.module));
 							if (pattern.test(module.userRequest)) {
 								matchedModule = index;
-								this._hasFlagMap[`bootstrap-${shimModule.has}`] = true;
+								this._hasFlagMap[shimModule.has.toLowerCase()] = true;
 								return true;
 							}
 							return false;
@@ -62,9 +75,7 @@ export class BootstrapPlugin {
 			});
 		});
 
-		const definePlugin = new webpack.DefinePlugin({
-			__MAIN_ENTRY: JSON.stringify(this._entryPath)
-		});
+		const definePlugin = new webpack.DefinePlugin(this._defineConfiguration);
 		const wrapper = new WrapperPlugin({
 			test: /(bootstrap.*(\.js$))/,
 			header: () => {

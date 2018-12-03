@@ -491,7 +491,6 @@ A custom webpack plugin that conditionally loads supported dojo shims based on u
 * @dojo/framework/shim/IntersectionObserver
 * @dojo/framework/shim/ResizeObserver
 * @dojo/framework/shim/WebAnimations
-* @dojo/framework/shim/pointerEvents
 
 To use the plugin, use the provided `bootstrap.js` from `@dojo/webpack-contrib/bootstrap-plugin` as the application entry and add the plugin to the webpack configuration.
 

@@ -3,17 +3,17 @@ import '@dojo/framework/shim/Promise';
 
 var modules = [];
 
-if (has('bootstrap-intersection-observer') && !has('dom-intersection-observer')) {
+if (has(__dojo/framework/shim/IntersectionObserver) && !has('dom-intersection-observer')) {
 	modules.push(
 		import(/* webpackChunkName: "platform/IntersectionObserver" */ '@dojo/framework/shim/IntersectionObserver')
 	);
 }
 
-if (has('bootstrap-web-animations') && !has('dom-webanimation')) {
+if (has(__dojo/framework/shim/ResizeObserver) && !has('dom-webanimation')) {
 	modules.push(import(/* webpackChunkName: "platform/WebAnimations" */ '@dojo/framework/shim/WebAnimations'));
 }
 
-if (has('bootstrap-resize-observer') && !has('dom-resize-observer')) {
+if (has(__dojo/framework/shim/WebAnimations) && !has('dom-resize-observer')) {
 	modules.push(import(/* webpackChunkName: "platform/ResizeObserver" */ '@dojo/framework/shim/ResizeObserver'));
 }
 

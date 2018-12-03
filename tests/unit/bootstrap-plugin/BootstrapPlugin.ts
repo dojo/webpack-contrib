@@ -94,9 +94,10 @@ describe('bootstrap-plugin', () => {
 		runner['BootstrapPlugin']();
 
 		assert.deepEqual(bootstrapPlugin.hasFlagMap, {
-			'bootstrap-foo': true,
-			'bootstrap-bar': false,
-			'bootstrap-baz': false
+			bar: false,
+			baz: false,
+			foo: true,
+			'no-bootstrap': true
 		});
 
 		assert.isTrue(wrapperStub.ctor.calledOnce);
@@ -104,7 +105,7 @@ describe('bootstrap-plugin', () => {
 
 		assert.strictEqual(
 			header(),
-			`var shimFeatures = {"bootstrap-foo":true,"bootstrap-bar":false,"bootstrap-baz":false};
+			`var shimFeatures = {"no-bootstrap":true,"foo":true,"bar":false,"baz":false};
 if (window.DojoHasEnvironment && window.DojoHasEnvironment.staticFeatures) {
 	Object.keys(window.DojoHasEnvironment.staticFeatures).forEach(function (key) {
 		shimFeatures[key] = window.DojoHasEnvironment.staticFeatures[key];
@@ -114,7 +115,15 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 		);
 
 		assert.isTrue(defineStub.calledOnce);
-		assert.deepEqual(defineStub.firstCall.args[0], { __MAIN_ENTRY: '"main"' });
+		assert.deepEqual(defineStub.firstCall.args[0], {
+			__MAIN_ENTRY: '"main"',
+			__dojoframeworkshimIntersectionObserver: '"no-bootstrap"',
+			__dojoframeworkshimWebAnimations: '"no-bootstrap"',
+			__dojoframeworkshimResizeObserver: '"no-bootstrap"',
+			__dojoframeworkshimFoo: '"foo"',
+			__dojoframeworkshimBar: '"bar"',
+			__dojoframeworkshimBaz: '"baz"'
+		});
 		const [normalReplacementTest, normalReplaceCallback] = normalReplacementStub.firstCall.args;
 		const expectedTest = new RegExp(path.normalize('@dojo/framework/shim'));
 		assert.strictEqual(normalReplacementTest.toString(), expectedTest.toString());

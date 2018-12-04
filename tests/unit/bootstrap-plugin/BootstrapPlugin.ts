@@ -146,7 +146,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 		normalReplaceCallback(bootstrapResource);
 		assert.deepEqual(bootstrapResource, {
 			resourceResolveData: {
-				context: { issuer: 'foo/bar/@dojo/webpack-contrib/bootstrap-plugin/bootstrap' }
+				context: { issuer: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/bootstrap') }
 			},
 			request: 'foo!bar!resource',
 			loaders: [{ loader: 'foo' }]

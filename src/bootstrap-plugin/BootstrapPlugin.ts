@@ -11,8 +11,8 @@ export interface BootstrapPluginOptions {
 	shimModules: ShimModules[];
 }
 
-const bootstrapModuleRegExp = /@dojo(\/|\\\\)webpack-contrib(\/|\\\\)bootstrap-plugin(\/|\\\\)bootstrap/;
-const staticLoaderRegExp = /@dojo(\/|\\\\)webpack-contrib(\/|\\\\)static-build-loader/;
+const bootstrapModuleRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)bootstrap-plugin(\/|\\)bootstrap/;
+const staticLoaderRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)static-build-loader/;
 const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 
 export class BootstrapPlugin {

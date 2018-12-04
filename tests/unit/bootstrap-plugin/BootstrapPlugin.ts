@@ -125,7 +125,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 			__dojoframeworkshimBaz: '"baz"'
 		});
 		const [normalReplacementTest, normalReplaceCallback] = normalReplacementStub.firstCall.args;
-		const expectedTest = new RegExp(path.normalize('@dojo/framework/shim'));
+		const expectedTest = new RegExp('@dojo(/|\\\\)framework(/|\\\\)shim');
 		assert.strictEqual(normalReplacementTest.toString(), expectedTest.toString());
 		const bootstrapResource = {
 			resourceResolveData: {

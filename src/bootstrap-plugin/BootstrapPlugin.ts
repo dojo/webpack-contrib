@@ -1,5 +1,4 @@
 import * as webpack from 'webpack';
-import * as path from 'path';
 const WrapperPlugin = require('wrapper-webpack-plugin');
 
 export interface ShimModules {
@@ -12,9 +11,9 @@ export interface BootstrapPluginOptions {
 	shimModules: ShimModules[];
 }
 
-const bootstrapModuleRegExp = new RegExp(path.normalize('@dojo/webpack-contrib/bootstrap-plugin/bootstrap'));
-const staticLoaderRegExp = new RegExp(path.normalize('@dojo/webpack-contrib/static-build-loader'));
-const shimModuleRegExp = new RegExp(path.normalize('@dojo/framework/shim'));
+const bootstrapModuleRegExp = /@dojo(\/|\\\\)webpack-contrib(\/|\\\\)bootstrap-plugin(\/|\\\\)bootstrap/;
+const staticLoaderRegExp = /@dojo(\/|\\\\)webpack-contrib(\/|\\\\)static-build-loader/;
+const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 
 export class BootstrapPlugin {
 	public hasFlagMap: { [index: string]: boolean };
@@ -54,7 +53,7 @@ export class BootstrapPlugin {
 					if (module.issuer && !bootstrapModuleRegExp.test(module.issuer.userRequest)) {
 						let matchedModule = -1;
 						this._shimModules.some((shimModule, index) => {
-							const pattern = new RegExp(path.normalize(shimModule.module));
+							const pattern = new RegExp(shimModule.module.replace(/\//g, '(/|\\\\)'));
 							if (pattern.test(module.userRequest)) {
 								matchedModule = index;
 								this.hasFlagMap[shimModule.has.toLowerCase()] = true;

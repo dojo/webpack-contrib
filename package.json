@@ -73,7 +73,7 @@
     "wrapper-webpack-plugin": "2.0.0"
   },
   "devDependencies": {
-    "@dojo/scripts": "~3.0.1",
+    "@dojo/scripts": "~3.1.0",
     "@types/acorn": "^4.0.3",
     "@types/estree": "0.0.37",
     "@types/express": "^4.16.0",

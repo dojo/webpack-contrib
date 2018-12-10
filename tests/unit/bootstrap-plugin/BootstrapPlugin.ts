@@ -79,7 +79,7 @@ describe('bootstrap-plugin', () => {
 				},
 				{
 					issuer: {
-						userRequest: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/bootstrap')
+						userRequest: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/async')
 					},
 					userRequest: path.normalize('foo/bar/@dojo/framework/shim/Bar')
 				},
@@ -130,7 +130,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 		const bootstrapResource = {
 			resourceResolveData: {
 				context: {
-					issuer: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/bootstrap')
+					issuer: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/async')
 				}
 			},
 			request: path.normalize('foo!bar!@dojo/webpack-contrib/static-build-loader!resource'),
@@ -146,7 +146,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 		normalReplaceCallback(bootstrapResource);
 		assert.deepEqual(bootstrapResource, {
 			resourceResolveData: {
-				context: { issuer: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/bootstrap') }
+				context: { issuer: path.normalize('foo/bar/@dojo/webpack-contrib/bootstrap-plugin/async') }
 			},
 			request: 'foo!bar!resource',
 			loaders: [{ loader: 'foo' }]

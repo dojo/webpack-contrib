@@ -11,7 +11,7 @@ export interface BootstrapPluginOptions {
 	shimModules: ShimModules[];
 }
 
-const bootstrapModuleRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)bootstrap-plugin(\/|\\)bootstrap/;
+const asyncModuleRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)bootstrap-plugin(\/|\\)async/;
 const staticLoaderRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)static-build-loader/;
 const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 
@@ -50,7 +50,7 @@ export class BootstrapPlugin {
 		compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
 			compilation.hooks.seal.tap(this.constructor.name, () => {
 				compilation.modules.forEach((module) => {
-					if (module.issuer && !bootstrapModuleRegExp.test(module.issuer.userRequest)) {
+					if (module.issuer && !asyncModuleRegExp.test(module.issuer.userRequest)) {
 						let matchedModule = -1;
 						this._shimModules.some((shimModule, index) => {
 							const pattern = new RegExp(shimModule.module.replace(/\//g, '(/|\\\\)'));
@@ -84,10 +84,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`;
 			}
 		});
 		const moduleReplacement = new webpack.NormalModuleReplacementPlugin(shimModuleRegExp, (resource: any) => {
-			if (
-				resource.resourceResolveData &&
-				bootstrapModuleRegExp.test(resource.resourceResolveData.context.issuer)
-			) {
+			if (resource.resourceResolveData && asyncModuleRegExp.test(resource.resourceResolveData.context.issuer)) {
 				const parts = resource.request.split('!');
 				const newRequest = parts.filter((part: string) => !staticLoaderRegExp.test(part)).join('!');
 				resource.loaders = resource.loaders.filter((loader: any) => !staticLoaderRegExp.test(loader.loader));

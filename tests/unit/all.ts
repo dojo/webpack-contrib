@@ -9,6 +9,7 @@ import './i18n-plugin/I18nPlugin';
 import './i18n-plugin/templates/setLocaleData';
 import './promise-loader/all';
 import './build-time-render/all';
+import './bootstrap-plugin/BootstrapPlugin';
 import './registry-transformer/RegistryTransformer';
 import './service-worker-plugin/service-worker-entry';
 import './service-worker-plugin/ServiceWorkerPlugin';

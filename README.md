@@ -21,6 +21,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 	- [i18n-plugin](#i18n-plugin)
 	- [service-worker-plugin](#service-worker-plugin)
 	- [webpack-bundle-analyzer](#webpack-bundle-analyzer)
+	- [bootstrap-plugin](#bootstrap-plugin)
 - [Transformers](#transformers)
 	- [registry-transformer](#registry-transformer)
 - [How do I contribute?](#how-do-i-contribute)
@@ -453,7 +454,7 @@ new ServiceWorkerPlugin({
 
 ## webpack-bundle-analyzer
 
-A webpack plugin that provides a visualization of the size of webpack output with an interactive sunburst graphic. 
+A webpack plugin that provides a visualization of the size of webpack output with an interactive sunburst graphic.
 Functionally this is a copy of [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) with a custom visualization.
 
 The plugin accepts an options object with the following optional properties.
@@ -479,6 +480,40 @@ new BundleAnalyzerPlugin({
 	reportFilename: '../info/report.html',
 	openAnalyzer: false
 });
+```
+
+## bootstrap-plugin
+
+A custom webpack plugin that conditionally loads supported dojo shims based on usage and browser capabilities.
+
+### Supported Shims
+
+* @dojo/framework/shim/IntersectionObserver
+* @dojo/framework/shim/ResizeObserver
+* @dojo/framework/shim/WebAnimations
+
+To use the plugin, use the provided `bootstrap.js` from `@dojo/webpack-contrib/bootstrap-plugin` as the application entry and add the plugin to the webpack configuration.
+
+The `BootstrapPlugin` accepts requires the path to application entry point and an array of `shimModules` to process.
+
+```ts
+new BootstrapPlugin({
+	entryPath: mainEntryPath,
+	shimModules: [
+		{
+			module: '@dojo/framework/shim/IntersectionObserver',
+			has: 'intersection-observer'
+		},
+		{
+			module: '@dojo/framework/shim/ResizeObserver',
+			has: 'resize-observer'
+		},
+		{
+			module: '@dojo/framework/shim/WebAnimations',
+			has: 'web-animations'
+		}
+	]
+})
 ```
 
 # Transformers

@@ -1,2 +1,1 @@
 import './BuildTimeRender';
-import './hasBuildTimeRender';

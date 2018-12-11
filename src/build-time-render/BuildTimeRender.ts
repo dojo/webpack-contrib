@@ -146,7 +146,7 @@ export default class BuildTimeRender {
 
 	private async _buildBridge(modulePath: string, args: any[]) {
 		try {
-			const module = require(`${process.cwd()}/${modulePath}`);
+			const module = require(`${this._basePath}/${modulePath}`);
 			if (module && module.default) {
 				const result = await module.default(...args);
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];

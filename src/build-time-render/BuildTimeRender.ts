@@ -147,9 +147,9 @@ export default class BuildTimeRender {
 				const result = await module.default(...args);
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
 				this._buildBridgeResult[modulePath].push(
-					`window.__dojoBuildBridgeCache['${modulePath}']['${JSON.stringify(
-						args
-					)}'] = { value: ${JSON.stringify(result)} };\n`
+					`window.__dojoBuildBridgeCache['${modulePath}']['${JSON.stringify(args)}'] = ${JSON.stringify(
+						result
+					)};\n`
 				);
 				return result;
 			}

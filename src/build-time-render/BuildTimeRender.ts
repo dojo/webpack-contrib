@@ -171,7 +171,7 @@ export default class BuildTimeRender {
 						buildBridgeResults.forEach((buildBridgeResult: string) => {
 							node.prepend(buildBridgeResult);
 						});
-						node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache||{};
+						node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};
 window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`);
 						const source = node.toStringWithSourceMap({ file: chunkname });
 						this._manifestContent[chunkname] = source.code;

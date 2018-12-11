@@ -287,8 +287,8 @@ window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['
 						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
 						this._writeIndexHtml({ styles: combined.styles, html, script });
 					}
-					this._writeBuildBridgeCache();
 				}
+				this._writeBuildBridgeCache();
 			} catch (error) {
 				throw error;
 			} finally {

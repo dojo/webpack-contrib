@@ -14,6 +14,7 @@ import {
 } from './helpers';
 const filterCss = require('filter-css');
 const puppeteer = require('puppeteer');
+const webpack = require('webpack');
 const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
 
@@ -36,6 +37,7 @@ export interface BuildTimeRenderArguments {
 	paths?: (BuildTimePath | string)[];
 	useHistory?: boolean;
 	puppeteerOptions?: any;
+	basePath: string;
 }
 
 export default class BuildTimeRender {
@@ -51,12 +53,14 @@ export default class BuildTimeRender {
 	private _puppeteerOptions: any;
 	private _root: string;
 	private _useHistory = false;
+	private _basePath = '';
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', entries, useHistory, puppeteerOptions } = args;
+		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
+		this._basePath = basePath;
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = paths;
 		this._root = root;
@@ -195,6 +199,15 @@ window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['
 		if (!this._root) {
 			return;
 		}
+
+		const plugin = new webpack.NormalModuleReplacementPlugin(/\.build/, (resource: any) => {
+			const modulePath = join(resource.context, resource.request)
+				.replace(this._basePath, '')
+				.replace(/^\//, '');
+			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
+		});
+		plugin.apply(compiler);
+
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {

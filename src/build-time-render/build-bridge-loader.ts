@@ -7,6 +7,6 @@ module.exports = function(this: any, content: string) {
 	const query = loaderUtils.getOptions(this) || {};
 	const { modulePath } = query;
 	const prefix = `var modulePath = ${modulePath}\n\n`;
-	content = content.replace('{{ REPLACE }}', `build-bridge-cache ${modulePath}`);
+	content = content.replace('{{ REPLACE }}', `dojoBuildBridgeCache ${modulePath}`);
 	return prefix + content;
 };

@@ -1,6 +1,4 @@
 const loaderUtils = require('loader-utils');
-const SourceNode = require('source-map').SourceNode;
-const SourceMapConsumer = require('source-map').SourceMapConsumer;
 
 module.exports = function(this: any, content: string) {
 	if (this.cacheable) {

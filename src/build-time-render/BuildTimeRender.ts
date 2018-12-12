@@ -288,7 +288,9 @@ export default class BuildTimeRender {
 						this._writeIndexHtml({ styles: combined.styles, html, script });
 					}
 				}
-				this._writeBuildBridgeCache();
+				if (Object.keys(this._buildBridgeResult).length) {
+					this._writeBuildBridgeCache();
+				}
 			} catch (error) {
 				throw error;
 			} finally {

@@ -163,35 +163,35 @@ export default class BuildTimeRender {
 	}
 
 	private _writeBuildBridgeCache() {
-		const chunksToWrite = new Set<string>();
-		Object.keys(this._manifestContent).forEach((chunkname: string) => {
+		Object.keys(this._manifestContent).forEach((chunkname) => {
+			let modified = false;
 			if (/\.js$/.test(chunkname)) {
 				const content = this._manifestContent[chunkname];
-				Object.keys(this._buildBridgeResult).forEach((modulePath: string) => {
+				const sourceMap = this._manifestContent[`${chunkname}.map`];
+				const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
+				Object.keys(this._buildBridgeResult).forEach((modulePath) => {
 					if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
-						const sourceMap = this._manifestContent[`${chunkname}.map`];
 						const buildBridgeResults = this._buildBridgeResult[modulePath];
-						const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
-						buildBridgeResults.forEach((buildBridgeResult: string) => {
+						buildBridgeResults.forEach((buildBridgeResult: any) => {
 							node.prepend(buildBridgeResult);
 						});
-						node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};
-window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`);
-						const source = node.toStringWithSourceMap({ file: chunkname });
-						this._manifestContent[chunkname] = source.code;
-						this._manifestContent[`${chunkname}.map`] = JSON.stringify(source.map);
-						chunksToWrite.add(chunkname);
-						chunksToWrite.add(`${chunkname}.map`);
+						node.prepend(
+							`window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`
+						);
+						modified = true;
 					}
 				});
+				if (modified) {
+					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
+					const source = node.toStringWithSourceMap({ file: chunkname });
+					outputFileSync(join(this._output!, this._manifest[chunkname]), source.code, 'utf-8');
+					outputFileSync(
+						join(this._output!, this._manifest[`${chunkname}.map`]),
+						JSON.stringify(source.map),
+						'utf-8'
+					);
+				}
 			}
-		});
-		chunksToWrite.forEach((chunkToWrite) => {
-			outputFileSync(
-				join(this._output!, this._manifest[chunkToWrite]),
-				this._manifestContent[chunkToWrite],
-				'utf-8'
-			);
 		});
 	}
 

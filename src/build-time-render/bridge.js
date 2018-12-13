@@ -9,7 +9,7 @@ export default function () {
 	}
 	else {
 		var stringifiedArgs = JSON.stringify(args);
-		if (global__dojoBuildBridgeCache &&
+		if (global.__dojoBuildBridgeCache &&
 			global.__dojoBuildBridgeCache[modulePath] &&
 			global.__dojoBuildBridgeCache[modulePath][stringifiedArgs]
 		) {

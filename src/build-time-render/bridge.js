@@ -8,6 +8,13 @@ export default function () {
 		return global.__dojoBuildBridge(modulePath, args);
 	}
 	else {
-		return global.__dojoBuildBridgeCache[modulePath][JSON.stringify(args)];
+		var stringifiedArgs = JSON.stringify(args);
+		if (global__dojoBuildBridgeCache &&
+			global.__dojoBuildBridgeCache[modulePath] &&
+			global.__dojoBuildBridgeCache[modulePath][stringifiedArgs]
+		) {
+			return global.__dojoBuildBridgeCache[modulePath][stringifiedArgs];
+		}
+		return undefined;
 	}
 }

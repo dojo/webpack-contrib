@@ -165,7 +165,7 @@ export default class BuildTimeRender {
 	private _writeBuildBridgeCache() {
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
-			if (/\.js$/.test(chunkname)) {
+			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
 				const content = this._manifestContent[chunkname];
 				const sourceMap = this._manifestContent[`${chunkname}.map`];
 				const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));

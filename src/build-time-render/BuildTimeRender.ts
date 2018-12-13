@@ -203,7 +203,8 @@ export default class BuildTimeRender {
 		const plugin = new webpack.NormalModuleReplacementPlugin(/\.build/, (resource: any) => {
 			const modulePath = join(resource.context, resource.request)
 				.replace(this._basePath, '')
-				.replace(/^\//, '');
+				.replace(/\\/g, '/')
+				.replace(/^(\//, '');
 			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
 		});
 		plugin.apply(compiler);

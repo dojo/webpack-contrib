@@ -22,10 +22,17 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
+let normalModuleReplacementPluginStub: any;
+
 describe('build-time-render', () => {
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/BuildTimeRender', require);
-		mockModule.dependencies(['fs-extra']);
+		mockModule.dependencies(['fs-extra', 'webpack']);
+		const webpack = mockModule.getMock('webpack');
+		normalModuleReplacementPluginStub = stub().returns({
+			apply: stub()
+		});
+		webpack.ctor.NormalModuleReplacementPlugin = normalModuleReplacementPluginStub;
 	});
 
 	afterEach(() => {
@@ -42,6 +49,9 @@ describe('build-time-render', () => {
 				hooks: {
 					afterEmit: {
 						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
 					}
 				},
 				options: {
@@ -83,7 +93,6 @@ describe('build-time-render', () => {
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
 				paths: [],
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -111,7 +120,6 @@ describe('build-time-render', () => {
 						path: '#my-path'
 					}
 				],
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -135,7 +143,6 @@ describe('build-time-render', () => {
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
 				paths: [],
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
@@ -152,7 +159,6 @@ describe('build-time-render', () => {
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
 				paths: [],
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -173,6 +179,9 @@ describe('build-time-render', () => {
 				hooks: {
 					afterEmit: {
 						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
 					}
 				},
 				options: {
@@ -198,7 +207,6 @@ describe('build-time-render', () => {
 					'other',
 					'my-path/other'
 				],
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -264,7 +272,6 @@ describe('build-time-render', () => {
 					'my-path/other'
 				],
 				useHistory: true,
-				useManifest: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -310,6 +317,72 @@ describe('build-time-render', () => {
 				assert.strictEqual(
 					outputFileSync.getCall(3).args[1],
 					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+				);
+			});
+		});
+	});
+
+	describe('build bridge', () => {
+		beforeEach(() => {
+			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+		});
+
+		it('should call node module, return result to render in html, and write to cache in bundle', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['runtime', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			assert.equal(
+				resource.request,
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+			);
+			return runBtr('', callbackStub).then(() => {
+				const html = outputFileSync.firstCall.args[1];
+				const source = outputFileSync.secondCall.args[1];
+				const map = outputFileSync.thirdCall.args[1];
+				assert.strictEqual(
+					normalise(html),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(source),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(map),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
 				);
 			});
 		});

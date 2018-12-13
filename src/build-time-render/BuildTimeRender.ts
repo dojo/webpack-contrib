@@ -14,6 +14,9 @@ import {
 } from './helpers';
 const filterCss = require('filter-css');
 const puppeteer = require('puppeteer');
+const webpack = require('webpack');
+const SourceNode = require('source-map').SourceNode;
+const SourceMapConsumer = require('source-map').SourceMapConsumer;
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -34,6 +37,7 @@ export interface BuildTimeRenderArguments {
 	paths?: (BuildTimePath | string)[];
 	useHistory?: boolean;
 	puppeteerOptions?: any;
+	basePath: string;
 }
 
 export default class BuildTimeRender {
@@ -42,30 +46,25 @@ export default class BuildTimeRender {
 	private _head: string;
 	private _inlinedCssClassNames: string[] = [];
 	private _manifest: any;
+	private _manifestContent: any = {};
+	private _buildBridgeResult: any = {};
 	private _output?: string;
 	private _paths: any[];
 	private _puppeteerOptions: any;
 	private _root: string;
 	private _useHistory = false;
-	private _useManifest: boolean;
+	private _basePath = '';
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', useManifest = false, entries, useHistory, puppeteerOptions } = args;
+		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
+		this._basePath = basePath;
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = paths;
 		this._root = root;
-		this._useManifest = useManifest;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
-		this._manifest = this._entries.reduce(
-			(manifest, entry) => {
-				manifest[entry] = entry;
-				return manifest;
-			},
-			{} as any
-		);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 	}
 
@@ -145,10 +144,71 @@ export default class BuildTimeRender {
 		return { html, styles, script, path };
 	}
 
+	private async _buildBridge(modulePath: string, args: any[]) {
+		try {
+			const module = require(`${this._basePath}/${modulePath}`);
+			if (module && module.default) {
+				const result = await module.default(...args);
+				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
+				this._buildBridgeResult[modulePath].push(
+					`window.__dojoBuildBridgeCache['${modulePath}']['${JSON.stringify(args)}'] = ${JSON.stringify(
+						result
+					)};\n`
+				);
+				return result;
+			}
+		} catch (e) {
+			console.warn(e);
+		}
+	}
+
+	private _writeBuildBridgeCache() {
+		Object.keys(this._manifestContent).forEach((chunkname) => {
+			let modified = false;
+			if (/\.js$/.test(chunkname)) {
+				const content = this._manifestContent[chunkname];
+				const sourceMap = this._manifestContent[`${chunkname}.map`];
+				const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
+				Object.keys(this._buildBridgeResult).forEach((modulePath) => {
+					if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
+						const buildBridgeResults = this._buildBridgeResult[modulePath];
+						buildBridgeResults.forEach((buildBridgeResult: any) => {
+							node.prepend(buildBridgeResult);
+						});
+						node.prepend(
+							`window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`
+						);
+						modified = true;
+					}
+				});
+				if (modified) {
+					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
+					const source = node.toStringWithSourceMap({ file: chunkname });
+					outputFileSync(join(this._output!, this._manifest[chunkname]), source.code, 'utf-8');
+					outputFileSync(
+						join(this._output!, this._manifest[`${chunkname}.map`]),
+						JSON.stringify(source.map),
+						'utf-8'
+					);
+				}
+			}
+		});
+	}
+
 	public apply(compiler: Compiler) {
 		if (!this._root) {
 			return;
 		}
+
+		const plugin = new webpack.NormalModuleReplacementPlugin(/\.build/, (resource: any) => {
+			const modulePath = join(resource.context, resource.request)
+				.replace(this._basePath, '')
+				.replace(/\\/g, '/')
+				.replace(/^\//, '');
+			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
+		});
+		plugin.apply(compiler);
+
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
@@ -157,9 +217,11 @@ export default class BuildTimeRender {
 				});
 			}
 
-			if (this._useManifest) {
-				this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
-			}
+			this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
+			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
+				obj[chunkname] = readFileSync(join(this._output!, this._manifest[chunkname]), 'utf-8');
+				return obj;
+			}, this._manifestContent);
 
 			let originalIndexHtml = readFileSync(join(this._output, 'index.html'), 'utf-8');
 			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(originalIndexHtml);
@@ -183,6 +245,7 @@ export default class BuildTimeRender {
 			try {
 				const page = await browser.newPage();
 				await setHasFlags(page);
+				await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
@@ -225,6 +288,9 @@ export default class BuildTimeRender {
 						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
 						this._writeIndexHtml({ styles: combined.styles, html, script });
 					}
+				}
+				if (Object.keys(this._buildBridgeResult).length) {
+					this._writeBuildBridgeCache();
 				}
 			} catch (error) {
 				throw error;

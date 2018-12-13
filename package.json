@@ -23,7 +23,7 @@
   },
   "scripts": {
     "webpack-bundle-analyzer": "cd src/webpack-bundle-analyzer/client && npm run build:dist && shx mv output/dist ../../../dist/release/webpack-bundle-analyzer/reporter && cd ../../../",
-    "build:static:dev": "cpx \"{src,tests}/**/*.{d.ts,html,md,json,js,css,txt}\" dist/dev && rimraf dist/dev/src/webpack-bundle-analyzer/client",
+    "build:static:dev": "cpx \"{src,tests}/**/*.{js.map,d.ts,html,md,json,js,css,txt}\" dist/dev && rimraf dist/dev/src/webpack-bundle-analyzer/client",
     "build:static:release": "cpx \"src/**/*.{js,d.ts,json}\" dist/release && rimraf dist/release/webpack-bundle-analyzer/client",
     "build:cjs": "tsc",
     "build": "npm-run-all -s clean -p build:** -s webpack-bundle-analyzer -s dojo-package -s && rimraf src/webpack-bundle-analyzer/client/node_modules",

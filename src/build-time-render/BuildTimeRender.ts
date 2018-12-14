@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { readFileSync, outputFileSync, existsSync } from 'fs-extra';
+import { readFileSync, outputFileSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -75,12 +75,17 @@ export default class BuildTimeRender {
 			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
 		}
-		const css = this._cssFiles.reduce((css, entry: string | undefined) => {
-			html = html.replace(`<link href="${prefix}${entry}" rel="stylesheet">`, `<style>${styles}</style>`);
-			css = `${css}<link rel="stylesheet" href="${prefix}${entry}" media="none" onload="if(media!='all')media='all'" />`;
+
+		const css = this._entries.reduce((css, entry) => {
+			const cssFile = this._manifest[entry.replace('.js', '.css')];
+			if (cssFile) {
+				html = html.replace(`<link href="${prefix}${cssFile}" rel="stylesheet">`, '');
+				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" media="none" onload="if(media!='all')media='all'" />`;
+			}
 			return css;
 		}, '');
 
+		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
 		html = html.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
 		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
@@ -120,7 +125,8 @@ export default class BuildTimeRender {
 				.replace(/\/\*.*\*\//g, '')
 				.replace(/^(\s*)(\r\n?|\n)/gm, '')
 				.trim();
-			result = `${result}${filteredCss}`;
+			result = `${result}${filteredCss}
+`;
 			return result;
 		}, '');
 	}
@@ -228,17 +234,12 @@ export default class BuildTimeRender {
 			if (matchingHead) {
 				this._head = matchingHead[0];
 			}
-			this._cssFiles = this._entries.reduce(
-				(files, entry) => {
-					const fileName = this._manifest[entry.replace('.js', '.css')] || entry.replace('.js', '.css');
-					const exists = existsSync(join(this._output!, fileName));
-					if (exists) {
-						files.push(fileName);
-					}
-					return files;
-				},
-				[] as string[]
-			);
+
+			this._cssFiles = Object.keys(this._manifest)
+				.filter((key) => {
+					return /\.css$/.test(key);
+				})
+				.map((key) => this._manifest[key]);
 
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);

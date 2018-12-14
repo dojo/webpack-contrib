@@ -8,7 +8,7 @@
 		const imgThree = document.createElement('img');
 		const imgFour = document.createElement('img');
 		const imgFive = document.createElement('img');
-		div.classList.add('hello');
+		div.classList.add('hello', 'another');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 		app.appendChild(div);
 
@@ -34,7 +34,7 @@
 		app.removeChild(div);
 		if (window.location.pathname === '/my-path') {
 			div = document.createElement('div');
-			div.classList.add('hello');
+			div.classList.add('hello', 'another');
 			div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 			app.appendChild(div);
 		} else if (window.location.pathname === '/my-path/other') {

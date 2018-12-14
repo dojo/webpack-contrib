@@ -1,8 +1,12 @@
 var has = require('@dojo/framework/has/has');
 require('@dojo/framework/shim/Promise');
-require('./sync');
+require('./common');
 
 var modules = [];
+
+if (has.default('build-serve')) {
+	modules.push(import(/* webpackChunkName: "platform/client" */ 'webpack-hot-middleware/client?reload=true'));
+}
 
 // @ts-ignore
 if (has.default(__dojoframeworkshimIntersectionObserver) && !has.default('dom-intersection-observer')) {

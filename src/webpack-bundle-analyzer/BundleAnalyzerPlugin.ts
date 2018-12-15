@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as mkdir from 'mkdirp';
 import * as viewer from './viewer';
 import { Compiler } from 'webpack';
-const bfj = require('bfj-node4');
+const bfj = require('bfj');
 
 export interface BundleAnalyzerOptions {
 	reportFilename: string;

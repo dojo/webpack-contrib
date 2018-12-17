@@ -1,6 +1,6 @@
 {
   "name": "@dojo/webpack-contrib",
-  "version": "5.0.0-alpha.8",
+  "version": "5.0.0-pre",
   "description": "Webpack loaders and plugins used by the Dojo build process",
   "engines": {
     "npm": ">=3.0.0"

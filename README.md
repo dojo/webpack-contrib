@@ -535,16 +535,16 @@ This repository uses [`prettier`](https://prettier.io/) for code styling rules a
 
 An additional npm script to run `prettier` (with write set to `true`) against all `src` and `test` project files is available by running:
 
-```bash
+```shell
 npm run prettier
 ```
 
 ### Testing
 
-To test this package, after ensuring all dependencies are installed, run the following command:
+To test this package, after ensuring all dependencies are installed (`npm install`), run the following command:
 
-```sh
-$ grunt test
+```shell
+npm run test
 ```
 
 ## Licensing information

@@ -117,22 +117,13 @@ export default class BuildTimeRender {
 				}
 			});
 
-			filteredCss = filteredCss
-				.replace(/\/\*.*\*\//g, '')
-				.replace(/^(\s*)(\r\n?|\n)/gm, '')
-				.trim();
-			result = `${result}${filteredCss}
-`;
-			return result;
+			return `${result}${filteredCss}`;
 		}, '');
 	}
 
 	private async _processCss(css: string) {
-		const processedCss = await postcss([
-			cssnano({ preset: ['default', { calc: false, normalizeUrl: false }] })
-		]).process(css, {
-			from: undefined
-		});
+		const cssnanoConfig = cssnano({ preset: ['default', { calc: false, normalizeUrl: false }] });
+		const processedCss = await postcss([cssnanoConfig]).process(css, { from: undefined });
 		return processedCss.css;
 	}
 
@@ -271,10 +262,7 @@ export default class BuildTimeRender {
 					}
 
 					if (this._useHistory) {
-						const promises = renderResults.map((result) => {
-							this._writeIndexHtml(result);
-						});
-						await promises;
+						await renderResults.map((result) => this._writeIndexHtml(result));
 					} else {
 						const combined = renderResults.reduce(
 							(combined, result) => {

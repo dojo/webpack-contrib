@@ -12,11 +12,13 @@ import {
 	getForSelector,
 	setHasFlags
 } from './helpers';
+import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
 const puppeteer = require('puppeteer');
 const webpack = require('webpack');
 const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
+const postcss = require('postcss');
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -44,7 +46,6 @@ export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
 	private _head: string;
-	private _inlinedCssClassNames: string[] = [];
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
@@ -68,7 +69,7 @@ export default class BuildTimeRender {
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 	}
 
-	private _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
+	private async _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
 		path = typeof path === 'object' ? path.path : path;
 		const prefix = getPrefix(path);
 		if (this._head) {
@@ -85,6 +86,7 @@ export default class BuildTimeRender {
 			return css;
 		}, '');
 
+		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
 		html = html.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
 		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
@@ -110,14 +112,8 @@ export default class BuildTimeRender {
 						.slice(0, 2)
 						.join('.');
 					const firstChar = value.substr(0, 1);
-					if (!this._useHistory && this._inlinedCssClassNames.indexOf(value) !== -1) {
-						return true;
-					}
-					if (classes.indexOf(value) !== -1 || ['.', '#'].indexOf(firstChar) === -1) {
-						this._inlinedCssClassNames.push(value);
-						return false;
-					}
-					return true;
+
+					return classes.indexOf(value) === -1 && ['.', '#'].indexOf(firstChar) !== -1;
 				}
 			});
 
@@ -129,6 +125,15 @@ export default class BuildTimeRender {
 `;
 			return result;
 		}, '');
+	}
+
+	private async _processCss(css: string) {
+		const processedCss = await postcss([
+			cssnano({ preset: ['default', { calc: false, normalizeUrl: false }] })
+		]).process(css, {
+			from: undefined
+		});
+		return processedCss.css;
 	}
 
 	private async _getRenderResult(
@@ -253,7 +258,7 @@ export default class BuildTimeRender {
 
 				if (this._paths.length === 0) {
 					const result = await this._getRenderResult(page, undefined);
-					this._writeIndexHtml(result);
+					await this._writeIndexHtml(result);
 				} else {
 					let renderResults: RenderResult[] = [];
 					renderResults.push(await this._getRenderResult(page, undefined, this._useHistory));
@@ -266,9 +271,10 @@ export default class BuildTimeRender {
 					}
 
 					if (this._useHistory) {
-						renderResults.forEach((result) => {
+						const promises = renderResults.map((result) => {
 							this._writeIndexHtml(result);
 						});
+						await promises;
 					} else {
 						const combined = renderResults.reduce(
 							(combined, result) => {
@@ -287,7 +293,7 @@ export default class BuildTimeRender {
 						);
 						let html = readFileSync(join(this._output, 'index.html'), 'utf-8');
 						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
-						this._writeIndexHtml({ styles: combined.styles, html, script });
+						await this._writeIndexHtml({ styles: combined.styles, html, script });
 					}
 				}
 				if (Object.keys(this._buildBridgeResult).length) {

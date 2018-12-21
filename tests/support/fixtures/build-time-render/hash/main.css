@@ -12,8 +12,20 @@
 	color: pink;
 }
 
+.link {
+	line-height: 20px;
+}
+
+.symbol, .bullet, .link {
+    color: #00b0e8;
+}
+
 span {
 	width: 100%;
+}
+
+span {
+	height: 100%;
 }
 
 /*# sourceMappingURL=main.16469ae7e579bf3f6af50cbfcb734efa.bundle.css.map*/

@@ -1,7 +1,7 @@
 (function main() {
 	const app = document.getElementById('app');
 	let div = document.createElement('div');
-	div.classList.add('hello');
+	div.classList.add('hello', 'link');
 	div.innerHTML = 'Hello';
 	app.appendChild(div);
 

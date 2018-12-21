@@ -262,7 +262,7 @@ export default class BuildTimeRender {
 					}
 
 					if (this._useHistory) {
-						await renderResults.map((result) => this._writeIndexHtml(result));
+						await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 					} else {
 						const combined = renderResults.reduce(
 							(combined, result) => {

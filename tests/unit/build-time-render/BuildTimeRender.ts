@@ -80,7 +80,7 @@ describe('build-time-render', () => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
+				assert.strictEqual(normalise(actual), normalise(expected));
 			});
 		});
 
@@ -103,7 +103,7 @@ describe('build-time-render', () => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
+				assert.strictEqual(normalise(actual), normalise(expected));
 			});
 		});
 
@@ -130,7 +130,7 @@ describe('build-time-render', () => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(actual, expected.replace(/^(\s*)(\r\n?|\n)/gm, '').trim());
+				assert.strictEqual(normalise(actual), normalise(expected));
 			});
 		});
 
@@ -242,15 +242,15 @@ describe('build-time-render', () => {
 						) > -1
 				);
 				assert.strictEqual(
-					outputFileSync.secondCall.args[1],
+					normalise(outputFileSync.secondCall.args[1]),
 					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
 				);
 				assert.strictEqual(
-					outputFileSync.thirdCall.args[1],
+					normalise(outputFileSync.thirdCall.args[1]),
 					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
 				);
 				assert.strictEqual(
-					outputFileSync.getCall(3).args[1],
+					normalise(outputFileSync.getCall(3).args[1]),
 					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
 				);
 			});
@@ -307,15 +307,15 @@ describe('build-time-render', () => {
 						) > -1
 				);
 				assert.strictEqual(
-					outputFileSync.secondCall.args[1],
+					normalise(outputFileSync.secondCall.args[1]),
 					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
 				);
 				assert.strictEqual(
-					outputFileSync.thirdCall.args[1],
+					normalise(outputFileSync.thirdCall.args[1]),
 					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
 				);
 				assert.strictEqual(
-					outputFileSync.getCall(3).args[1],
+					normalise(outputFileSync.getCall(3).args[1]),
 					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
 				);
 			});

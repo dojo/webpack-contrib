@@ -88,7 +88,6 @@ export default class BuildTimeRender {
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		html = html.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
 		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}

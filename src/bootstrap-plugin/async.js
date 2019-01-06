@@ -5,7 +5,7 @@ require('./common');
 var modules = [];
 
 if (has.default('build-serve')) {
-	modules.push(import(/* webpackChunkName: "platform/client" */ 'webpack-hot-middleware/client?reload=true'));
+	modules.push(import(/* webpackChunkName: "platform/client" */ '../webpack-hot-client/client'));
 }
 
 // @ts-ignore

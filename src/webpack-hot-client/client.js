@@ -7,7 +7,6 @@ var overlay = require('webpack-hot-middleware/client-overlay')({
 });
 
 var TIMEOUT = 20 * 1000;
-var PATH = '/__webpack_hmr';
 
 connect();
 
@@ -24,7 +23,7 @@ function EventSourceWrapper() {
 	}, TIMEOUT / 2);
 
 	function init() {
-		source = new global.EventSource(PATH);
+		source = new global.EventSource('/__webpack_hmr');
 		source.onopen = handleOnline;
 		source.onerror = handleDisconnect;
 		source.onmessage = handleMessage;
@@ -62,10 +61,10 @@ function EventSourceWrapper() {
 function getEventSourceWrapper() {
 	if (!global.__whmEventSourceWrapper) {
 		global.__whmEventSourceWrapper = {
-			[PATH]: EventSourceWrapper()
+			'/__webpack_hmr': EventSourceWrapper()
 		};
 	}
-	return global.__whmEventSourceWrapper[PATH];
+	return global.__whmEventSourceWrapper['/__webpack_hmr'];
 }
 
 function connect() {
@@ -147,7 +146,7 @@ function processMessage(obj) {
 			reporter.cleanProblemsCache();
 		}
 		if (applyUpdate) {
-			if (!buildHash || buildHash !== obj.hash) {
+			if (buildHash && buildHash !== obj.hash) {
 				global.location.reload();
 			}
 		}

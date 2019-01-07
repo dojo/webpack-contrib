@@ -66,6 +66,15 @@ describe('client', () => {
 	it('Reloads window when built with no errors', () => {
 		source.onmessage({
 			data: JSON.stringify({
+				action: 'sync',
+				errors: [],
+				warnings: [],
+				hash: 'first'
+			})
+		});
+
+		source.onmessage({
+			data: JSON.stringify({
 				action: 'built',
 				errors: [],
 				warnings: [],

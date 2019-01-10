@@ -43,6 +43,13 @@ export interface BuildTimeRenderArguments {
 	basePath: string;
 }
 
+function genHash(content: string): string {
+	return createHash('md4')
+		.update(content)
+		.digest('hex')
+		.substr(0, 20);
+}
+
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
@@ -166,16 +173,15 @@ export default class BuildTimeRender {
 
 	private _updateSourceAndMap(chunkname: string, source: string, sourceMap: string) {
 		this._manifestContent[chunkname] = source;
-		this._manifestContent[`${chunkname}.map`] = JSON.stringify(sourceMap);
+		this._manifestContent[`${chunkname}.map`] = sourceMap;
+
 		let content = this._manifestContent[chunkname];
-		const hash = createHash('md4')
-			.update(this._manifestContent[chunkname])
-			.digest('hex')
-			.substr(0, 20);
 		const oldHash = this._manifest[chunkname].replace(chunkname.replace('js', ''), '').replace(/\..*/, '');
+		const hash = genHash(this._manifestContent[chunkname]);
 		content = content.replace(new RegExp(oldHash, 'g'), hash);
 		this._manifest[chunkname] = this._manifest[chunkname].replace(oldHash, hash);
 		this._manifestContent[chunkname] = content;
+
 		const mapName = `${chunkname}.map`;
 		let mapContent = this._manifestContent[mapName];
 		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
@@ -188,14 +194,10 @@ export default class BuildTimeRender {
 		const name = 'bootstrap.js';
 		let content = this._manifestContent[name];
 		content = content.replace(new RegExp(oldHash, 'g'), hash);
-		const oldBootstrapHash = this._manifest[name].replace(name.replace('js', ''), '').replace(/\..*/, '');
-		const bootstrapHash = createHash('md4')
-			.update(content)
-			.digest('hex')
-			.substr(0, 20);
-		this._manifest[name] = this._manifest[name].replace(oldBootstrapHash, bootstrapHash);
-		this._manifestContent[name] = content;
-		return [oldBootstrapHash, bootstrapHash];
+		const mapName = `${name}.map`;
+		let mapContent = this._manifestContent[mapName];
+		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
+		return this._updateSourceAndMap(name, content, mapContent);
 	}
 
 	private _updateHTML(oldHash: string, hash: string) {
@@ -229,7 +231,11 @@ export default class BuildTimeRender {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
 					const result = node.toStringWithSourceMap({ file: chunkname });
 					removeSync(this._manifest[chunkname]);
-					const [oldHash, hash] = this._updateSourceAndMap(chunkname, result.code, result.map);
+					const [oldHash, hash] = this._updateSourceAndMap(
+						chunkname,
+						result.code,
+						JSON.stringify(result.map)
+					);
 					const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
 					this._updateHTML(oldBootstrapHash, bootstrapHash);
 					outputFileSync(
@@ -248,6 +254,11 @@ export default class BuildTimeRender {
 		outputFileSync(
 			join(this._output!, this._manifest['bootstrap.js']),
 			this._manifestContent['bootstrap.js'],
+			'utf-8'
+		);
+		outputFileSync(
+			join(this._output!, this._manifest['bootstrap.js.map']),
+			this._manifestContent['bootstrap.js.map'],
 			'utf-8'
 		);
 		outputFileSync(join(this._output!, this._manifest['index.html']), this._manifestContent['index.html'], 'utf-8');

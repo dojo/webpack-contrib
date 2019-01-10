@@ -63,6 +63,8 @@ export default class BuildTimeRender {
 	private _root: string;
 	private _useHistory = false;
 	private _basePath = '';
+	private _filesToWrite = new Set();
+	private _filesToRemove = new Set();
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -175,6 +177,9 @@ export default class BuildTimeRender {
 		this._manifestContent[chunkname] = source;
 		this._manifestContent[`${chunkname}.map`] = sourceMap;
 
+		this._filesToRemove.add(this._manifest[chunkname]);
+		this._filesToRemove.add(this._manifest[`${chunkname}.map`]);
+
 		let content = this._manifestContent[chunkname];
 		const oldHash = this._manifest[chunkname].replace(chunkname.replace('js', ''), '').replace(/\..*/, '');
 		const hash = genHash(this._manifestContent[chunkname]);
@@ -187,6 +192,9 @@ export default class BuildTimeRender {
 		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
 		this._manifest[mapName] = this._manifest[mapName].replace(oldHash, hash);
 		this._manifestContent[mapName] = mapContent;
+
+		this._filesToWrite.add(chunkname);
+		this._filesToWrite.add(mapName);
 		return [oldHash, hash];
 	}
 
@@ -205,10 +213,10 @@ export default class BuildTimeRender {
 		let content = this._manifestContent[name];
 		content = content.replace(new RegExp(oldHash, 'g'), hash);
 		this._manifestContent[name] = content;
+		this._filesToWrite.add(name);
 	}
 
 	private _writeBuildBridgeCache() {
-		removeSync(join(this._output!, this._manifest['bootstrap.js']));
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
@@ -230,7 +238,6 @@ export default class BuildTimeRender {
 				if (modified) {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
 					const result = node.toStringWithSourceMap({ file: chunkname });
-					removeSync(join(this._output!, this._manifest[chunkname]));
 					const [oldHash, hash] = this._updateSourceAndMap(
 						chunkname,
 						result.code,
@@ -238,31 +245,22 @@ export default class BuildTimeRender {
 					);
 					const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
 					this._updateHTML(oldBootstrapHash, bootstrapHash);
-					outputFileSync(
-						join(this._output!, this._manifest[chunkname]),
-						this._manifestContent[chunkname],
-						'utf-8'
-					);
-					outputFileSync(
-						join(this._output!, this._manifest[`${chunkname}.map`]),
-						this._manifestContent[`${chunkname}.map`],
-						'utf-8'
-					);
 				}
 			}
 		});
-		outputFileSync(
-			join(this._output!, this._manifest['bootstrap.js']),
-			this._manifestContent['bootstrap.js'],
-			'utf-8'
-		);
-		outputFileSync(
-			join(this._output!, this._manifest['bootstrap.js.map']),
-			this._manifestContent['bootstrap.js.map'],
-			'utf-8'
-		);
-		outputFileSync(join(this._output!, this._manifest['index.html']), this._manifestContent['index.html'], 'utf-8');
 		outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
+		this._filesToRemove.forEach((name) => {
+			removeSync(join(this._output!, name));
+		});
+
+		this._filesToRemove = new Set();
+
+		this._filesToWrite.forEach((name) => {
+			this._filesToRemove.add(this._manifest[name]);
+			outputFileSync(join(this._output!, this._manifest[name]), this._manifestContent[name], 'utf-8');
+		});
+
+		this._filesToWrite = new Set();
 	}
 
 	public apply(compiler: Compiler) {

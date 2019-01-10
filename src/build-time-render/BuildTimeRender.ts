@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { readFileSync, outputFileSync } from 'fs-extra';
+import { outputFileSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -211,6 +211,7 @@ export default class BuildTimeRender {
 		plugin.apply(compiler);
 
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
+			this._buildBridgeResult = {};
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
 				return Promise.resolve().then(() => {
@@ -218,14 +219,14 @@ export default class BuildTimeRender {
 				});
 			}
 
-			this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
+			this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
 			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
-				obj[chunkname] = readFileSync(join(this._output!, this._manifest[chunkname]), 'utf-8');
+				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;
 			}, this._manifestContent);
 
-			let originalIndexHtml = readFileSync(join(this._output, 'index.html'), 'utf-8');
-			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(originalIndexHtml);
+			const html = compilation.assets['index.html'].source();
+			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(html);
 			if (matchingHead) {
 				this._head = matchingHead[0];
 			}
@@ -278,7 +279,6 @@ export default class BuildTimeRender {
 								html: string[];
 							}
 						);
-						let html = readFileSync(join(this._output, 'index.html'), 'utf-8');
 						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
 						await this._writeIndexHtml({ styles: combined.styles, html, script });
 					}

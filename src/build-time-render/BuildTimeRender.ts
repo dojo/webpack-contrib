@@ -208,7 +208,7 @@ export default class BuildTimeRender {
 	}
 
 	private _writeBuildBridgeCache() {
-		removeSync(this._manifest['bootstrap.js']);
+		removeSync(join(this._output!, this._manifest['bootstrap.js']));
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
@@ -230,7 +230,7 @@ export default class BuildTimeRender {
 				if (modified) {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
 					const result = node.toStringWithSourceMap({ file: chunkname });
-					removeSync(this._manifest[chunkname]);
+					removeSync(join(this._output!, this._manifest[chunkname]));
 					const [oldHash, hash] = this._updateSourceAndMap(
 						chunkname,
 						result.code,

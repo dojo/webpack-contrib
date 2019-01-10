@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { outputFileSync } from 'fs-extra';
+import { outputFileSync, removeSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -19,6 +19,7 @@ const webpack = require('webpack');
 const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
 const postcss = require('postcss');
+const createHash = require('webpack/lib/util/createHash');
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -163,7 +164,49 @@ export default class BuildTimeRender {
 		}
 	}
 
+	private _updateSourceAndMap(chunkname: string, source: string, sourceMap: string) {
+		this._manifestContent[chunkname] = source;
+		this._manifestContent[`${chunkname}.map`] = JSON.stringify(sourceMap);
+		let content = this._manifestContent[chunkname];
+		const hash = createHash('md4')
+			.update(this._manifestContent[chunkname])
+			.digest('hex')
+			.substr(0, 20);
+		const oldHash = this._manifest[chunkname].replace(chunkname.replace('js', ''), '').replace(/\..*/, '');
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifest[chunkname] = this._manifest[chunkname].replace(oldHash, hash);
+		this._manifestContent[chunkname] = content;
+		const mapName = `${chunkname}.map`;
+		let mapContent = this._manifestContent[mapName];
+		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifest[mapName] = this._manifest[mapName].replace(oldHash, hash);
+		this._manifestContent[mapName] = mapContent;
+		return [oldHash, hash];
+	}
+
+	private _updateBootstrap(oldHash: string, hash: string) {
+		const name = 'bootstrap.js';
+		let content = this._manifestContent[name];
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		const oldBootstrapHash = this._manifest[name].replace(name.replace('js', ''), '').replace(/\..*/, '');
+		const bootstrapHash = createHash('md4')
+			.update(content)
+			.digest('hex')
+			.substr(0, 20);
+		this._manifest[name] = this._manifest[name].replace(oldBootstrapHash, bootstrapHash);
+		this._manifestContent[name] = content;
+		return [oldBootstrapHash, bootstrapHash];
+	}
+
+	private _updateHTML(oldHash: string, hash: string) {
+		const name = 'index.html';
+		let content = this._manifestContent[name];
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifestContent[name] = content;
+	}
+
 	private _writeBuildBridgeCache() {
+		removeSync(this._manifest['bootstrap.js']);
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
@@ -184,16 +227,31 @@ export default class BuildTimeRender {
 				});
 				if (modified) {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
-					const source = node.toStringWithSourceMap({ file: chunkname });
-					outputFileSync(join(this._output!, this._manifest[chunkname]), source.code, 'utf-8');
+					const result = node.toStringWithSourceMap({ file: chunkname });
+					removeSync(this._manifest[chunkname]);
+					const [oldHash, hash] = this._updateSourceAndMap(chunkname, result.code, result.map);
+					const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
+					this._updateHTML(oldBootstrapHash, bootstrapHash);
+					outputFileSync(
+						join(this._output!, this._manifest[chunkname]),
+						this._manifestContent[chunkname],
+						'utf-8'
+					);
 					outputFileSync(
 						join(this._output!, this._manifest[`${chunkname}.map`]),
-						JSON.stringify(source.map),
+						this._manifestContent[`${chunkname}.map`],
 						'utf-8'
 					);
 				}
 			}
 		});
+		outputFileSync(
+			join(this._output!, this._manifest['bootstrap.js']),
+			this._manifestContent['bootstrap.js'],
+			'utf-8'
+		);
+		outputFileSync(join(this._output!, this._manifest['index.html']), this._manifestContent['index.html'], 'utf-8');
+		outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
 	}
 
 	public apply(compiler: Compiler) {
@@ -225,7 +283,7 @@ export default class BuildTimeRender {
 				return obj;
 			}, this._manifestContent);
 
-			const html = compilation.assets['index.html'].source();
+			const html = this._manifestContent['index.html'];
 			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(html);
 			if (matchingHead) {
 				this._head = matchingHead[0];
@@ -280,7 +338,11 @@ export default class BuildTimeRender {
 							}
 						);
 						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
-						await this._writeIndexHtml({ styles: combined.styles, html, script });
+						await this._writeIndexHtml({
+							styles: combined.styles,
+							html: this._manifestContent['index.html'],
+							script
+						});
 					}
 				}
 				if (Object.keys(this._buildBridgeResult).length) {

@@ -22,67 +22,24 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
-const compilation = (history?: boolean) => {
-	const routingType = history ? 'state' : 'hash';
-	return {
-		assets: {
-			'manifest.json': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/manifest.json`),
-						'utf-8'
-					);
-				}
-			},
-			'main.js': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.js`),
-						'utf-8'
-					);
-				}
-			},
-			'main.css': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.css`),
-						'utf-8'
-					);
-				}
-			},
-			'other.js': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.js`)
-					);
-				}
-			},
-			'other.css': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`),
-						'utf-8'
-					);
-				}
-			},
-			'index.html': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/index.html`),
-						'utf-8'
-					);
-				}
-			},
-			'runtime.js': {
-				source() {
-					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/runtime.js`),
-						'utf-8'
-					);
-				}
-			}
-		}
+const compilation = (type: 'state' | 'hash' | 'build-bridge') => {
+	const manifest = readFileSync(
+		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
+		'utf-8'
+	);
+	let assets: any = {
+		'manifest.json': { source: () => manifest }
 	};
+	const parsedManifest = JSON.parse(manifest);
+	assets = Object.keys(parsedManifest).reduce((obj: any, key: string) => {
+		const content = readFileSync(
+			path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/${parsedManifest[key]}`),
+			'utf-8'
+		);
+		assets[key] = { source: () => content };
+		return assets;
+	}, assets);
+	return { assets };
 };
 
 let normalModuleReplacementPluginStub: any;
@@ -139,7 +96,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(), callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -162,7 +119,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(), callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -189,7 +146,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(), callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -228,7 +185,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(), callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.isTrue(outputFileSync.notCalled);
 			});
@@ -276,7 +233,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(true), callbackStub).then(() => {
+			return runBtr(compilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -341,7 +298,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation(true), callbackStub).then(() => {
+			return runBtr(compilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -431,7 +388,7 @@ describe('build-time-render', () => {
 				resource.request,
 				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
-			return runBtr(compilation(true), callbackStub).then(() => {
+			return runBtr(compilation('build-bridge'), callbackStub).then(() => {
 				const html = outputFileSync.firstCall.args[1];
 				const source = outputFileSync.secondCall.args[1];
 				const map = outputFileSync.thirdCall.args[1];

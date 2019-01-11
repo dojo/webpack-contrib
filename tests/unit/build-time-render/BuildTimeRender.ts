@@ -29,49 +29,55 @@ const compilation = (history?: boolean) => {
 			'manifest.json': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/manifest.json`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/manifest.json`),
+						'utf-8'
 					);
 				}
 			},
 			'main.js': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.js`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.js`),
+						'utf-8'
 					);
 				}
 			},
 			'main.css': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.css`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.css`),
+						'utf-8'
 					);
 				}
 			},
 			'other.js': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.js`)
 					);
 				}
 			},
 			'other.css': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`),
+						'utf-8'
 					);
 				}
 			},
 			'index.html': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/index.html`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/index.html`),
+						'utf-8'
 					);
 				}
 			},
 			'runtime.js': {
 				source() {
 					return readFileSync(
-						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/runtime.js`)
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/runtime.js`),
+						'utf-8'
 					);
 				}
 			}

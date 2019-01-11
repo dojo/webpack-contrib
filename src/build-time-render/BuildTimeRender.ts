@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { outputFileSync, removeSync } from 'fs-extra';
+import { outputFileSync, removeSync, readFileSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -83,7 +83,8 @@ export default class BuildTimeRender {
 		path = typeof path === 'object' ? path.path : path;
 		const prefix = getPrefix(path);
 		if (this._head) {
-			html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
+			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
+			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
 		}
 
 		const css = this._entries.reduce((css, entry) => {
@@ -112,6 +113,7 @@ export default class BuildTimeRender {
 
 	private _filterCss(classes: string[]): string {
 		return this._cssFiles.reduce((result, entry: string) => {
+			console.log(readFileSync(join(this._output!, entry), 'utf-8'));
 			let filteredCss: string = filterCss(join(this._output!, entry), (context: string, value: string) => {
 				if (context === 'selector') {
 					value = value.replace(/(:| ).*/, '');

@@ -373,7 +373,7 @@ describe('build-time-render', () => {
 			const btr = new Btr({
 				basePath,
 				paths: [],
-				entries: ['runtime', 'main'],
+				entries: ['bootstrap', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
@@ -389,9 +389,22 @@ describe('build-time-render', () => {
 				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			return runBtr(compilation('build-bridge'), callbackStub).then(() => {
-				const html = outputFileSync.firstCall.args[1];
-				const source = outputFileSync.secondCall.args[1];
-				const map = outputFileSync.thirdCall.args[1];
+				const calls = outputFileSync.getCalls();
+				let html = '';
+				let source = '';
+				let map = '';
+				calls.map((call) => {
+					const [filename, content] = call.args;
+					if (filename.match(/index\.html$/)) {
+						html = content;
+					}
+					if (filename.match(/main\.js$/)) {
+						source = content;
+					}
+					if (filename.match(/main\.js\.map$/)) {
+						map = content;
+					}
+				});
 				assert.strictEqual(
 					normalise(html),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))

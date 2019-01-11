@@ -238,13 +238,20 @@ export default class BuildTimeRender {
 				if (modified) {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
 					const result = node.toStringWithSourceMap({ file: chunkname });
-					const [oldHash, hash] = this._updateSourceAndMap(
-						chunkname,
-						result.code,
-						JSON.stringify(result.map)
-					);
-					const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
-					this._updateHTML(oldBootstrapHash, bootstrapHash);
+					if (this._manifest[chunkname] === chunkname) {
+						this._manifestContent[chunkname] = result.code;
+						this._manifestContent[`${chunkname}.map`] = JSON.stringify(result.map);
+						this._filesToWrite.add(chunkname);
+						this._filesToWrite.add(`${chunkname}.map`);
+					} else {
+						const [oldHash, hash] = this._updateSourceAndMap(
+							chunkname,
+							result.code,
+							JSON.stringify(result.map)
+						);
+						const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
+						this._updateHTML(oldBootstrapHash, bootstrapHash);
+					}
 				}
 			}
 		});

@@ -22,7 +22,7 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
-const compilation = (type: 'state' | 'hash' | 'build-bridge') => {
+const compilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash') => {
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
 		'utf-8'
@@ -36,7 +36,7 @@ const compilation = (type: 'state' | 'hash' | 'build-bridge') => {
 			path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/${parsedManifest[key]}`),
 			'utf-8'
 		);
-		assets[key] = { source: () => content };
+		assets[parsedManifest[key]] = { source: () => content };
 		return assets;
 	}, assets);
 	return { assets };
@@ -417,6 +417,61 @@ describe('build-time-render', () => {
 					normalise(map),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
 				);
+			});
+		});
+
+		it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			return runBtr(compilation('build-bridge-hash'), callbackStub).then(() => {
+				const calls = outputFileSync.getCalls();
+				/*let html = '';
+					let source = '';
+					let map = '';*/
+				calls.map((call) => {
+					const [filename, content] = call.args;
+					console.log(filename, content);
+					/*if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/main\.js$/)) {
+							source = content;
+						}
+						if (filename.match(/main\.js\.map$/)) {
+							map = content;
+						}*/
+				});
+				/*assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(source),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(map),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
+					);*/
 			});
 		});
 	});

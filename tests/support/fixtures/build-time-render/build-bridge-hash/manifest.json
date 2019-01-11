@@ -1,0 +1,8 @@
+{
+	"main.js": "main.0123456789abcdefghij.bundle.js",
+	"main.js.map": "main.0123456789abcdefghij.bundle.js.map",
+	"main.css": "main.css",
+	"bootstrap.js": "bootstrap.abcdefghij0123456789.bundle.js",
+	"bootstrap.js.map": "bootstrap.abcdefghij0123456789.bundle.js.map",
+	"index.html": "index.html"
+}

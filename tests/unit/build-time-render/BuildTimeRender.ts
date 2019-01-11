@@ -470,6 +470,7 @@ describe('build-time-render', () => {
 				let map = '';
 				calls.map((call) => {
 					const [filename, content] = call.args;
+					console.log(filename, content);
 					if (filename.match(/index\.html$/)) {
 						html = content;
 					}

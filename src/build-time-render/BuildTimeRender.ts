@@ -218,6 +218,7 @@ export default class BuildTimeRender {
 	}
 
 	private _writeBuildBridgeCache() {
+		console.log(this._buildBridgeResult);
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {

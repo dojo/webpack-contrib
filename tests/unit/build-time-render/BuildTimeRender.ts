@@ -474,12 +474,6 @@ describe('build-time-render', () => {
 					if (filename.match(/index\.html$/)) {
 						html = content;
 					}
-					/*if (filename.match(/main\.js$/)) {
-							source = content;
-						}
-						if (filename.match(/main\.js\.map$/)) {
-							map = content;
-						}<]*/
 				});
 				assert.strictEqual(
 					normalise(html),

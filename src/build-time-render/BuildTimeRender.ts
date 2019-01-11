@@ -99,7 +99,6 @@ export default class BuildTimeRender {
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
 		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
-		this._manifestContent['index.html'] = html;
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 
@@ -218,7 +217,9 @@ export default class BuildTimeRender {
 	}
 
 	private _writeBuildBridgeCache() {
-		console.log(this._buildBridgeResult);
+		if (!Object.keys(this._buildBridgeResult).length) {
+			return;
+		}
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
@@ -325,6 +326,8 @@ export default class BuildTimeRender {
 
 				if (this._paths.length === 0) {
 					const result = await this._getRenderResult(page, undefined);
+
+					this._writeBuildBridgeCache();
 					await this._writeIndexHtml(result);
 				} else {
 					let renderResults: RenderResult[] = [];
@@ -338,6 +341,7 @@ export default class BuildTimeRender {
 					}
 
 					if (this._useHistory) {
+						this._writeBuildBridgeCache();
 						await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 					} else {
 						const combined = renderResults.reduce(
@@ -362,9 +366,6 @@ export default class BuildTimeRender {
 							script
 						});
 					}
-				}
-				if (Object.keys(this._buildBridgeResult).length) {
-					this._writeBuildBridgeCache();
 				}
 			} catch (error) {
 				throw error;

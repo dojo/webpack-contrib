@@ -22,6 +22,63 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
+const compilation = (history?: boolean) => {
+	const routingType = history ? 'state' : 'hash';
+	return {
+		assets: {
+			'manifest.json': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/manifest.json`)
+					);
+				}
+			},
+			'main.js': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.js`)
+					);
+				}
+			},
+			'main.css': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/main.css`)
+					);
+				}
+			},
+			'other.js': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`)
+					);
+				}
+			},
+			'other.css': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/other.css`)
+					);
+				}
+			},
+			'index.html': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/index.html`)
+					);
+				}
+			},
+			'runtime.js': {
+				source() {
+					return readFileSync(
+						path.join(__dirname, `./../../support/fixtures/build-time-render/${routingType}/runtime.js`)
+					);
+				}
+			}
+		}
+	};
+};
+
 let normalModuleReplacementPluginStub: any;
 
 describe('build-time-render', () => {
@@ -76,7 +133,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -99,7 +156,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -126,7 +183,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -165,7 +222,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.isTrue(outputFileSync.notCalled);
 			});
@@ -213,7 +270,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(true), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -278,7 +335,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(true), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -368,7 +425,7 @@ describe('build-time-render', () => {
 				resource.request,
 				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation(true), callbackStub).then(() => {
 				const html = outputFileSync.firstCall.args[1];
 				const source = outputFileSync.secondCall.args[1];
 				const map = outputFileSync.thirdCall.args[1];

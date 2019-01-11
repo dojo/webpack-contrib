@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { outputFileSync, removeSync, readFileSync } from 'fs-extra';
+import { outputFileSync, removeSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -113,7 +113,6 @@ export default class BuildTimeRender {
 
 	private _filterCss(classes: string[]): string {
 		return this._cssFiles.reduce((result, entry: string) => {
-			console.log(readFileSync(join(this._output!, entry), 'utf-8'));
 			let filteredCss: string = filterCss(join(this._output!, entry), (context: string, value: string) => {
 				if (context === 'selector') {
 					value = value.replace(/(:| ).*/, '');

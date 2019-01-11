@@ -343,7 +343,7 @@ describe('build-time-render', () => {
 	});
 
 	describe('build bridge', () => {
-		beforeEach(() => {
+		it('should call node module, return result to render in html, and write to cache in bundle', () => {
 			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
 			compiler = {
 				hooks: {
@@ -360,9 +360,6 @@ describe('build-time-render', () => {
 					}
 				}
 			};
-		});
-
-		it('should call node module, return result to render in html, and write to cache in bundle', () => {
 			const fs = mockModule.getMock('fs-extra');
 			const outputFileSync = stub();
 			fs.outputFileSync = outputFileSync;
@@ -421,6 +418,30 @@ describe('build-time-render', () => {
 		});
 
 		it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
+			outputPath = path.join(
+				__dirname,
+				'..',
+				'..',
+				'support',
+				'fixtures',
+				'build-time-render',
+				'build-bridge-hash'
+			);
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
 			const fs = mockModule.getMock('fs-extra');
 			const outputFileSync = stub();
 			fs.outputFileSync = outputFileSync;
@@ -444,34 +465,33 @@ describe('build-time-render', () => {
 			callback(resource);
 			return runBtr(compilation('build-bridge-hash'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
-				/*let html = '';
-					let source = '';
-					let map = '';*/
+				let html = '';
+				let source = '';
+				let map = '';
 				calls.map((call) => {
 					const [filename, content] = call.args;
-					console.log(filename, content);
-					/*if (filename.match(/index\.html$/)) {
-							html = content;
-						}
-						if (filename.match(/main\.js$/)) {
+					if (filename.match(/index\.html$/)) {
+						html = content;
+					}
+					/*if (filename.match(/main\.js$/)) {
 							source = content;
 						}
 						if (filename.match(/main\.js\.map$/)) {
 							map = content;
-						}*/
+						}<]*/
 				});
-				/*assert.strictEqual(
-						normalise(html),
-						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
-					);
-					assert.strictEqual(
-						normalise(source),
-						normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
-					);
-					assert.strictEqual(
-						normalise(map),
-						normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
-					);*/
+				assert.strictEqual(
+					normalise(html),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(source),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(map),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
+				);
 			});
 		});
 	});

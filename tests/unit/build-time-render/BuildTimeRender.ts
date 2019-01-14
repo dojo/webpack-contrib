@@ -470,9 +470,14 @@ describe('build-time-render', () => {
 				let map = '';
 				calls.map((call) => {
 					const [filename, content] = call.args;
-					console.log(filename, content);
 					if (filename.match(/index\.html$/)) {
 						html = content;
+					}
+					if (filename.match(/main\..*\.bundle\.js$/)) {
+						source = content;
+					}
+					if (filename.match(/main\..*\.bundle\.js\.map$/)) {
+						map = content;
 					}
 				});
 				assert.strictEqual(
@@ -481,11 +486,18 @@ describe('build-time-render', () => {
 				);
 				assert.strictEqual(
 					normalise(source),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
+					normalise(
+						readFileSync(path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js'), 'utf-8')
+					)
 				);
 				assert.strictEqual(
 					normalise(map),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
+					normalise(
+						readFileSync(
+							path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js.map'),
+							'utf-8'
+						)
+					)
 				);
 			});
 		});

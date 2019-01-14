@@ -20,10 +20,11 @@ const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
 const postcss = require('postcss');
 const createHash = require('webpack/lib/util/createHash');
+import { parse } from 'node-html-parser';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
-	html: string;
+	content: string;
 	styles: string;
 	script: string;
 }
@@ -65,6 +66,7 @@ export default class BuildTimeRender {
 	private _basePath = '';
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
+	private _originalRoot: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -79,9 +81,11 @@ export default class BuildTimeRender {
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 	}
 
-	private async _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
+	private async _writeIndexHtml({ content, script, path = '', styles }: RenderResult) {
 		path = typeof path === 'object' ? path.path : path;
+		let html = this._manifestContent['index.html'];
 		const prefix = getPrefix(path);
+		html = html.replace(this._originalRoot, content);
 		if (this._head) {
 			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
@@ -98,7 +102,7 @@ export default class BuildTimeRender {
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
+		html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 
@@ -138,21 +142,20 @@ export default class BuildTimeRender {
 
 	private async _getRenderResult(
 		page: any,
-		path: BuildTimePath | string | undefined = undefined,
-		allContents = true
+		path: BuildTimePath | string | undefined = undefined
 	): Promise<RenderResult> {
 		const classes: any[] = await getClasses(page);
 		let pathValue = typeof path === 'object' ? path.path : path;
-		let html = allContents ? await page.content() : await getForSelector(page, `#${this._root}`);
+		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
-		html = html.replace(/http:\/\/localhost:\d+\//g, '');
+		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
-			html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
+			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 		}
-		return { html, styles, script, path };
+		return { content, styles, script, path };
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
@@ -216,6 +219,28 @@ export default class BuildTimeRender {
 		this._filesToWrite.add(name);
 	}
 
+	private _createCombinedRenderResult(renderResults: RenderResult[]) {
+		const combined = renderResults.reduce(
+			(combined, result) => {
+				combined.styles = result.styles ? `${combined.styles}\n${result.styles}` : combined.styles;
+				combined.html.push(result.content);
+				combined.paths.push(result.path || '');
+				return combined;
+			},
+			{ styles: '', html: [], paths: [] } as {
+				paths: (string | BuildTimePath)[];
+				styles: string;
+				html: string[];
+			}
+		);
+		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
+		return {
+			styles: combined.styles,
+			content: this._originalRoot,
+			script
+		};
+	}
+
 	private _writeBuildBridgeCache() {
 		if (!Object.keys(this._buildBridgeResult).length) {
 			return;
@@ -253,6 +278,7 @@ export default class BuildTimeRender {
 							JSON.stringify(result.map)
 						);
 						const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
+						this._updateHTML(oldHash, hash);
 						this._updateHTML(oldBootstrapHash, bootstrapHash);
 					}
 				}
@@ -303,6 +329,8 @@ export default class BuildTimeRender {
 			}, this._manifestContent);
 
 			const html = this._manifestContent['index.html'];
+			const root = parse(html);
+			this._originalRoot = `${root.querySelector(`#${this._root}`).toString()}`;
 			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(html);
 			if (matchingHead) {
 				this._head = matchingHead[0];
@@ -324,49 +352,23 @@ export default class BuildTimeRender {
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
 
-				if (this._paths.length === 0) {
-					const result = await this._getRenderResult(page, undefined);
+				let renderResults: RenderResult[] = [];
+				renderResults.push(await this._getRenderResult(page, undefined));
 
-					this._writeBuildBridgeCache();
-					await this._writeIndexHtml(result);
-				} else {
-					let renderResults: RenderResult[] = [];
-					renderResults.push(await this._getRenderResult(page, undefined, this._useHistory));
-
-					for (let i = 0; i < this._paths.length; i++) {
-						let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
-						await navigate(page, this._useHistory, path);
-						let result = await this._getRenderResult(page, this._paths[i], this._useHistory);
-						renderResults.push(result);
-					}
-
-					if (this._useHistory) {
-						this._writeBuildBridgeCache();
-						await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
-					} else {
-						const combined = renderResults.reduce(
-							(combined, result) => {
-								combined.styles = result.styles
-									? `${combined.styles}\n${result.styles}`
-									: combined.styles;
-								combined.html.push(result.html);
-								combined.paths.push(result.path || '');
-								return combined;
-							},
-							{ styles: '', html: [], paths: [] } as {
-								paths: (string | BuildTimePath)[];
-								styles: string;
-								html: string[];
-							}
-						);
-						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
-						await this._writeIndexHtml({
-							styles: combined.styles,
-							html: this._manifestContent['index.html'],
-							script
-						});
-					}
+				for (let i = 0; i < this._paths.length; i++) {
+					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
+					await navigate(page, this._useHistory, path);
+					let result = await this._getRenderResult(page, this._paths[i]);
+					renderResults.push(result);
 				}
+
+				this._writeBuildBridgeCache();
+
+				if (!this._useHistory && this._paths.length) {
+					renderResults = [this._createCombinedRenderResult(renderResults)];
+				}
+
+				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 			} catch (error) {
 				throw error;
 			} finally {

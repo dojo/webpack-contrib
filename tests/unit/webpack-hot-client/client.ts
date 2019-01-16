@@ -93,17 +93,6 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledOnce);
-
-		source.onmessage({
-			data: JSON.stringify({
-				action: 'sync',
-				errors: [],
-				warnings: [],
-				hash: 'hash-1'
-			})
-		});
-
 		assert.isTrue(global.location.reload.calledTwice);
 
 		source.onmessage({
@@ -115,7 +104,18 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledTwice);
+		assert.isTrue(global.location.reload.calledThrice);
+
+		source.onmessage({
+			data: JSON.stringify({
+				action: 'sync',
+				errors: [],
+				warnings: [],
+				hash: 'hash-1'
+			})
+		});
+
+		assert.isTrue(global.location.reload.calledThrice);
 
 		source.onmessage({
 			data: JSON.stringify({
@@ -126,7 +126,7 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledTwice);
+		assert.isTrue(global.location.reload.calledThrice);
 		assert.isTrue(overlayMock.showProblems.calledOnce);
 		assert.isTrue(overlayMock.clear.notCalled);
 
@@ -139,7 +139,7 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledTwice);
+		assert.isTrue(global.location.reload.calledThrice);
 		assert.isTrue(overlayMock.showProblems.calledTwice);
 		assert.isTrue(overlayMock.clear.notCalled);
 
@@ -152,7 +152,7 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledThrice);
+		assert.strictEqual(global.location.reload.callCount, 4);
 		assert.isTrue(overlayMock.showProblems.calledTwice);
 		assert.isTrue(overlayMock.clear.calledOnce);
 
@@ -165,7 +165,7 @@ describe('client', () => {
 			})
 		});
 
-		assert.isTrue(global.location.reload.calledThrice);
+		assert.strictEqual(global.location.reload.callCount, 4);
 		assert.isTrue(overlayMock.showProblems.calledTwice);
 		assert.isTrue(overlayMock.clear.calledOnce);
 
@@ -178,7 +178,7 @@ describe('client', () => {
 			})
 		});
 
-		assert.strictEqual(global.location.reload.callCount, 4);
+		assert.strictEqual(global.location.reload.callCount, 5);
 		assert.isTrue(overlayMock.showProblems.calledTwice);
 		assert.isTrue(overlayMock.clear.calledTwice);
 	});

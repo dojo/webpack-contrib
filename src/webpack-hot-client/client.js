@@ -146,7 +146,7 @@ function processMessage(obj) {
 			reporter.cleanProblemsCache();
 		}
 		if (applyUpdate) {
-			if (buildHash && buildHash !== obj.hash) {
+			if ( obj.action === 'built' || (buildHash && buildHash !== obj.hash)) {
 				global.location.reload();
 			}
 		}

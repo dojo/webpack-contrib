@@ -54,7 +54,6 @@ function genHash(content: string): string {
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
-	private _head: string;
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
@@ -67,6 +66,7 @@ export default class BuildTimeRender {
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
 	private _originalRoot: string;
+	private _originalAssetHashMap: any;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -85,11 +85,8 @@ export default class BuildTimeRender {
 		path = typeof path === 'object' ? path.path : path;
 		let html = this._manifestContent['index.html'];
 		const prefix = getPrefix(path);
+		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 		html = html.replace(this._originalRoot, content);
-		if (this._head) {
-			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
-			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
-		}
 
 		const css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
@@ -198,6 +195,13 @@ export default class BuildTimeRender {
 
 		this._filesToWrite.add(chunkname);
 		this._filesToWrite.add(mapName);
+		let originalHash = oldHash;
+		if (!this._originalAssetHashMap) {
+			this._originalAssetHashMap = {};
+		} else if (this._originalAssetHashMap[oldHash]) {
+			originalHash = this._originalAssetHashMap[oldHash];
+		}
+		this._originalAssetHashMap[hash] = originalHash;
 		return [oldHash, hash];
 	}
 
@@ -331,11 +335,6 @@ export default class BuildTimeRender {
 			const html = this._manifestContent['index.html'];
 			const root = parse(html);
 			this._originalRoot = `${root.querySelector(`#${this._root}`).toString()}`;
-			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(html);
-			if (matchingHead) {
-				this._head = matchingHead[0];
-			}
-
 			this._cssFiles = Object.keys(this._manifest)
 				.filter((key) => {
 					return /\.css$/.test(key);
@@ -369,6 +368,13 @@ export default class BuildTimeRender {
 				}
 
 				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
+				if (this._originalAssetHashMap) {
+					outputFileSync(
+						join(this._output, '..', 'info', 'assetHashMap.json'),
+						JSON.stringify(this._originalAssetHashMap),
+						'utf8'
+					);
+				}
 			} catch (error) {
 				throw error;
 			} finally {

@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs';
 import * as mkdir from 'mkdirp';
 import * as viewer from './viewer';
 import { Compiler } from 'webpack';
@@ -34,6 +35,7 @@ export default class BundleAnalyzerPlugin {
 		this.compiler = compiler;
 		const done = (stats: any) => {
 			stats = stats.toJson(this.opts.statsOptions);
+			stats = this.updateStatsHash(stats);
 			if (this.opts.generateStatsFile) {
 				this.generateStatsFile(stats);
 			}
@@ -41,6 +43,24 @@ export default class BundleAnalyzerPlugin {
 		};
 
 		compiler.hooks.done.tap(this.constructor.name, done);
+	}
+
+	updateStatsHash(stats: any): any {
+		try {
+			const assetHashPath = path.join(
+				path.dirname(path.resolve(this.compiler.outputPath, this.opts.statsFilename)),
+				'assetHashMap.json'
+			);
+			const assetHashMap = JSON.parse(fs.readFileSync(assetHashPath, 'utf8'));
+			let updatedStats = JSON.stringify(stats);
+			Object.keys(assetHashMap).forEach((hash) => {
+				const originalHash = assetHashMap[hash];
+				updatedStats = updatedStats.replace(new RegExp(originalHash, 'g'), hash);
+			});
+			return JSON.parse(updatedStats);
+		} catch (e) {
+			return stats;
+		}
 	}
 
 	async generateStatsFile(stats: any) {

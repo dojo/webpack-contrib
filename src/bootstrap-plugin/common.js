@@ -10,7 +10,10 @@ if (!has.exists('build-serve')) {
 }
 
 if (global.default.__public_path__) {
-	// @ts-ignore
-	__webpack_public_path__ = window.location.origin + global.default.__public_path__;
+	if (/^http(s)?:\/\//.test(global.default.__public_path__)) {
+		__webpack_public_path__ = global.default.__public_path__;
+	} else {
+		__webpack_public_path__ = window.location.origin + global.default.__public_path__;
+	}
 	has.add('public-path', global.default.__public_path__, true);
 }

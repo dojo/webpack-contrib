@@ -9,11 +9,12 @@ if (!has.exists('build-serve')) {
 	has.add('build-serve', false, false);
 }
 
-if (global.default.__public_path__) {
-	if (/^http(s)?:\/\//.test(global.default.__public_path__)) {
-		__webpack_public_path__ = global.default.__public_path__;
-	} else {
-		__webpack_public_path__ = window.location.origin + global.default.__public_path__;
+if (global.default.__public_path__ || global.default.__public_origin__) {
+	var origin = global.default.__public_origin__ || window.location.origin;
+	var publicPath = origin;
+	if (global.default.__public_path__) {
+		publicPath = origin + global.default.__public_path__;
+		has.add('public-path', global.default.__public_path__, true);
 	}
-	has.add('public-path', global.default.__public_path__, true);
+	__webpack_public_path__ = publicPath;
 }

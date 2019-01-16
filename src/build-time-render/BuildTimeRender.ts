@@ -300,7 +300,7 @@ export default class BuildTimeRender {
 			return;
 		}
 
-		const plugin = new webpack.NormalModuleReplacementPlugin(/\.build/, (resource: any) => {
+		const plugin = new webpack.NormalModuleReplacementPlugin(/\.block/, (resource: any) => {
 			const modulePath = join(resource.context, resource.request)
 				.replace(this._basePath, '')
 				.replace(/\\/g, '/')

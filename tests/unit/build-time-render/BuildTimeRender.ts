@@ -491,14 +491,14 @@ describe('build-time-render', () => {
 				assert.strictEqual(
 					normalise(source),
 					normalise(
-						readFileSync(path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js'), 'utf-8')
+						readFileSync(path.join(outputPath, 'expected', 'main.65d9815df8018787520e.bundle.js'), 'utf-8')
 					)
 				);
 				assert.strictEqual(
 					normalise(map),
 					normalise(
 						readFileSync(
-							path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js.map'),
+							path.join(outputPath, 'expected', 'main.65d9815df8018787520e.bundle.js.map'),
 							'utf-8'
 						)
 					)

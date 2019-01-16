@@ -1,5 +1,8 @@
 {
 	"main.js": "main.js",
 	"main.js.map": "main.js.map",
-	"main.css": "main.css"
+	"main.css": "main.css",
+	"bootstrap.js": "bootstrap.js",
+	"bootstrap.js.map": "bootstrap.js.map",
+	"index.html": "index.html"
 }

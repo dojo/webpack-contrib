@@ -22,6 +22,26 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
+const compilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash') => {
+	const manifest = readFileSync(
+		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
+		'utf-8'
+	);
+	let assets: any = {
+		'manifest.json': { source: () => manifest }
+	};
+	const parsedManifest = JSON.parse(manifest);
+	assets = Object.keys(parsedManifest).reduce((obj: any, key: string) => {
+		const content = readFileSync(
+			path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/${parsedManifest[key]}`),
+			'utf-8'
+		);
+		assets[parsedManifest[key]] = { source: () => content };
+		return assets;
+	}, assets);
+	return { assets };
+};
+
 let normalModuleReplacementPluginStub: any;
 
 describe('build-time-render', () => {
@@ -76,7 +96,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -99,7 +119,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -126,7 +146,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -165,7 +185,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.isTrue(outputFileSync.notCalled);
 			});
@@ -213,7 +233,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -278,7 +298,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr('', callbackStub).then(() => {
+			return runBtr(compilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -323,7 +343,7 @@ describe('build-time-render', () => {
 	});
 
 	describe('build bridge', () => {
-		beforeEach(() => {
+		it('should call node module, return result to render in html, and write to cache in bundle', () => {
 			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
 			compiler = {
 				hooks: {
@@ -340,9 +360,6 @@ describe('build-time-render', () => {
 					}
 				}
 			};
-		});
-
-		it('should call node module, return result to render in html, and write to cache in bundle', () => {
 			const fs = mockModule.getMock('fs-extra');
 			const outputFileSync = stub();
 			fs.outputFileSync = outputFileSync;
@@ -353,7 +370,7 @@ describe('build-time-render', () => {
 			const btr = new Btr({
 				basePath,
 				paths: [],
-				entries: ['runtime', 'main'],
+				entries: ['bootstrap', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
@@ -368,10 +385,23 @@ describe('build-time-render', () => {
 				resource.request,
 				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
-			return runBtr('', callbackStub).then(() => {
-				const html = outputFileSync.firstCall.args[1];
-				const source = outputFileSync.secondCall.args[1];
-				const map = outputFileSync.thirdCall.args[1];
+			return runBtr(compilation('build-bridge'), callbackStub).then(() => {
+				const calls = outputFileSync.getCalls();
+				let html = '';
+				let source = '';
+				let map = '';
+				calls.map((call) => {
+					const [filename, content] = call.args;
+					if (filename.match(/index\.html$/)) {
+						html = content;
+					}
+					if (filename.match(/main\.js$/)) {
+						source = content;
+					}
+					if (filename.match(/main\.js\.map$/)) {
+						map = content;
+					}
+				});
 				assert.strictEqual(
 					normalise(html),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
@@ -383,6 +413,99 @@ describe('build-time-render', () => {
 				assert.strictEqual(
 					normalise(map),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
+				);
+			});
+		});
+
+		it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
+			outputPath = path.join(
+				__dirname,
+				'..',
+				'..',
+				'support',
+				'fixtures',
+				'build-time-render',
+				'build-bridge-hash'
+			);
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			return runBtr(compilation('build-bridge-hash'), callbackStub).then(() => {
+				const calls = outputFileSync.getCalls();
+				let html = '';
+				let source = '';
+				let map = '';
+				let originalManifest = '';
+				calls.forEach((call) => {
+					const [filename, content] = call.args;
+					if (filename.match(/index\.html$/)) {
+						html = content;
+					}
+					if (filename.match(/main\..*\.bundle\.js$/)) {
+						source = content;
+					}
+					if (filename.match(/main\..*\.bundle\.js\.map$/)) {
+						map = content;
+					}
+					if (filename.match(/originalManifest\.json$/)) {
+						originalManifest = content;
+					}
+				});
+				assert.strictEqual(
+					normalise(html),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(source),
+					normalise(
+						readFileSync(path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js'), 'utf-8')
+					)
+				);
+				assert.strictEqual(
+					normalise(map),
+					normalise(
+						readFileSync(
+							path.join(outputPath, 'expected', 'main.60ebb7634ba23af82ec9.bundle.js.map'),
+							'utf-8'
+						)
+					)
+				);
+				assert.strictEqual(
+					normalise(originalManifest),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
 				);
 			});
 		});

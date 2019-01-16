@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { readFileSync, outputFileSync } from 'fs-extra';
+import { outputFileSync, removeSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -19,10 +19,12 @@ const webpack = require('webpack');
 const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
 const postcss = require('postcss');
+const createHash = require('webpack/lib/util/createHash');
+import { parse } from 'node-html-parser';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
-	html: string;
+	content: string;
 	styles: string;
 	script: string;
 }
@@ -42,10 +44,16 @@ export interface BuildTimeRenderArguments {
 	basePath: string;
 }
 
+function genHash(content: string): string {
+	return createHash('md4')
+		.update(content)
+		.digest('hex')
+		.substr(0, 20);
+}
+
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
-	private _head: string;
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
@@ -55,6 +63,9 @@ export default class BuildTimeRender {
 	private _root: string;
 	private _useHistory = false;
 	private _basePath = '';
+	private _filesToWrite = new Set();
+	private _filesToRemove = new Set();
+	private _originalRoot: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -69,13 +80,12 @@ export default class BuildTimeRender {
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 	}
 
-	private async _writeIndexHtml({ html, script, path = '', styles }: RenderResult) {
+	private async _writeIndexHtml({ content, script, path = '', styles }: RenderResult) {
 		path = typeof path === 'object' ? path.path : path;
+		let html = this._manifestContent['index.html'];
 		const prefix = getPrefix(path);
-		if (this._head) {
-			const head = this._head.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
-			html = html.replace(/<head>([\s\S]*?)<\/head>/gm, head);
-		}
+		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
+		html = html.replace(this._originalRoot, content);
 
 		const css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
@@ -88,7 +98,7 @@ export default class BuildTimeRender {
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		html = html.replace(this._createScripts(path), `${script}${css}${this._createScripts(path)}`);
+		html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 
@@ -128,21 +138,20 @@ export default class BuildTimeRender {
 
 	private async _getRenderResult(
 		page: any,
-		path: BuildTimePath | string | undefined = undefined,
-		allContents = true
+		path: BuildTimePath | string | undefined = undefined
 	): Promise<RenderResult> {
 		const classes: any[] = await getClasses(page);
 		let pathValue = typeof path === 'object' ? path.path : path;
-		let html = allContents ? await page.content() : await getForSelector(page, `#${this._root}`);
+		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
-		html = html.replace(/http:\/\/localhost:\d+\//g, '');
+		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
-			html = html.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
+			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 		}
-		return { html, styles, script, path };
+		return { content, styles, script, path };
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
@@ -163,7 +172,75 @@ export default class BuildTimeRender {
 		}
 	}
 
+	private _updateSourceAndMap(chunkname: string, source: string, sourceMap: string) {
+		this._manifestContent[chunkname] = source;
+		this._manifestContent[`${chunkname}.map`] = sourceMap;
+
+		this._filesToRemove.add(this._manifest[chunkname]);
+		this._filesToRemove.add(this._manifest[`${chunkname}.map`]);
+
+		let content = this._manifestContent[chunkname];
+		const oldHash = this._manifest[chunkname].replace(chunkname.replace('js', ''), '').replace(/\..*/, '');
+		const hash = genHash(this._manifestContent[chunkname]);
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifest[chunkname] = this._manifest[chunkname].replace(oldHash, hash);
+		this._manifestContent[chunkname] = content;
+
+		const mapName = `${chunkname}.map`;
+		let mapContent = this._manifestContent[mapName];
+		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifest[mapName] = this._manifest[mapName].replace(oldHash, hash);
+		this._manifestContent[mapName] = mapContent;
+
+		this._filesToWrite.add(chunkname);
+		this._filesToWrite.add(mapName);
+		return [oldHash, hash];
+	}
+
+	private _updateBootstrap(oldHash: string, hash: string) {
+		const name = 'bootstrap.js';
+		let content = this._manifestContent[name];
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		const mapName = `${name}.map`;
+		let mapContent = this._manifestContent[mapName];
+		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
+		return this._updateSourceAndMap(name, content, mapContent);
+	}
+
+	private _updateHTML(oldHash: string, hash: string) {
+		const name = 'index.html';
+		let content = this._manifestContent[name];
+		content = content.replace(new RegExp(oldHash, 'g'), hash);
+		this._manifestContent[name] = content;
+		this._filesToWrite.add(name);
+	}
+
+	private _createCombinedRenderResult(renderResults: RenderResult[]) {
+		const combined = renderResults.reduce(
+			(combined, result) => {
+				combined.styles = result.styles ? `${combined.styles}\n${result.styles}` : combined.styles;
+				combined.html.push(result.content);
+				combined.paths.push(result.path || '');
+				return combined;
+			},
+			{ styles: '', html: [], paths: [] } as {
+				paths: (string | BuildTimePath)[];
+				styles: string;
+				html: string[];
+			}
+		);
+		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
+		return {
+			styles: combined.styles,
+			content: this._originalRoot,
+			script
+		};
+	}
+
 	private _writeBuildBridgeCache() {
+		if (!Object.keys(this._buildBridgeResult).length) {
+			return;
+		}
 		Object.keys(this._manifestContent).forEach((chunkname) => {
 			let modified = false;
 			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
@@ -184,16 +261,38 @@ export default class BuildTimeRender {
 				});
 				if (modified) {
 					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
-					const source = node.toStringWithSourceMap({ file: chunkname });
-					outputFileSync(join(this._output!, this._manifest[chunkname]), source.code, 'utf-8');
-					outputFileSync(
-						join(this._output!, this._manifest[`${chunkname}.map`]),
-						JSON.stringify(source.map),
-						'utf-8'
-					);
+					const result = node.toStringWithSourceMap({ file: chunkname });
+					if (this._manifest[chunkname] === chunkname) {
+						this._manifestContent[chunkname] = result.code;
+						this._manifestContent[`${chunkname}.map`] = JSON.stringify(result.map);
+						this._filesToWrite.add(chunkname);
+						this._filesToWrite.add(`${chunkname}.map`);
+					} else {
+						const [oldHash, hash] = this._updateSourceAndMap(
+							chunkname,
+							result.code,
+							JSON.stringify(result.map)
+						);
+						const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
+						this._updateHTML(oldHash, hash);
+						this._updateHTML(oldBootstrapHash, bootstrapHash);
+					}
 				}
 			}
 		});
+		outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
+		this._filesToRemove.forEach((name) => {
+			removeSync(join(this._output!, name));
+		});
+
+		this._filesToRemove = new Set();
+
+		this._filesToWrite.forEach((name) => {
+			this._filesToRemove.add(this._manifest[name]);
+			outputFileSync(join(this._output!, this._manifest[name]), this._manifestContent[name], 'utf-8');
+		});
+
+		this._filesToWrite = new Set();
 	}
 
 	public apply(compiler: Compiler) {
@@ -211,6 +310,7 @@ export default class BuildTimeRender {
 		plugin.apply(compiler);
 
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
+			this._buildBridgeResult = {};
 			this._output = compiler.options.output && compiler.options.output.path;
 			if (!this._output) {
 				return Promise.resolve().then(() => {
@@ -218,18 +318,15 @@ export default class BuildTimeRender {
 				});
 			}
 
-			this._manifest = JSON.parse(readFileSync(join(this._output, 'manifest.json'), 'utf-8'));
+			this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
 			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
-				obj[chunkname] = readFileSync(join(this._output!, this._manifest[chunkname]), 'utf-8');
+				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;
 			}, this._manifestContent);
 
-			let originalIndexHtml = readFileSync(join(this._output, 'index.html'), 'utf-8');
-			const matchingHead = /<head>([\s\S]*?)<\/head>/.exec(originalIndexHtml);
-			if (matchingHead) {
-				this._head = matchingHead[0];
-			}
-
+			const html = this._manifestContent['index.html'];
+			const root = parse(html);
+			this._originalRoot = `${root.querySelector(`#${this._root}`).toString()}`;
 			this._cssFiles = Object.keys(this._manifest)
 				.filter((key) => {
 					return /\.css$/.test(key);
@@ -246,45 +343,29 @@ export default class BuildTimeRender {
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
 
-				if (this._paths.length === 0) {
-					const result = await this._getRenderResult(page, undefined);
-					await this._writeIndexHtml(result);
-				} else {
-					let renderResults: RenderResult[] = [];
-					renderResults.push(await this._getRenderResult(page, undefined, this._useHistory));
+				let renderResults: RenderResult[] = [];
+				renderResults.push(await this._getRenderResult(page, undefined));
 
-					for (let i = 0; i < this._paths.length; i++) {
-						let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
-						await navigate(page, this._useHistory, path);
-						let result = await this._getRenderResult(page, this._paths[i], this._useHistory);
-						renderResults.push(result);
-					}
-
-					if (this._useHistory) {
-						await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
-					} else {
-						const combined = renderResults.reduce(
-							(combined, result) => {
-								combined.styles = result.styles
-									? `${combined.styles}\n${result.styles}`
-									: combined.styles;
-								combined.html.push(result.html);
-								combined.paths.push(result.path || '');
-								return combined;
-							},
-							{ styles: '', html: [], paths: [] } as {
-								paths: (string | BuildTimePath)[];
-								styles: string;
-								html: string[];
-							}
-						);
-						let html = readFileSync(join(this._output, 'index.html'), 'utf-8');
-						const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
-						await this._writeIndexHtml({ styles: combined.styles, html, script });
-					}
+				for (let i = 0; i < this._paths.length; i++) {
+					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
+					await navigate(page, this._useHistory, path);
+					let result = await this._getRenderResult(page, this._paths[i]);
+					renderResults.push(result);
 				}
+
+				this._writeBuildBridgeCache();
+
+				if (!this._useHistory && this._paths.length) {
+					renderResults = [this._createCombinedRenderResult(renderResults)];
+				}
+
+				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 				if (Object.keys(this._buildBridgeResult).length) {
-					this._writeBuildBridgeCache();
+					outputFileSync(
+						join(this._output, '..', 'info', 'originalManifest.json'),
+						compilation.assets['manifest.json'].source(),
+						'utf8'
+					);
 				}
 			} catch (error) {
 				throw error;

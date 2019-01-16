@@ -18,6 +18,8 @@ export interface BundleAnalyzerOptions {
 export default class BundleAnalyzerPlugin {
 	private opts: BundleAnalyzerOptions;
 	private compiler: any;
+	private _outputDirectory: string;
+	private _outputPath: string;
 
 	constructor(opts: Partial<BundleAnalyzerOptions>) {
 		this.opts = {
@@ -34,6 +36,8 @@ export default class BundleAnalyzerPlugin {
 	apply(compiler: Compiler) {
 		this.compiler = compiler;
 		const done = (stats: any) => {
+			this._outputPath = path.resolve(this.compiler.outputPath, this.opts.statsFilename);
+			this._outputDirectory = path.dirname(this._outputPath);
 			stats = stats.toJson(this.opts.statsOptions);
 			stats = this.updateStatsHash(stats);
 			if (this.opts.generateStatsFile) {
@@ -47,15 +51,13 @@ export default class BundleAnalyzerPlugin {
 
 	updateStatsHash(stats: any): any {
 		try {
-			const assetHashPath = path.join(
-				path.dirname(path.resolve(this.compiler.outputPath, this.opts.statsFilename)),
-				'assetHashMap.json'
+			const manifest = JSON.parse(fs.readFileSync(path.join(this.compiler.outputPath, 'manifest.json'), 'utf8'));
+			const originalManifest = JSON.parse(
+				fs.readFileSync(path.join(this._outputDirectory, 'originalManifest.json'), 'utf8')
 			);
-			const assetHashMap = JSON.parse(fs.readFileSync(assetHashPath, 'utf8'));
 			let updatedStats = JSON.stringify(stats);
-			Object.keys(assetHashMap).forEach((hash) => {
-				const originalHash = assetHashMap[hash];
-				updatedStats = updatedStats.replace(new RegExp(originalHash, 'g'), hash);
+			Object.keys(manifest).forEach((key) => {
+				updatedStats = updatedStats.replace(new RegExp(originalManifest[key], 'g'), manifest[key]);
 			});
 			return JSON.parse(updatedStats);
 		} catch (e) {
@@ -64,11 +66,10 @@ export default class BundleAnalyzerPlugin {
 	}
 
 	async generateStatsFile(stats: any) {
-		const statsFilePath = path.resolve(this.compiler.outputPath, this.opts.statsFilename);
-		mkdir.sync(path.dirname(statsFilePath));
+		mkdir.sync(this._outputDirectory);
 
 		try {
-			await bfj.write(statsFilePath, stats, {
+			await bfj.write(this._outputPath, stats, {
 				promises: 'ignore',
 				buffers: 'ignore',
 				maps: 'ignore',

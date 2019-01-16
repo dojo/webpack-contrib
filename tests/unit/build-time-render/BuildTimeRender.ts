@@ -468,7 +468,8 @@ describe('build-time-render', () => {
 				let html = '';
 				let source = '';
 				let map = '';
-				calls.map((call) => {
+				let originalManifest = '';
+				calls.forEach((call) => {
 					const [filename, content] = call.args;
 					if (filename.match(/index\.html$/)) {
 						html = content;
@@ -478,6 +479,9 @@ describe('build-time-render', () => {
 					}
 					if (filename.match(/main\..*\.bundle\.js\.map$/)) {
 						map = content;
+					}
+					if (filename.match(/originalManifest\.json$/)) {
+						originalManifest = content;
 					}
 				});
 				assert.strictEqual(
@@ -498,6 +502,10 @@ describe('build-time-render', () => {
 							'utf-8'
 						)
 					)
+				);
+				assert.strictEqual(
+					normalise(originalManifest),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
 				);
 			});
 		});

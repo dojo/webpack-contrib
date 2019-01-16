@@ -66,7 +66,6 @@ export default class BuildTimeRender {
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
 	private _originalRoot: string;
-	private _originalAssetHashMap: any;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -195,13 +194,6 @@ export default class BuildTimeRender {
 
 		this._filesToWrite.add(chunkname);
 		this._filesToWrite.add(mapName);
-		let originalHash = oldHash;
-		if (!this._originalAssetHashMap) {
-			this._originalAssetHashMap = {};
-		} else if (this._originalAssetHashMap[oldHash]) {
-			originalHash = this._originalAssetHashMap[oldHash];
-		}
-		this._originalAssetHashMap[hash] = originalHash;
 		return [oldHash, hash];
 	}
 
@@ -368,10 +360,10 @@ export default class BuildTimeRender {
 				}
 
 				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
-				if (this._originalAssetHashMap) {
+				if (Object.keys(this._buildBridgeResult).length) {
 					outputFileSync(
-						join(this._output, '..', 'info', 'assetHashMap.json'),
-						JSON.stringify(this._originalAssetHashMap),
+						join(this._output, '..', 'info', 'originalManifest.json'),
+						compilation.assets['manifest.json'].source(),
 						'utf8'
 					);
 				}

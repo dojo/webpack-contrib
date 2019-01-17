@@ -22,7 +22,8 @@ export class BootstrapPlugin {
 	private _defineConfiguration: { [index: string]: string } = {
 		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),
 		__dojoframeworkshimWebAnimations: JSON.stringify('no-bootstrap'),
-		__dojoframeworkshimResizeObserver: JSON.stringify('no-bootstrap')
+		__dojoframeworkshimResizeObserver: JSON.stringify('no-bootstrap'),
+		__dojoframeworkshimFetch: JSON.stringify('no-bootstrap')
 	};
 
 	constructor(options: BootstrapPluginOptions) {

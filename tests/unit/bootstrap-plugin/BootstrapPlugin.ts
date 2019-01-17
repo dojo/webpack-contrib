@@ -120,6 +120,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 			__dojoframeworkshimIntersectionObserver: '"no-bootstrap"',
 			__dojoframeworkshimWebAnimations: '"no-bootstrap"',
 			__dojoframeworkshimResizeObserver: '"no-bootstrap"',
+			__dojoframeworkshimFetch: '"no-bootstrap"',
 			__dojoframeworkshimFoo: '"foo"',
 			__dojoframeworkshimBar: '"bar"',
 			__dojoframeworkshimBaz: '"baz"'

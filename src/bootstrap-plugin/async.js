@@ -8,19 +8,20 @@ if (has.default('build-serve')) {
 	modules.push(import(/* webpackChunkName: "platform/client" */ '../webpack-hot-client/client'));
 }
 
-// @ts-ignore
 if (has.default(__dojoframeworkshimIntersectionObserver) && !has.default('dom-intersection-observer')) {
 	modules.push(
 		import(/* webpackChunkName: "platform/IntersectionObserver" */ '@dojo/framework/shim/IntersectionObserver')
 	);
 }
 
-// @ts-ignore
+if (has.default(__dojoframeworkshimFetch) && !has.default('fetch')) {
+	modules.push(import(/* webpackChunkName: "platform/fetch" */ '@dojo/framework/shim/fetch'));
+}
+
 if (has.default(__dojoframeworkshimWebAnimations) && !has.default('dom-webanimation')) {
 	modules.push(import(/* webpackChunkName: "platform/WebAnimations" */ '@dojo/framework/shim/WebAnimations'));
 }
 
-// @ts-ignore
 if (has.default(__dojoframeworkshimResizeObserver) && !has.default('dom-resize-observer')) {
 	modules.push(import(/* webpackChunkName: "platform/ResizeObserver" */ '@dojo/framework/shim/ResizeObserver'));
 }
@@ -30,6 +31,5 @@ if (!has.default('dom-pointer-events')) {
 }
 
 Promise.all(modules).then(function() {
-	// @ts-ignore
 	import(/* webpackChunkName: "main" */ __MAIN_ENTRY);
 });

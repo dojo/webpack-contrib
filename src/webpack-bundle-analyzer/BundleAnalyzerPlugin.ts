@@ -53,7 +53,7 @@ export default class BundleAnalyzerPlugin {
 		try {
 			const manifest = JSON.parse(fs.readFileSync(path.join(this.compiler.outputPath, 'manifest.json'), 'utf8'));
 			const originalManifest = JSON.parse(
-				fs.readFileSync(path.join(this._outputDirectory, 'originalManifest.json'), 'utf8')
+				fs.readFileSync(path.join(this._outputDirectory, 'manifest.original.json'), 'utf8')
 			);
 			let updatedStats = JSON.stringify(stats);
 			Object.keys(manifest).forEach((key) => {

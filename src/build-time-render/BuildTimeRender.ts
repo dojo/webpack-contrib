@@ -66,6 +66,7 @@ export default class BuildTimeRender {
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
 	private _originalRoot: string;
+	private _bridgePromises: Promise<any>[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -158,7 +159,9 @@ export default class BuildTimeRender {
 		try {
 			const module = require(`${this._basePath}/${modulePath}`);
 			if (module && module.default) {
-				const result = await module.default(...args);
+				const promise = module.default(...args);
+				this._bridgePromises.push(promise);
+				const result = await promise;
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
 				this._buildBridgeResult[modulePath].push(
 					`window.__dojoBuildBridgeCache['${modulePath}']['${JSON.stringify(args)}'] = ${JSON.stringify(
@@ -295,6 +298,11 @@ export default class BuildTimeRender {
 		this._filesToWrite = new Set();
 	}
 
+	private async _waitForBridge() {
+		await Promise.all(this._bridgePromises);
+		this._bridgePromises = [];
+	}
+
 	public apply(compiler: Compiler) {
 		if (!this._root) {
 			return;
@@ -344,7 +352,9 @@ export default class BuildTimeRender {
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
+				await this._waitForBridge();
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
+
 				let renderResults: RenderResult[] = [];
 				renderResults.push(await this._getRenderResult(page, undefined));
 
@@ -356,6 +366,7 @@ export default class BuildTimeRender {
 						pathDirectories.pop();
 						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
 					}
+					await this._waitForBridge();
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					renderResults.push(result);

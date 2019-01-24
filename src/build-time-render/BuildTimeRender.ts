@@ -362,7 +362,7 @@ export default class BuildTimeRender {
 				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 				if (Object.keys(this._buildBridgeResult).length) {
 					outputFileSync(
-						join(this._output, '..', 'info', 'originalManifest.json'),
+						join(this._output, '..', 'info', 'manifest.original.json'),
 						compilation.assets['manifest.json'].source(),
 						'utf8'
 					);

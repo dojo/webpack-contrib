@@ -480,7 +480,7 @@ describe('build-time-render', () => {
 					if (filename.match(/main\..*\.bundle\.js\.map$/)) {
 						map = content;
 					}
-					if (filename.match(/originalManifest\.json$/)) {
+					if (filename.match(/manifest\.original\.json$/)) {
 						originalManifest = content;
 					}
 				});

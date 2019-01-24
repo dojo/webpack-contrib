@@ -1,5 +1,5 @@
 import { Compiler } from 'webpack';
-import { outputFileSync, removeSync } from 'fs-extra';
+import { outputFileSync, removeSync, ensureDirSync } from 'fs-extra';
 
 import { join } from 'path';
 import {
@@ -336,19 +336,27 @@ export default class BuildTimeRender {
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);
 			try {
+				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
+				ensureDirSync(screenshotDirectory);
 				const page = await browser.newPage();
 				await setHasFlags(page);
 				await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
-
+				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 				let renderResults: RenderResult[] = [];
 				renderResults.push(await this._getRenderResult(page, undefined));
 
 				for (let i = 0; i < this._paths.length; i++) {
 					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
 					await navigate(page, this._useHistory, path);
+					const pathDirectories = path.replace('#', '').split('/');
+					if (pathDirectories.length > 0) {
+						pathDirectories.pop();
+						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
+					}
+					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					renderResults.push(result);
 				}

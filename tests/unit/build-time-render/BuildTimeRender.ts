@@ -151,6 +151,42 @@ describe('build-time-render', () => {
 				assert.strictEqual(error.message, 'Block error');
 			});
 		});
+
+		it('should capture errors during build time rendering', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			outputFileSync.throws(() => new Error('Test Error'));
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			assert.equal(
+				resource.request,
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+			);
+			const compilation = createCompilation('build-bridge-error');
+			return runBtr(compilation, callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
+				assert.lengthOf(compilation.errors, 1);
+				const error = compilation.errors.pop()!;
+				assert.strictEqual(error.message, 'Test Error');
+			});
+		});
 	});
 
 	describe('hash history', () => {

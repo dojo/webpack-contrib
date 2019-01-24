@@ -402,7 +402,7 @@ export default class BuildTimeRender {
 					compilation.errors.push(...this._blockErrors);
 				}
 			} catch (error) {
-				throw error;
+				compilation.errors.push(error);
 			} finally {
 				await browser.close();
 				await app.server.close();

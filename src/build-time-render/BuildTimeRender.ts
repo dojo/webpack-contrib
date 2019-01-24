@@ -67,6 +67,7 @@ export default class BuildTimeRender {
 	private _filesToRemove = new Set();
 	private _originalRoot: string;
 	private _bridgePromises: Promise<any>[] = [];
+	private _blockErrors: Error[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -171,7 +172,7 @@ export default class BuildTimeRender {
 				return result;
 			}
 		} catch (e) {
-			console.warn(e);
+			this._blockErrors.push(e);
 		}
 	}
 
@@ -334,7 +335,18 @@ export default class BuildTimeRender {
 
 			const html = this._manifestContent['index.html'];
 			const root = parse(html);
-			this._originalRoot = `${root.querySelector(`#${this._root}`).toString()}`;
+			const rootNode = root.querySelector(`#${this._root}`);
+			if (!rootNode) {
+				const error = new Error(
+					`Failed to run build time rendering. Could not find DOM node with id: "${
+						this._root
+					}" in src/index.html`
+				);
+				compilation.errors.push(error);
+				callback();
+				return;
+			}
+			this._originalRoot = `${rootNode.toString()}`;
 			this._cssFiles = Object.keys(this._manifest)
 				.filter((key) => {
 					return /\.css$/.test(key);
@@ -385,6 +397,9 @@ export default class BuildTimeRender {
 						compilation.assets['manifest.json'].source(),
 						'utf8'
 					);
+				}
+				if (this._blockErrors.length) {
+					compilation.errors.push(...this._blockErrors);
 				}
 			} catch (error) {
 				throw error;

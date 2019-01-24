@@ -22,7 +22,8 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
-const compilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash') => {
+const createCompilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash' | 'build-bridge-error') => {
+	const errors: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
 		'utf-8'
@@ -39,7 +40,7 @@ const compilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-has
 		assets[parsedManifest[key]] = { source: () => content };
 		return assets;
 	}, assets);
-	return { assets };
+	return { assets, errors };
 };
 
 let normalModuleReplacementPluginStub: any;
@@ -60,6 +61,96 @@ describe('build-time-render', () => {
 		mockModule.destroy();
 		callbackStub.reset();
 		runBtr = () => {};
+	});
+
+	describe('errors', () => {
+		beforeEach(() => {
+			outputPath = path.join(
+				__dirname,
+				'..',
+				'..',
+				'support',
+				'fixtures',
+				'build-time-render',
+				'build-bridge-error'
+			);
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+		});
+
+		it('should report an error if the root node is not in the index.html', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const btr = new Btr({
+				entries: ['runtime', 'main'],
+				root: 'missing',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			assert.isTrue(pluginRegistered);
+			const compilation = createCompilation('build-bridge-error');
+			return runBtr(compilation, callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
+				assert.lengthOf(compilation.errors, 1);
+				const error = compilation.errors.pop()!;
+				assert.strictEqual(
+					error.message,
+					'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
+				);
+			});
+		});
+
+		it('should report errors from running build bridge', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			assert.equal(
+				resource.request,
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+			);
+			const compilation = createCompilation('build-bridge-error');
+			return runBtr(compilation, callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
+				assert.lengthOf(compilation.errors, 1);
+				const error = compilation.errors.pop()!;
+				assert.strictEqual(error.message, 'Block error');
+			});
+		});
 	});
 
 	describe('hash history', () => {
@@ -89,14 +180,16 @@ describe('build-time-render', () => {
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
 			const btr = new Btr({
+				basePath,
 				entries: ['runtime', 'main'],
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] }
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('hash'), callbackStub).then(() => {
+			return runBtr(createCompilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -119,7 +212,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('hash'), callbackStub).then(() => {
+			return runBtr(createCompilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -146,7 +239,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('hash'), callbackStub).then(() => {
+			return runBtr(createCompilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
 				const actual = outputFileSync.firstCall.args[1];
@@ -185,7 +278,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('hash'), callbackStub).then(() => {
+			return runBtr(createCompilation('hash'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.isTrue(outputFileSync.notCalled);
 			});
@@ -233,7 +326,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('state'), callbackStub).then(() => {
+			return runBtr(createCompilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -298,7 +391,7 @@ describe('build-time-render', () => {
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
-			return runBtr(compilation('state'), callbackStub).then(() => {
+			return runBtr(createCompilation('state'), callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.strictEqual(outputFileSync.callCount, 4);
 				assert.isTrue(
@@ -385,7 +478,7 @@ describe('build-time-render', () => {
 				resource.request,
 				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
-			return runBtr(compilation('build-bridge'), callbackStub).then(() => {
+			return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
 				let html = '';
 				let source = '';
@@ -463,7 +556,7 @@ describe('build-time-render', () => {
 				request: `something.build.js`
 			};
 			callback(resource);
-			return runBtr(compilation('build-bridge-hash'), callbackStub).then(() => {
+			return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
 				let html = '';
 				let source = '';

@@ -356,9 +356,15 @@ export default class BuildTimeRender {
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);
 			try {
+				const reportError = (err: Error) => {
+					err.message = `BTR runtime ${err.message}`;
+					compilation.errors.push(err);
+				};
 				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
 				ensureDirSync(screenshotDirectory);
 				const page = await browser.newPage();
+				page.on('error', reportError);
+				page.on('pageerror', reportError);
 				await setHasFlags(page);
 				await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });

@@ -7,5 +7,6 @@
         div.innerHTML = result;
     });
     app.appendChild(div);
+	throw new Error('runtime error');
 })();
 //# sourceMappingURL=main.js.map

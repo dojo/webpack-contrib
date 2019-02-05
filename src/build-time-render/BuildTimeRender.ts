@@ -4,7 +4,6 @@ import { outputFileSync, removeSync, ensureDirSync } from 'fs-extra';
 import { join } from 'path';
 import {
 	serve,
-	navigate,
 	getClasses,
 	getPrefix,
 	generateBasePath,
@@ -372,12 +371,15 @@ export default class BuildTimeRender {
 
 				for (let i = 0; i < this._paths.length; i++) {
 					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
-					await navigate(page, this._useHistory, path);
+					await page.goto(`http://localhost:${app.port}/${path}`);
+					const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
+					await page.reload();
 					const pathDirectories = path.replace('#', '').split('/');
 					if (pathDirectories.length > 0) {
 						pathDirectories.pop();
 						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
 					}
+					await wait;
 					await this._waitForBridge();
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);

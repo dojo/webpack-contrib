@@ -1,6 +1,7 @@
 (function main() {
 	const app = document.getElementById('app');
 	let div = document.createElement('div');
+	const route = window.location.pathname;
 
 	function renderDefault() {
 		const imgOne = document.createElement('img');
@@ -28,22 +29,19 @@
 		div.appendChild(imgFive);
 	}
 
-	renderDefault();
-
-	window.addEventListener('popstate', () => {
-		app.removeChild(div);
-		if (window.location.pathname === '/my-path') {
-			div = document.createElement('div');
-			div.classList.add('hello', 'another');
-			div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
-			app.appendChild(div);
-		} else if (window.location.pathname === '/my-path/other') {
-			div = document.createElement('div');
-			div.classList.add('other');
-			div.innerHTML = 'Other';
-			app.appendChild(div);
-		} else {
-			renderDefault();
-		}
-	});
+	if (route === '/') {
+		renderDefault();
+	} else if (route === '/my-path') {
+		div = document.createElement('div');
+		div.classList.add('hello', 'another');
+		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
+		app.appendChild(div);
+	} else if (route === '/my-path/other') {
+		div = document.createElement('div');
+		div.classList.add('other');
+		div.innerHTML = 'Other';
+		app.appendChild(div);
+	} else {
+		renderDefault();
+	}
 })();

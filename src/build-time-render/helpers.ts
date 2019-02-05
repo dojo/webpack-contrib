@@ -1,26 +1,8 @@
 import * as express from 'express';
 import * as getPort from 'get-port';
 import * as http from 'http';
-
-export async function navigate(page: any, useHistory: boolean, route: string) {
-	const promise = new Promise(async (resolve) => {
-		await page.evaluate(
-			(route: string, useHistory: boolean) => {
-				if (useHistory) {
-					route = route[0] === '/' ? route : `/${route}`;
-					window.history.pushState({}, '', route);
-					window.dispatchEvent(new Event('popstate'));
-				} else {
-					window.location.hash = route;
-				}
-			},
-			route,
-			useHistory
-		);
-		setTimeout(resolve, 500);
-	});
-	return promise;
-}
+import * as url from 'url';
+import * as history from 'connect-history-api-fallback';
 
 export interface ServeDetails {
 	server: http.Server;
@@ -30,6 +12,31 @@ export interface ServeDetails {
 export async function serve(directory: string): Promise<ServeDetails> {
 	const app = express();
 	const port = await getPort();
+	app.use(
+		history({
+			rewrites: [
+				{
+					from: /^.*\.(?!html).*$/,
+					to: (context: any) => {
+						const { host, referer } = context.request.headers;
+						const { url: originalUrl } = context.request;
+						if (!referer || referer.endsWith(host + originalUrl)) {
+							return originalUrl;
+						}
+						const parsedUrl = url.parse(referer);
+						const paths = parsedUrl && parsedUrl.pathname ? parsedUrl.pathname.split('/') : [];
+						const urlRewrite = paths.reduce((rewrite, segment) => {
+							if (!segment) {
+								return rewrite;
+							}
+							return rewrite.replace(`/${segment}`, '');
+						}, context.parsedUrl.pathname);
+						return urlRewrite;
+					}
+				}
+			]
+		})
+	);
 	app.use(express.static(directory));
 	const promise = new Promise<ServeDetails>((resolve) => {
 		const server = app.listen(port, () => {

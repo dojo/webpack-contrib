@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { Compiler } from 'webpack';
 import MockModule from '../../support/MockModule';
 import { createCompilation, createCompiler } from '../../support/util';
@@ -246,7 +247,7 @@ describe('EmitAllPlugin', () => {
 			const assetMap = compilation.assets['dir/asset.mjs.map'];
 			const assetMapSource = {
 				mappings: 'abcd',
-				sources: ['dir/asset.ts']
+				sources: [path.relative('src/', 'src/dir/asset.ts')]
 			};
 			const assetMapSourceString = JSON.stringify(assetMapSource);
 			assert.strictEqual(assetMap.source(), assetMapSourceString);
@@ -443,7 +444,7 @@ describe('EmitAllPlugin', () => {
 			const assetMap = compilation.assets['dir/styles.css.map'];
 			const assetMapSource = {
 				mappings: 'abcd',
-				sources: ['dir/styles.css']
+				sources: [path.relative('src/', 'src/dir/styles.css')]
 			};
 			const assetMapSourceString = JSON.stringify(assetMapSource);
 			assert.strictEqual(assetMap.source(), assetMapSourceString);

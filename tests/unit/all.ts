@@ -1,4 +1,5 @@
 import './main';
+import './emit-all-plugin/EmitAllPlugin';
 import './external-loader-plugin/ExternalLoaderPlugin';
 import './static-build-loader/all';
 import './css-module-decorator-loader/all';

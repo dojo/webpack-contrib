@@ -44,8 +44,6 @@ export default class EmitAllPlugin {
 					const assetName = resource.replace(basePath, '').replace(/\.ts$/, extension);
 
 					if (assetName.includes('.css')) {
-						let imports: string[];
-
 						module.dependencies.forEach(({ identifier, content, sourceMap }: any) => {
 							if (identifier.includes(resource)) {
 								let css = content;
@@ -59,10 +57,6 @@ export default class EmitAllPlugin {
 									if (!inlineSourceMaps) {
 										compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
 									}
-								}
-
-								if (imports && imports.length) {
-									css = imports.join('') + '\n' + css;
 								}
 
 								compilation.assets[assetName] = createSource(css);
@@ -91,7 +85,7 @@ export default class EmitAllPlugin {
 		});
 	}
 
-	private normalizeSourceMap(assetName: string, sourceMap: any, inline = false) {
+	private normalizeSourceMap(assetName: string, sourceMap: any, inline: boolean) {
 		// The source map's `sources` will be absolute paths, leaking details about the system that
 		// generated it. Force the `sources` array to contain paths relative to the base path.
 		const fixedSourceMap = {

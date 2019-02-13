@@ -8,6 +8,7 @@ import {
 	getPrefix,
 	generateBasePath,
 	generateRouteInjectionScript,
+	getScriptSources,
 	getForSelector,
 	setHasFlags
 } from './helpers';
@@ -53,6 +54,7 @@ function genHash(content: string): string {
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
+	private _originalManifest: any;
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
@@ -67,6 +69,7 @@ export default class BuildTimeRender {
 	private _originalRoot: string;
 	private _bridgePromises: Promise<any>[] = [];
 	private _blockErrors: Error[] = [];
+	private _hasBuildBridgeCache = false;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -240,62 +243,74 @@ export default class BuildTimeRender {
 		};
 	}
 
-	private _writeBuildBridgeCache() {
+	private _writeBuildBridgeCache(modules: string[]) {
 		if (!Object.keys(this._buildBridgeResult).length) {
 			return;
 		}
-		Object.keys(this._manifestContent).forEach((chunkname) => {
-			let modified = false;
-			if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
-				const content = this._manifestContent[chunkname];
-				const sourceMap = this._manifestContent[`${chunkname}.map`];
-				const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
-				Object.keys(this._buildBridgeResult).forEach((modulePath) => {
-					if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
-						const buildBridgeResults = this._buildBridgeResult[modulePath];
-						buildBridgeResults.forEach((buildBridgeResult: any) => {
-							node.prepend(buildBridgeResult);
-						});
-						node.prepend(
-							`window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`
-						);
-						modified = true;
-					}
-				});
-				if (modified) {
-					node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
-					const result = node.toStringWithSourceMap({ file: chunkname });
-					if (this._manifest[chunkname] === chunkname) {
-						this._manifestContent[chunkname] = result.code;
-						this._manifestContent[`${chunkname}.map`] = JSON.stringify(result.map);
-						this._filesToWrite.add(chunkname);
-						this._filesToWrite.add(`${chunkname}.map`);
-					} else {
-						const [oldHash, hash] = this._updateSourceAndMap(
-							chunkname,
-							result.code,
-							JSON.stringify(result.map)
-						);
-						const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
-						this._updateHTML(oldHash, hash);
-						this._updateHTML(oldBootstrapHash, bootstrapHash);
+		Object.keys(this._manifestContent)
+			.filter((chunkname) => {
+				const real = this._originalManifest[chunkname];
+				return modules.indexOf(real) > -1;
+			})
+			.forEach((chunkname) => {
+				let modified = false;
+				if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
+					const content = this._manifestContent[chunkname];
+					const sourceMap = this._manifestContent[`${chunkname}.map`];
+					const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
+					Object.keys(this._buildBridgeResult).forEach((modulePath) => {
+						if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
+							const buildBridgeResults = this._buildBridgeResult[modulePath];
+							buildBridgeResults.forEach((buildBridgeResult: any) => {
+								node.prepend(buildBridgeResult);
+							});
+							node.prepend(
+								`window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`
+							);
+							modified = true;
+							this._hasBuildBridgeCache = true;
+						}
+					});
+					if (modified) {
+						node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
+						const result = node.toStringWithSourceMap({ file: chunkname });
+						if (this._manifest[chunkname] === chunkname) {
+							this._manifestContent[chunkname] = result.code;
+							this._manifestContent[`${chunkname}.map`] = JSON.stringify(result.map);
+							this._filesToWrite.add(chunkname);
+							this._filesToWrite.add(`${chunkname}.map`);
+						} else {
+							const [oldHash, hash] = this._updateSourceAndMap(
+								chunkname,
+								result.code,
+								JSON.stringify(result.map)
+							);
+							const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
+							this._updateHTML(oldHash, hash);
+							this._updateHTML(oldBootstrapHash, bootstrapHash);
+						}
 					}
 				}
-			}
-		});
-		outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
-		this._filesToRemove.forEach((name) => {
-			removeSync(join(this._output!, name));
-		});
+			});
+		this._buildBridgeResult = {};
+	}
 
-		this._filesToRemove = new Set();
+	private _writeBuildTimeCacheFiles() {
+		if (this._hasBuildBridgeCache) {
+			outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
+			this._filesToRemove.forEach((name) => {
+				removeSync(join(this._output!, name));
+			});
 
-		this._filesToWrite.forEach((name) => {
-			this._filesToRemove.add(this._manifest[name]);
-			outputFileSync(join(this._output!, this._manifest[name]), this._manifestContent[name], 'utf-8');
-		});
+			this._filesToRemove = new Set();
 
-		this._filesToWrite = new Set();
+			this._filesToWrite.forEach((name) => {
+				this._filesToRemove.add(this._manifest[name]);
+				outputFileSync(join(this._output!, this._manifest[name]), this._manifestContent[name], 'utf-8');
+			});
+
+			this._filesToWrite = new Set();
+		}
 	}
 
 	private async _waitForBridge() {
@@ -327,6 +342,7 @@ export default class BuildTimeRender {
 			}
 
 			this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
+			this._originalManifest = JSON.parse(compilation.assets['manifest.json'].source());
 			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
 				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;
@@ -364,6 +380,8 @@ export default class BuildTimeRender {
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
 				await this._waitForBridge();
+				const scripts = await getScriptSources(page, app.port);
+				this._writeBuildBridgeCache(scripts);
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 
 				let renderResults: RenderResult[] = [];
@@ -381,19 +399,21 @@ export default class BuildTimeRender {
 					}
 					await wait;
 					await this._waitForBridge();
+					const scripts = await getScriptSources(page, app.port);
+					this._writeBuildBridgeCache(scripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					renderResults.push(result);
 				}
 
-				this._writeBuildBridgeCache();
+				this._writeBuildTimeCacheFiles();
 
 				if (!this._useHistory && this._paths.length) {
 					renderResults = [this._createCombinedRenderResult(renderResults)];
 				}
 
 				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
-				if (Object.keys(this._buildBridgeResult).length) {
+				if (this._hasBuildBridgeCache) {
 					outputFileSync(
 						join(this._output, '..', 'info', 'manifest.original.json'),
 						compilation.assets['manifest.json'].source(),

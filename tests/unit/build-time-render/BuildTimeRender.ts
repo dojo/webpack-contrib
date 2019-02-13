@@ -109,9 +109,8 @@ describe('build-time-render', () => {
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
 				assert.lengthOf(compilation.errors, 1);
-				const error = compilation.errors.pop()!;
 				assert.strictEqual(
-					error.message,
+					compilation.errors[0].message,
 					'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
 				);
 			});
@@ -146,9 +145,12 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 1);
-				const error = compilation.errors.pop()!;
-				assert.strictEqual(error.message, 'Block error');
+				assert.lengthOf(compilation.errors, 2);
+				assert.include(
+					compilation.errors[0].message,
+					'BTR runtime Error: runtime error\n    at main (http://localhost'
+				);
+				assert.strictEqual(compilation.errors[1].message, 'Block error');
 			});
 		});
 
@@ -182,9 +184,12 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 1);
-				const error = compilation.errors.pop()!;
-				assert.strictEqual(error.message, 'Test Error');
+				assert.lengthOf(compilation.errors, 2);
+				assert.include(
+					compilation.errors[0].message,
+					'BTR runtime Error: runtime error\n    at main (http://localhost'
+				);
+				assert.strictEqual(compilation.errors[1].message, 'Test Error');
 			});
 		});
 	});

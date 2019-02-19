@@ -3,7 +3,7 @@ var global = require('@dojo/framework/shim/global').default;
 var ANSI_REGEX = /(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/g;
 
 function strip(str) {
-	return typeof str === 'string' ? str.replace(ansiRegex, '') : str;
+	return typeof str === 'string' ? str.replace(ANSI_REGEX, '') : str;
 };
 
 var overlay = require('webpack-hot-middleware/client-overlay')({

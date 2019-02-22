@@ -524,6 +524,61 @@ A custom [TypeScript transformer](https://github.com/TypeStrong/ts-loader#getcus
 
 For example, if `LazyWidget` needs to be split into a separate bundle and this transformer is not applied, then `LazyWidget` would need to be added to the registry (`registry.define('lazy-widget', LazyWidget)`), and all calls to `w(LazyWidget)` would need to be updated to reference its registry key (`w<LazyWidget>('lazy-widget')`). By using this transformer, `LazyWidget` would instead be added to the registry at build time, allowing existing code to remain unchanged.
 
+## element-transformer
+
+A custom [TypeScript transformer](https://github.com/TypeStrong/ts-loader#getcustomtransformers-----before-transformerfactory-after-transformerfactory--) that generates a custom element definition for specified widgets.
+
+For example given a widget `Hello`,
+
+```typescript
+import { v } from '@dojo/framework/widget-core/d';
+import { WidgetBase } from '@dojo/framework/widget-core/WidgetBase';
+
+interface HelloProperties {
+	name: string;
+	flag: boolean;
+	onClick(): void;
+	onChange(value: string): void;
+}
+
+export class Hello extends WidgetBase<HelloProperties> {
+	protected render() {
+		const { name } = this.properties;
+		return v('h1', { }, [
+			'Hello ${name}!'
+		]);
+	}
+}
+
+export default Hello;
+```
+
+The generated output would be ,
+
+```typescript
+import { v } from '@dojo/framework/widget-core/d';
+import { WidgetBase } from '@dojo/framework/widget-core/WidgetBase';
+
+interface HelloProperties {
+	name: string;
+	flag: boolean;
+	onClick(): void;
+	onChange(value: string): void;
+}
+
+export class Hello extends WidgetBase<HelloProperties> {
+	protected render() {
+		const { name } = this.properties;
+		return v('h1', { }, [
+			'Hello ${name}!'
+		]);
+	}
+}
+Hello.__customElementDescriptor = { tag: 'hello-widget', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] };
+
+export default Hello;
+```
+
 ## How do I contribute?
 
 We appreciate your interest!  Please see the [Dojo 2 Meta Repository](https://github.com/dojo/meta#readme) for the

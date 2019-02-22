@@ -4,7 +4,7 @@ function stripFileExtension(fileName: string) {
 	return fileName.substring(0, fileName.lastIndexOf('.'));
 }
 
-export default function simpleTransformer<T extends ts.Node>(
+export default function elementTransformer<T extends ts.Node>(
 	program: ts.Program,
 	customElementFiles: string[]
 ): ts.TransformerFactory<T> {

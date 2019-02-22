@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import elementTransformer from '../../../src/element-transformer/index';
+import elementTransformer from '../../../src/element-transformer/ElementTransformer';
 
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');

@@ -1,132 +1,109 @@
 import * as ts from 'typescript';
 
-export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
-	return (context: ts.TransformationContext) => (file: ts.SourceFile) => visitNodeAndChildren(file, program, context);
+function stripFileExtension(fileName: string) {
+	return fileName.substring(0, fileName.lastIndexOf('.'));
 }
 
-function visitNodeAndChildren(f: ts.SourceFile, program: ts.Program, context: ts.TransformationContext): ts.SourceFile;
-function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node;
-function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.TransformationContext) {
-	return ts.visitEachChild(
-		decoratorVisit(node, program),
-		(childNode) => visitNodeAndChildren(childNode, program, context),
-		context
-	);
-}
-
-function decoratorVisit(node: ts.Node, program: ts.Program): ts.Node {
-	if (!(ts.isClassDeclaration(node) && node.decorators && node.name)) {
-		return node;
-	}
-	const decorator = node.decorators.find((dec) => {
-		return ts.isCallExpression(dec.expression) && dec.expression.expression.getText() === 'customElement';
-	});
-	if (!decorator) {
-		return node;
-	}
-
-	if (!ts.isCallExpression(decorator.expression) || decorator.expression.arguments.length !== 1) {
-		throw new Error('`customElement` decorator expects a single argument: string (tag name) or object');
-	}
-	let decArg = decorator.expression.arguments[0];
-	let didNormalize = false;
-
-	// normalize pass: transform @customElement('dojo-input') to @customElement({ tag: 'dojo-input' })
-	if (ts.isStringLiteral(decArg)) {
-		decArg = ts.createObjectLiteral([ts.createPropertyAssignment('tag', decArg)]);
-		didNormalize = true;
-	}
-
-	if (!ts.isObjectLiteralExpression(decArg)) {
-		throw new Error('`customElement` expects either a string (the tag name) or an object');
-	}
-
-	// Figure out which props were explicitly set so we don't override
-	const passedArgKeys = new Set(
-		didNormalize
-			? ['tag'] // can't do getText on created nodes
-			: decArg.properties.map((n) => {
-					return n.name!.getText();
-			  })
-	);
-
-	// Get the public props from the widget's interface declaration
+export default function simpleTransformer<T extends ts.Node>(
+	program: ts.Program,
+	customElementFiles: string[]
+): ts.TransformerFactory<T> {
 	const checker = program.getTypeChecker();
-	if (
-		!(
-			node.heritageClauses &&
-			node.heritageClauses.length &&
-			node.heritageClauses[0].types.length &&
-			node.heritageClauses[0].types[0].typeArguments
-		)
-	) {
-		throw new Error(
-			"`customElement` expects to decore a class that extends WidgetBase<T> where T is the widget's public properties."
-		);
-	}
-	const widgetPropNode = node.heritageClauses[0].types[0].typeArguments![0];
-	const widgetPropType = checker.getTypeFromTypeNode(widgetPropNode);
-	const widgetProps = checker.getPropertiesOfType(widgetPropType).map((sym) => {
-		const propType = checker.typeToString(checker.getTypeOfSymbolAtLocation(sym, widgetPropNode));
-		return [sym.getName(), propType];
-	});
 
-	// Categorize the props
-	const attributes: string[] = [];
-	const events: string[] = [];
-	const properties: string[] = [];
-	for (let [n, t] of widgetProps) {
-		if (t === 'string') {
-			attributes.push(n);
-		} else if (n.startsWith('on') && (t.includes('=>') || t.includes('):'))) {
-			events.push(n);
-		} else {
-			properties.push(n);
-		}
-	}
-	const propsToAdd = [];
+	return (context) => {
+		const visit: any = (node: ts.Node) => {
+			const moduleSymbol = checker.getSymbolAtLocation(node.getSourceFile());
+			const [defaultExport = undefined] = moduleSymbol
+				? checker.getExportsOfModule(moduleSymbol).filter((symbol) => symbol.escapedName === 'default')
+				: [];
+			const classSymbol =
+				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
+			const classNode = node as ts.ClassDeclaration;
 
-	// Build output
-	if (!passedArgKeys.has('attributes') && attributes.length) {
-		propsToAdd.push(
-			ts.createPropertyAssignment('attributes', ts.createArrayLiteral(attributes.map(ts.createLiteral)))
-		);
-	}
+			if (
+				customElementFiles.indexOf(stripFileExtension(node.getSourceFile().fileName)) !== -1 &&
+				defaultExport &&
+				classSymbol &&
+				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===
+					checker.getTypeOfSymbolAtLocation(classSymbol, node) &&
+				classNode.heritageClauses &&
+				classNode.heritageClauses.length > 0
+			) {
+				const widgetName = classNode.name!.getText();
+				let tagName = widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+				if (tagName.indexOf('-') === -1) {
+					tagName = `${tagName}-widget`;
+				}
 
-	if (!passedArgKeys.has('events') && events.length) {
-		propsToAdd.push(ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral))));
-	}
+				const [
+					{
+						types: [{ typeArguments = [] }]
+					}
+				] = classNode.heritageClauses;
 
-	if (!passedArgKeys.has('properties') && properties.length) {
-		propsToAdd.push(
-			ts.createPropertyAssignment('properties', ts.createArrayLiteral(properties.map(ts.createLiteral)))
-		);
-	}
+				if (typeArguments.length) {
+					const widgetPropNode = typeArguments[0];
+					const widgetProps = checker.getPropertiesOfType(
+						checker.getTypeFromTypeNode(classNode.heritageClauses[0].types[0].typeArguments![0])
+					);
 
-	// update nodes
-	const newDecorator = ts.updateDecorator(
-		decorator,
-		ts.updateCall(
-			decorator.expression,
-			decorator.expression.expression,
-			[widgetPropNode],
-			[ts.updateObjectLiteral(decArg, [...decArg.properties, ...propsToAdd])]
-		)
-	);
+					const attributes: string[] = [];
+					const properties: string[] = [];
+					const events: string[] = [];
 
-	// not sure why ts.NodeArray<T> doesn't have splice...
-	const decoratorIdx = node.decorators.indexOf(decorator);
-	const updatedDecoratorList = node.decorators
-		.slice(0, decoratorIdx)
-		.concat([newDecorator, ...node.decorators.slice(decoratorIdx + 1)]);
+					widgetProps.forEach((prop) => {
+						const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
+						const name = prop.getName();
 
-	return ts.updateClassDeclaration(
-		node,
-		updatedDecoratorList,
-		node.modifiers,
-		node.name,
-		node.typeParameters,
-		node.heritageClauses,
-		node.members
-	);
+						if (
+							name.indexOf('on') === 0 &&
+							checker.getSignaturesOfType(type, ts.SignatureKind.Call).length > 0
+						) {
+							events.push(name);
+						} else if (checker.typeToString(type) === 'string') {
+							attributes.push(name);
+						} else {
+							properties.push(name);
+						}
+					});
+
+					const customElementDeclaration = ts.createObjectLiteral([
+						ts.createPropertyAssignment('tag', ts.createLiteral(tagName)),
+						ts.createPropertyAssignment(
+							'attributes',
+							ts.createArrayLiteral(attributes.map(ts.createLiteral))
+						),
+						ts.createPropertyAssignment(
+							'properties',
+							ts.createArrayLiteral(properties.map(ts.createLiteral))
+						),
+						ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
+					]);
+
+					const customElementProp = ts.createProperty(
+						undefined,
+						[ts.createToken(ts.SyntaxKind.StaticKeyword)],
+						'__customElementDescriptor',
+						undefined,
+						undefined,
+						customElementDeclaration
+					);
+
+					return ts.updateClassDeclaration(
+						classNode,
+						classNode.decorators,
+						classNode.modifiers,
+						classNode.name,
+						classNode.typeParameters,
+						classNode.heritageClauses,
+						[customElementProp, ...classNode.members]
+					);
+				}
+			}
+
+			return ts.visitEachChild(node, (child) => visit(child), context);
+		};
+
+		return (node) => ts.visitNode(node, visit);
+	};
 }

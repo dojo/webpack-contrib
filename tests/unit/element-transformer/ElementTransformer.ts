@@ -1,236 +1,202 @@
-import elementTransformer from '../../../src/element-transformer/index';
 import * as ts from 'typescript';
+import elementTransformer from '../../../src/element-transformer/index';
 
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 describe('element-transformer', () => {
-	it('normalizes string arg to object', () => {
+	it('does not touch classes that are not the default export', () => {
 		const source = `
 		class WidgetBase<T> {}
 		interface DojoInputProperties {}
-		@customElement("dojo-input")
 		export class DojoInput extends WidgetBase<DojoInputProperties> {
+		}`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': source
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
+	});
+
+	it('it modifies classes that are explicitly the default export', () => {
+		const source = `
+		class WidgetBase<T> {}
+		interface DojoInputProperties {}
+		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}`;
 		const expected = `
 		class WidgetBase<T> {}
 		interface DojoInputProperties {}
-		@customElement({ tag: "dojo-input" })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}`;
-		assertCompile(source, expected, (program) => ({
-			before: [elementTransformer(program)]
-		}));
+		export default class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': expected
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
 	});
 
-	it('extracts attributes', () => {
+	it('it modifies classes that are the default export, but aliased', () => {
+		const source = `
+		class WidgetBase<T> {}
+		interface DojoInputProperties {}
+		export class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		export default DojoInput;
+`;
+		const expected = `
+		class WidgetBase<T> {}
+		interface DojoInputProperties {}
+		export class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+		export default DojoInput;
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': expected
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
+	});
+
+	it('it does not modify classes that are not listed in files', () => {
+		const source = `
+		class WidgetBase<T> {}
+		interface DojoInputProperties {}
+		export class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		export default DojoInput;
+`;
+		const expected = `
+		class WidgetBase<T> {}
+		interface DojoInputProperties {}
+		export class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		export default DojoInput;
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': expected
+			},
+			(program) => ({
+				before: [elementTransformer(program, [])]
+			})
+		);
+	});
+
+	it('it adds attributes, properties, and events', () => {
 		const source = `
 		class WidgetBase<T> {}
 		interface DojoInputProperties {
-			a: string;
-			b: string;
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange(value: string): void;
 		}
-		@customElement({ tag: "dojo-input" })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = "1";
-			public b = "true";
-			public c = "string";
-		}`;
+		export default class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+`;
 		const expected = `
 		class WidgetBase<T> {}
 		interface DojoInputProperties {
-			a: string;
-			b: string;
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange: Function;
 		}
-		@customElement({tag: "dojo-input", attributes: ["a", "b"]})
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = "1";
-			public b = "true";
-			public c = "string";
-		}`;
-		assertCompile(source, expected, (program) => ({
-			before: [elementTransformer(program)]
-		}));
+		export default class DojoInput extends WidgetBase<DojoInputProperties> {
+		}
+		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: ["attribute"], properties: ["property"], events: ["onClick", "onChange"] };
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': expected
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
 	});
 
-	it('extracts events', () => {
+	it('it leaves classes that do not extend', () => {
+		const source = `
+		interface DojoInputProperties {
+		}
+		export default class DojoInput {
+		}
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': source
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
+	});
+
+	it('it leaves classes that do not take generics', () => {
+		const source = `
+		export class WidgetBase {
+		}
+		export default class DojoInput extends WidgetBase {
+		}
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': source
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
+	});
+
+	it('adds a dash if there is none in the name', () => {
 		const source = `
 		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			onA: (x: number) => boolean;
-			onB(): void;
-		}
-		@customElement({ tag: "dojo-input" })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			onA(x: number) {
-				return true
-			}
-			onB() {}
+		interface DojoInputProperties {}
+		export default class Hello extends WidgetBase<DojoInputProperties> {
 		}`;
 		const expected = `
 		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			onA: (x: number) => boolean;
-			onB(): void;
+		interface DojoInputProperties {}
+		export default class Hello extends WidgetBase<DojoInputProperties> {
 		}
-		@customElement({ tag: "dojo-input": events: ["onA", "onB"] })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			onA(x: number) {
-				return true
-			}
-			onB() {}
-		}`;
-		assertCompile(source, expected, (program) => ({
-			before: [elementTransformer(program)]
-		}));
-	});
-
-	it('extracts properties', () => {
-		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			a: number;
-			b: boolean;
-			aFn(): void;
-		}
-		@customElement({ tag: "dojo-input" })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = 1;
-			public b = true;
-			public c = "string";
-			aFn(){}
-		}`;
-		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			a: number;
-			b: boolean;
-			aFn(): void;
-		}
-		@customElement({tag: "dojo-input", properties: ["a", "b", "aFn"]})
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = 1;
-			public b = true;
-			public c = "string";
-			aFn(){}
-		}`;
-		assertCompile(source, expected, (program) => ({
-			before: [elementTransformer(program)]
-		}));
-	});
-
-	it("doesn't override explicitly set properties", () => {
-		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			a: number;
-			b: boolean;
-			onA(): void;
-		}
-		@customElement({ tag: "dojo-input", properties: ["a"], childType: 'DOJO' })
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = 1;
-			public b = true;
-			public c = "string";
-			onA() {}
-		}`;
-		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			a: number;
-			b: boolean;
-			onA(): void;
-		}
-		@customElement({tag: "dojo-input", properties: ["a"], childType: 'DOJO', events: ["onA"]})
-			export class DojoInput extends WidgetBase<DojoInputProperties> {
-			public a = 1;
-			public b = true;
-			public c = "string";
-			onA() {}
-		}`;
-		assertCompile(source, expected, (program) => ({
-			before: [elementTransformer(program)]
-		}));
-	});
-
-	it('validates assumptions', () => {
-		const noCall = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@blah
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}`;
-		assert.doesNotThrow(() => {
-			assertCompile(noCall, noCall, (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		});
-
-		const missingArg = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@customElement()
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}`;
-		assert.throw(() => {
-			assertCompile(missingArg, '', (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		}, /single argument:/);
-
-		const extraArg = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@customElement(true, true)
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}`;
-		assert.throw(() => {
-			assertCompile(extraArg, '', (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		}, /single argument:/);
-
-		const wrongArg = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@customElement(true)
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}`;
-		assert.throw(() => {
-			assertCompile(wrongArg, '', (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		}, /either a string/);
-
-		const noExtends = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@customElement("dojo-input")
-		export class DojoInput {
-		}`;
-		assert.throw(() => {
-			assertCompile(noExtends, '', (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		}, /extends WidgetBase/);
-
-		const badExtends = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		@customElement("dojo-input")
-		export class DojoInput extends WidgetBase {
-		}`;
-		assert.throw(() => {
-			assertCompile(badExtends, '', (program) => ({
-				before: [elementTransformer(program)]
-			}));
-		}, /extends WidgetBase/);
+		Hello.__customElementDescriptor = { tag: "hello-widget", attributes: [], properties: [], events: [] };
+`;
+		assertCompile(
+			{
+				'actual.ts': source,
+				'expected.ts': expected
+			},
+			(program) => ({
+				before: [elementTransformer(program, ['actual'])]
+			})
+		);
 	});
 });
 
 function assertCompile(
-	actual: string,
-	expected: string,
+	sourceFiles: { [key: string]: string },
 	getTransformers: (program: ts.Program) => ts.CustomTransformers,
 	otherOptions?: ts.CompilerOptions,
 	errorMessage?: string
@@ -240,7 +206,7 @@ function assertCompile(
 		target: ts.ScriptTarget.ESNext,
 		...otherOptions
 	};
-	let filePaths = { 'actual.ts': actual, 'expected.ts': expected };
+	let filePaths = sourceFiles;
 	const outputs: Record<string, string> = {};
 	const host = testCompilerHost(filePaths, outputs);
 	const program = ts.createProgram(Object.keys(filePaths), compilerOptions, host);

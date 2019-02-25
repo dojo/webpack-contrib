@@ -46,15 +46,15 @@ export default function elementTransformer<T extends ts.Node>(
 					}
 				] = classNode.heritageClauses;
 
+				const attributes: string[] = [];
+				const properties: string[] = [];
+				const events: string[] = [];
+
 				if (typeArguments.length) {
 					const widgetPropNode = typeArguments[0];
 					const widgetProps = checker.getPropertiesOfType(
 						checker.getTypeFromTypeNode(classNode.heritageClauses[0].types[0].typeArguments![0])
 					);
-
-					const attributes: string[] = [];
-					const properties: string[] = [];
-					const events: string[] = [];
 
 					widgetProps.forEach((prop) => {
 						const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
@@ -71,39 +71,33 @@ export default function elementTransformer<T extends ts.Node>(
 							properties.push(name);
 						}
 					});
-
-					const customElementDeclaration = ts.createObjectLiteral([
-						ts.createPropertyAssignment('tag', ts.createLiteral(tagName)),
-						ts.createPropertyAssignment(
-							'attributes',
-							ts.createArrayLiteral(attributes.map(ts.createLiteral))
-						),
-						ts.createPropertyAssignment(
-							'properties',
-							ts.createArrayLiteral(properties.map(ts.createLiteral))
-						),
-						ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
-					]);
-
-					const customElementProp = ts.createProperty(
-						undefined,
-						[ts.createToken(ts.SyntaxKind.StaticKeyword)],
-						'__customElementDescriptor',
-						undefined,
-						undefined,
-						customElementDeclaration
-					);
-
-					return ts.updateClassDeclaration(
-						classNode,
-						classNode.decorators,
-						classNode.modifiers,
-						classNode.name,
-						classNode.typeParameters,
-						classNode.heritageClauses,
-						[customElementProp, ...classNode.members]
-					);
 				}
+
+				const customElementDeclaration = ts.createObjectLiteral([
+					ts.createPropertyAssignment('tag', ts.createLiteral(tagName)),
+					ts.createPropertyAssignment('attributes', ts.createArrayLiteral(attributes.map(ts.createLiteral))),
+					ts.createPropertyAssignment('properties', ts.createArrayLiteral(properties.map(ts.createLiteral))),
+					ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
+				]);
+
+				const customElementProp = ts.createProperty(
+					undefined,
+					[ts.createToken(ts.SyntaxKind.StaticKeyword)],
+					'__customElementDescriptor',
+					undefined,
+					undefined,
+					customElementDeclaration
+				);
+
+				return ts.updateClassDeclaration(
+					classNode,
+					classNode.decorators,
+					classNode.modifiers,
+					classNode.name,
+					classNode.typeParameters,
+					classNode.heritageClauses,
+					[customElementProp, ...classNode.members]
+				);
 			}
 
 			return ts.visitEachChild(node, (child) => visit(child), context);

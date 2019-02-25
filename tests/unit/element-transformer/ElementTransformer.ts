@@ -152,17 +152,24 @@ describe('element-transformer', () => {
 		);
 	});
 
-	it('it leaves classes that do not take generics', () => {
+	it('it modifies classes that do not take generics', () => {
 		const source = `
 		export class WidgetBase {
 		}
 		export default class DojoInput extends WidgetBase {
 		}
 `;
+		const expected = `
+		export class WidgetBase {
+		}
+		export default class DojoInput extends WidgetBase {
+		}
+		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+`;
 		assertCompile(
 			{
 				'actual.ts': source,
-				'expected.ts': source
+				'expected.ts': expected
 			},
 			(program) => ({
 				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]

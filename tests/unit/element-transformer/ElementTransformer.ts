@@ -17,7 +17,7 @@ describe('element-transformer', () => {
 				'expected.ts': source
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
@@ -41,7 +41,7 @@ describe('element-transformer', () => {
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
@@ -68,7 +68,7 @@ describe('element-transformer', () => {
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
@@ -94,7 +94,7 @@ describe('element-transformer', () => {
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, [])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [] })]
 			})
 		);
 	});
@@ -129,7 +129,7 @@ describe('element-transformer', () => {
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
@@ -147,7 +147,7 @@ describe('element-transformer', () => {
 				'expected.ts': source
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
@@ -165,12 +165,12 @@ describe('element-transformer', () => {
 				'expected.ts': source
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});
 
-	it('adds a dash if there is none in the name', () => {
+	it('prepends the element prefix if there are no dashes in the name', () => {
 		const source = `
 		class WidgetBase<T> {}
 		interface DojoInputProperties {}
@@ -181,7 +181,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class Hello extends WidgetBase<DojoInputProperties> {
 		}
-		Hello.__customElementDescriptor = { tag: "hello-widget", attributes: [], properties: [], events: [] };
+		Hello.__customElementDescriptor = { tag: "widget-hello", attributes: [], properties: [], events: [] };
 `;
 		assertCompile(
 			{
@@ -189,7 +189,7 @@ describe('element-transformer', () => {
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, ['actual'])]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual'] })]
 			})
 		);
 	});

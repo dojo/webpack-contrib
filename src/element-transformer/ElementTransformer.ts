@@ -4,9 +4,14 @@ function stripFileExtension(fileName: string) {
 	return fileName.substring(0, fileName.lastIndexOf('.'));
 }
 
+export interface ElementTransformerOptions {
+	elementPrefix: string;
+	customElementFiles: string[];
+}
+
 export default function elementTransformer<T extends ts.Node>(
 	program: ts.Program,
-	customElementFiles: string[]
+	{ customElementFiles, elementPrefix }: ElementTransformerOptions
 ): ts.TransformerFactory<T> {
 	const checker = program.getTypeChecker();
 
@@ -32,7 +37,7 @@ export default function elementTransformer<T extends ts.Node>(
 				const widgetName = classNode.name!.getText();
 				let tagName = widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 				if (tagName.indexOf('-') === -1) {
-					tagName = `${tagName}-widget`;
+					tagName = `${elementPrefix}-${tagName}`;
 				}
 
 				const [

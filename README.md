@@ -24,6 +24,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 	- [bootstrap-plugin](#bootstrap-plugin)
 - [Transformers](#transformers)
 	- [registry-transformer](#registry-transformer)
+	- [element-transformer](#element-transformer)
 - [How do I contribute?](#how-do-i-contribute)
   - [Code Style](#code-style)
   - [Testing](#testing)
@@ -574,7 +575,7 @@ export class Hello extends WidgetBase<HelloProperties> {
 		]);
 	}
 }
-Hello.__customElementDescriptor = { tag: 'hello-widget', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] };
+Hello.__customElementDescriptor = { tag: 'widget-hello', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] };
 
 export default Hello;
 ```

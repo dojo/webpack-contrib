@@ -33,7 +33,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] }
 `;
 		assertCompile(
 			{
@@ -59,7 +59,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] }
 		export default DojoInput;
 `;
 		assertCompile(
@@ -121,7 +121,7 @@ describe('element-transformer', () => {
 		}
 		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: ["attribute"], properties: ["property"], events: ["onClick", "onChange"] };
+		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: ["attribute"], properties: ["property"], events: ["onClick", "onChange"] }
 `;
 		assertCompile(
 			{
@@ -164,7 +164,7 @@ describe('element-transformer', () => {
 		}
 		export default class DojoInput extends WidgetBase {
 		}
-		DojoInput.__customElementDescriptor = { tag: "dojo-input", attributes: [], properties: [], events: [] };
+		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] }
 `;
 		assertCompile(
 			{
@@ -188,7 +188,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class Hello extends WidgetBase<DojoInputProperties> {
 		}
-		Hello.__customElementDescriptor = { tag: "widget-hello", attributes: [], properties: [], events: [] };
+		Hello.prototype.__customElementDescriptor = { tagName: "widget-hello", attributes: [], properties: [], events: [] }
 `;
 		assertCompile(
 			{

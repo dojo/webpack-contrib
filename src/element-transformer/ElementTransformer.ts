@@ -74,30 +74,27 @@ export default function elementTransformer<T extends ts.Node>(
 				}
 
 				const customElementDeclaration = ts.createObjectLiteral([
-					ts.createPropertyAssignment('tag', ts.createLiteral(tagName)),
+					ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
 					ts.createPropertyAssignment('attributes', ts.createArrayLiteral(attributes.map(ts.createLiteral))),
 					ts.createPropertyAssignment('properties', ts.createArrayLiteral(properties.map(ts.createLiteral))),
 					ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
 				]);
 
-				const customElementProp = ts.createProperty(
-					undefined,
-					[ts.createToken(ts.SyntaxKind.StaticKeyword)],
-					'__customElementDescriptor',
-					undefined,
-					undefined,
-					customElementDeclaration
-				);
-
-				return ts.updateClassDeclaration(
-					classNode,
-					classNode.decorators,
-					classNode.modifiers,
-					classNode.name,
-					classNode.typeParameters,
-					classNode.heritageClauses,
-					[customElementProp, ...classNode.members]
-				);
+				return [
+					node,
+					ts.createStatement(
+						ts.createAssignment(
+							ts.createPropertyAccess(
+								ts.createPropertyAccess(
+									ts.createIdentifier(widgetName),
+									ts.createIdentifier('prototype')
+								),
+								'__customElementDescriptor'
+							),
+							customElementDeclaration
+						)
+					)
+				];
 			}
 
 			return ts.visitEachChild(node, (child) => visit(child), context);

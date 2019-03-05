@@ -17,6 +17,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 - [Plugins](#plugins)
 	- [build-time-render](#build-time-render)
 	- [css-module-plugin](#css-module-plugin)
+	- [emit-all-plugin](#emit-all-plugin)
 	- [external-loader-plugin](#external-loader-plugin)
 	- [i18n-plugin](#i18n-plugin)
 	- [service-worker-plugin](#service-worker-plugin)
@@ -308,6 +309,19 @@ The plugin constructor accepts a single argument:
 | Property | Type | Optional | Description |
 | -------- | ---- | -------- | ----------- |
 | basePath | `string` | No | The root path from which to resolve CSS modules |
+
+## emit-all-plugin
+
+Webpack is a bundler, which does not work well when build libraries. Rather than create separate toolchains for building libraries and applications/custom elements, the existing build tooling can be used to emit library files by way of the `EmitAllPlugin`. At the very least CSS and transpiled TS files will be emitted, but additional assets can be included with a filter.
+
+The plugin takes an options object with the following properties:
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| basePath | `string` | Yes | The base path for the project's source files. Only files within this directory are emitted. Defaults to the project's `src/` directory. |
+| inlineSourceMaps | `boolean` | Yes | Specifies whether sources maps should be inlined with the output source files or emitted separately. Defaults to `false`. |
+| legacy | `boolean` | Yes | Specifies whether TypeScript files should be transpiled to ES modules or to legacy JavaScript. Defaults to `false`. |
+| assetFilter | `Function` | Yes | Used to filter assets to only those that should be included in the output. Accepts the asset file path and the asset object. If the function returns `true`, the asset will be emitted; otherwise it will be excluded. |
 
 ## external-loader-plugin
 

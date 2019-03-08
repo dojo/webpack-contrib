@@ -1,8 +1,7 @@
+import * as path from 'path';
 import * as ts from 'typescript';
 
-function stripFileExtension(fileName: string) {
-	return fileName.substring(0, fileName.lastIndexOf('.'));
-}
+require('ts-node').register();
 
 export interface ElementTransformerOptions {
 	elementPrefix: string;
@@ -15,6 +14,21 @@ export default function elementTransformer<T extends ts.Node>(
 ): ts.TransformerFactory<T> {
 	const checker = program.getTypeChecker();
 
+	const customElementFilesIncludingDefaults = customElementFiles.map((file) => {
+		try {
+			return require.resolve(path.resolve(file));
+		} catch (e) {
+			return file;
+		}
+	});
+
+	const preparedElementPrefix = elementPrefix
+		.toLowerCase()
+		.replace(/[^a-z]/g, '-')
+		.replace(/[-{2,]/g, '-')
+		.replace(/^-(.*?)-?$/, '$1')
+		.trim();
+
 	return (context) => {
 		const visit: any = (node: ts.Node) => {
 			const moduleSymbol = checker.getSymbolAtLocation(node.getSourceFile());
@@ -26,7 +40,7 @@ export default function elementTransformer<T extends ts.Node>(
 			const classNode = node as ts.ClassDeclaration;
 
 			if (
-				customElementFiles.indexOf(stripFileExtension(node.getSourceFile().fileName)) !== -1 &&
+				customElementFilesIncludingDefaults.indexOf(node.getSourceFile().fileName) !== -1 &&
 				defaultExport &&
 				classSymbol &&
 				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===
@@ -37,7 +51,7 @@ export default function elementTransformer<T extends ts.Node>(
 				const widgetName = classNode.name!.getText();
 				let tagName = widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 				if (tagName.indexOf('-') === -1) {
-					tagName = `${elementPrefix}-${tagName}`;
+					tagName = `${preparedElementPrefix}-${tagName}`;
 				}
 
 				const [
@@ -60,15 +74,36 @@ export default function elementTransformer<T extends ts.Node>(
 						const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
 						const name = prop.getName();
 
-						if (
-							name.indexOf('on') === 0 &&
-							checker.getSignaturesOfType(type, ts.SignatureKind.Call).length > 0
-						) {
-							events.push(name);
-						} else if (checker.typeToString(type) === 'string') {
-							attributes.push(name);
+						let types = [type];
+
+						const intersectionType = type as ts.UnionOrIntersectionType;
+
+						if (intersectionType.types && intersectionType.types.length > 0) {
+							types = intersectionType.types;
+						}
+
+						types = types.filter((type) => checker.typeToString(type) !== 'undefined');
+
+						if (types.length === 1) {
+							if (
+								name.indexOf('on') === 0 &&
+								checker.getSignaturesOfType(types[0], ts.SignatureKind.Call).length > 0
+							) {
+								events.push(name);
+							} else if (checker.typeToString(types[0]) === 'string') {
+								attributes.push(name);
+							} else {
+								properties.push(name);
+							}
 						} else {
-							properties.push(name);
+							const namedTypes = types.map((t) => checker.typeToString(t));
+							const stringRegEx = /^".*"$/;
+
+							if (namedTypes.every((n) => stringRegEx.test(n))) {
+								attributes.push(name);
+							} else {
+								properties.push(name);
+							}
 						}
 					});
 				}

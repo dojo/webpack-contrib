@@ -66,46 +66,49 @@ export default function elementTransformer<T extends ts.Node>(
 
 				if (typeArguments.length) {
 					const widgetPropNode = typeArguments[0];
-					const widgetProps = checker.getPropertiesOfType(
-						checker.getTypeFromTypeNode(classNode.heritageClauses[0].types[0].typeArguments![0])
-					);
+					const widgetPropNodeSymbol = checker.getSymbolAtLocation(widgetPropNode.getChildAt(0));
 
-					widgetProps.forEach((prop) => {
-						const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
-						const name = prop.getName();
+					if (widgetPropNodeSymbol) {
+						const widgetPropType = checker.getDeclaredTypeOfSymbol(widgetPropNodeSymbol);
+						const widgetProps = widgetPropType.getProperties();
 
-						let types = [type];
+						widgetProps.forEach((prop) => {
+							const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
+							const name = prop.getName();
 
-						const intersectionType = type as ts.UnionOrIntersectionType;
+							let types = [type];
 
-						if (intersectionType.types && intersectionType.types.length > 0) {
-							types = intersectionType.types;
-						}
+							const intersectionType = type as ts.UnionOrIntersectionType;
 
-						types = types.filter((type) => checker.typeToString(type) !== 'undefined');
-
-						if (types.length === 1) {
-							if (
-								name.indexOf('on') === 0 &&
-								checker.getSignaturesOfType(types[0], ts.SignatureKind.Call).length > 0
-							) {
-								events.push(name);
-							} else if (checker.typeToString(types[0]) === 'string') {
-								attributes.push(name);
-							} else {
-								properties.push(name);
+							if (intersectionType.types && intersectionType.types.length > 0) {
+								types = intersectionType.types;
 							}
-						} else {
-							const namedTypes = types.map((t) => checker.typeToString(t));
-							const stringRegEx = /^".*"$/;
 
-							if (namedTypes.every((n) => stringRegEx.test(n))) {
-								attributes.push(name);
+							types = types.filter((type) => checker.typeToString(type) !== 'undefined');
+
+							if (types.length === 1) {
+								if (
+									name.indexOf('on') === 0 &&
+									checker.getSignaturesOfType(types[0], ts.SignatureKind.Call).length > 0
+								) {
+									events.push(name);
+								} else if (checker.typeToString(types[0]) === 'string') {
+									attributes.push(name);
+								} else {
+									properties.push(name);
+								}
 							} else {
-								properties.push(name);
+								const namedTypes = types.map((t) => checker.typeToString(t));
+								const stringRegEx = /^".*"$/;
+
+								if (namedTypes.every((n) => stringRegEx.test(n))) {
+									attributes.push(name);
+								} else {
+									properties.push(name);
+								}
 							}
-						}
-					});
+						});
+					}
 				}
 
 				const customElementDeclaration = ts.createObjectLiteral([

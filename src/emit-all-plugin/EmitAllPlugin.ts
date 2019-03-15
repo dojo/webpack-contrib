@@ -1,3 +1,4 @@
+import * as cssnano from 'cssnano';
 import * as path from 'path';
 import * as webpack from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
@@ -29,59 +30,58 @@ export default class EmitAllPlugin {
 
 	apply(compiler: webpack.Compiler) {
 		const { basePath, inlineSourceMaps, legacy } = this;
-		compiler.hooks.emit.tap(this.constructor.name, (compilation) => {
+		compiler.hooks.emit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			compilation.chunks = [];
 			Object.keys(compilation.assets).forEach((key) => {
 				if (!this.assetFilter(key, compilation.assets[key])) {
 					delete compilation.assets[key];
 				}
 			});
-			compilation.modules.forEach((module: NormalModule) => {
-				const { resource } = module;
-				if ((resource || '').includes(basePath)) {
-					const extension = legacy ? '.js' : '.mjs';
-					const source = module.originalSource().source();
-					const assetName = resource.replace(basePath, '').replace(/\.ts$/, extension);
+			await Promise.all(
+				compilation.modules.map(async (module: NormalModule) => {
+					const { resource } = module;
+					if ((resource || '').includes(basePath)) {
+						const extension = legacy ? '.js' : '.mjs';
+						const source = module.originalSource().source();
+						const assetName = resource.replace(basePath, '').replace(/\.ts$/, extension);
 
-					if (assetName.includes('.css')) {
-						module.dependencies.forEach(({ identifier, content, sourceMap }: any) => {
-							if (identifier.includes(resource)) {
-								let css = content;
-								if (sourceMap) {
-									const { map, url } = this.normalizeSourceMap(
-										assetName,
-										sourceMap,
-										inlineSourceMaps
-									);
-									css += url;
-									if (!inlineSourceMaps) {
-										compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
+						if (assetName.includes('.css')) {
+							await Promise.all(
+								module.dependencies.map(async ({ identifier, content, sourceMap }: any) => {
+									if (identifier.includes(resource)) {
+										const { css, map } = await this.processCssAsset(assetName, content, sourceMap);
+
+										if (sourceMap && !inlineSourceMaps) {
+											compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
+										}
+
+										compilation.assets[assetName] = createSource(css);
+
+										const cssjs = source.replace(/\s*\/\/[^\n]*\n/, '');
+										compilation.assets[assetName + '.js'] = createSource(cssjs);
 									}
+								})
+							);
+						} else {
+							const sourceMap = (module.originalSource() as any)._sourceMap;
+							let js = source;
+
+							if (sourceMap) {
+								const { map, url } = this.normalizeSourceMap(assetName, sourceMap, inlineSourceMaps);
+								js += url;
+
+								if (!inlineSourceMaps) {
+									compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
 								}
-
-								compilation.assets[assetName] = createSource(css);
-
-								const cssjs = source.replace(/\s*\/\/[^\n]*\n/, '');
-								compilation.assets[assetName + '.js'] = createSource(cssjs);
 							}
-						});
-					} else {
-						const sourceMap = (module.originalSource() as any)._sourceMap;
-						let js = source;
 
-						if (sourceMap) {
-							const { map, url } = this.normalizeSourceMap(assetName, sourceMap, inlineSourceMaps);
-							js += url;
-
-							if (!inlineSourceMaps) {
-								compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
-							}
+							compilation.assets[assetName] = createSource(js);
 						}
-
-						compilation.assets[assetName] = createSource(js);
 					}
-				}
-			});
+				})
+			);
+
+			callback();
 		});
 	}
 
@@ -101,5 +101,32 @@ export default class EmitAllPlugin {
 			: `\n/*# sourceMappingURL=${assetName.split('/').pop()}.map*/`;
 
 		return { map: fixedSourceMap, url };
+	}
+
+	private async processCssAsset(
+		assetName: string,
+		content: string,
+		sourceMap: any
+	): Promise<{ css: string; map?: any }> {
+		let { css } = await (cssnano as any).process(
+			content,
+			{
+				from: assetName,
+				to: assetName
+			},
+			{
+				preset: ['default', { calc: false }]
+			}
+		);
+
+		if (sourceMap) {
+			const { inlineSourceMaps } = this;
+			const { map, url } = this.normalizeSourceMap(assetName, sourceMap, inlineSourceMaps);
+			css += url;
+
+			return { css, map };
+		}
+
+		return { css };
 	}
 }

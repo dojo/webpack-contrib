@@ -1,5 +1,7 @@
 import * as path from 'path';
+import { stub } from 'sinon';
 import { Compiler } from 'webpack';
+import { EmitAllPluginOptions } from '../../../src/emit-all-plugin/EmitAllPlugin';
 import MockModule from '../../support/MockModule';
 import { createCompilation, createCompiler } from '../../support/util';
 
@@ -12,6 +14,8 @@ describe('EmitAllPlugin', () => {
 
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/emit-all-plugin/EmitAllPlugin', require);
+		mockModule.dependencies(['cssnano']);
+		mockModule.getMock('cssnano').ctor.process = stub().callsFake((css: string) => Promise.resolve({ css }));
 		compiler = createCompiler();
 	});
 
@@ -255,12 +259,25 @@ describe('EmitAllPlugin', () => {
 	});
 
 	describe('CSS assets', () => {
-		it('outputs individual CSS files', () => {
+		function applyCssModule(cssModule: any, pluginOptions?: EmitAllPluginOptions): Promise<any> {
 			const EmitAll = mockModule.getModuleUnderTest().default;
 			const emitAll = new EmitAll({
-				basePath: 'src/'
+				basePath: 'src/',
+				...pluginOptions
 			});
+
 			const compilation = createCompilation(compiler);
+			compilation.modules = [cssModule];
+			emitAll.apply(compiler);
+
+			return new Promise((resolve) => {
+				compiler.hooks.emit.callAsync(compilation, () => {
+					resolve(compilation);
+				});
+			});
+		}
+
+		it('outputs individual CSS files', () => {
 			const source = '.root {}';
 			const cssModule = {
 				resource: 'src/dir/styles.css',
@@ -275,22 +292,15 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			const asset = compilation.assets['dir/styles.css'];
-			assert.isObject(asset);
-			assert.strictEqual(asset.source(), source);
-			assert.strictEqual(asset.size(), Buffer.byteLength(source));
+			return applyCssModule(cssModule).then((compilation) => {
+				const asset = compilation.assets['dir/styles.css'];
+				assert.isObject(asset);
+				assert.strictEqual(asset.source(), source);
+				assert.strictEqual(asset.size(), Buffer.byteLength(source));
+			});
 		});
 
 		it('excludes files outside the base path', () => {
-			const EmitAll = mockModule.getModuleUnderTest().default;
-			const emitAll = new EmitAll({
-				basePath: 'src/'
-			});
-			const compilation = createCompilation(compiler);
 			const source = '.root {}';
 			const cssModule = {
 				resource: 'other/dir/styles.css',
@@ -305,19 +315,12 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			assert.deepEqual(Object.keys(compilation.assets), []);
+			return applyCssModule(cssModule).then((compilation) => {
+				assert.deepEqual(Object.keys(compilation.assets), []);
+			});
 		});
 
 		it('ignores dependencies with a mismatched identifier', () => {
-			const EmitAll = mockModule.getModuleUnderTest().default;
-			const emitAll = new EmitAll({
-				basePath: 'src/'
-			});
-			const compilation = createCompilation(compiler);
 			const source = '.root {}';
 			const cssModule = {
 				resource: 'src/dir/styles.css',
@@ -332,19 +335,12 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			assert.deepEqual(Object.keys(compilation.assets), []);
+			return applyCssModule(cssModule).then((compilation) => {
+				assert.deepEqual(Object.keys(compilation.assets), []);
+			});
 		});
 
 		it('outputs CSS sourcemaps', () => {
-			const EmitAll = mockModule.getModuleUnderTest().default;
-			const emitAll = new EmitAll({
-				basePath: 'src/'
-			});
-			const compilation = createCompilation(compiler);
 			const source = '.root {}';
 			const cssModule = {
 				resource: 'src/dir/styles.css',
@@ -360,30 +356,22 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			const asset = compilation.assets['dir/styles.css'];
-			const assetMap = compilation.assets['dir/styles.css.map'];
-			const assetMapSource = {
-				mappings: 'abcd',
-				sources: []
-			};
-			const assetMapSourceString = JSON.stringify(assetMapSource);
-			assert.isObject(assetMap);
-			assert.strictEqual(assetMap.source(), assetMapSourceString);
-			assert.strictEqual(assetMap.size(), Buffer.byteLength(assetMapSourceString));
-			assert.isTrue(asset.source().endsWith('\n/*# sourceMappingURL=styles.css.map*/'));
+			return applyCssModule(cssModule).then((compilation) => {
+				const asset = compilation.assets['dir/styles.css'];
+				const assetMap = compilation.assets['dir/styles.css.map'];
+				const assetMapSource = {
+					mappings: 'abcd',
+					sources: []
+				};
+				const assetMapSourceString = JSON.stringify(assetMapSource);
+				assert.isObject(assetMap);
+				assert.strictEqual(assetMap.source(), assetMapSourceString);
+				assert.strictEqual(assetMap.size(), Buffer.byteLength(assetMapSourceString));
+				assert.isTrue(asset.source().endsWith('\n/*# sourceMappingURL=styles.css.map*/'));
+			});
 		});
 
 		it('inlines CSS sourcemaps with a flag', () => {
-			const EmitAll = mockModule.getModuleUnderTest().default;
-			const emitAll = new EmitAll({
-				basePath: 'src/',
-				inlineSourceMaps: true
-			});
-			const compilation = createCompilation(compiler);
 			const source = `module.exports = {}`;
 			const sourceMap = { mappings: 'abcd', sources: [] };
 			const cssModule = {
@@ -400,24 +388,17 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			const asset = compilation.assets['dir/styles.css'];
-			const sourceMapUrl = `\n/*# sourceMappingURL=data:application/json;base64,${Buffer.from(
-				JSON.stringify(sourceMap)
-			).toString('base64')}*/`;
-			assert.isTrue(asset.source().endsWith(sourceMapUrl));
-			assert.isUndefined(compilation.assets['dir/styles.css.map']);
+			return applyCssModule(cssModule, { inlineSourceMaps: true }).then((compilation) => {
+				const asset = compilation.assets['dir/styles.css'];
+				const sourceMapUrl = `\n/*# sourceMappingURL=data:application/json;base64,${Buffer.from(
+					JSON.stringify(sourceMap)
+				).toString('base64')}*/`;
+				assert.isTrue(asset.source().endsWith(sourceMapUrl));
+				assert.isUndefined(compilation.assets['dir/styles.css.map']);
+			});
 		});
 
 		it('removes the base path from the source map sources', () => {
-			const EmitAll = mockModule.getModuleUnderTest().default;
-			const emitAll = new EmitAll({
-				basePath: 'src/'
-			});
-			const compilation = createCompilation(compiler);
 			const source = `module.exports = {}`;
 			const sourceMap = {
 				mappings: 'abcd',
@@ -437,17 +418,15 @@ describe('EmitAllPlugin', () => {
 				]
 			};
 
-			compilation.modules = [cssModule];
-			emitAll.apply(compiler);
-			compiler.hooks.emit.callAsync(compilation, () => {});
-
-			const assetMap = compilation.assets['dir/styles.css.map'];
-			const assetMapSource = {
-				mappings: 'abcd',
-				sources: [path.relative('src/', 'src/dir/styles.css')]
-			};
-			const assetMapSourceString = JSON.stringify(assetMapSource);
-			assert.strictEqual(assetMap.source(), assetMapSourceString);
+			return applyCssModule(cssModule).then((compilation) => {
+				const assetMap = compilation.assets['dir/styles.css.map'];
+				const assetMapSource = {
+					mappings: 'abcd',
+					sources: [path.relative('src/', 'src/dir/styles.css')]
+				};
+				const assetMapSourceString = JSON.stringify(assetMapSource);
+				assert.strictEqual(assetMap.source(), assetMapSourceString);
+			});
 		});
 	});
 });

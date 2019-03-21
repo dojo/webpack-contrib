@@ -167,9 +167,7 @@ export default class BuildTimeRender {
 				const result = await promise;
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
 				this._buildBridgeResult[modulePath].push(
-					`window.__dojoBuildBridgeCache['${modulePath}']['${JSON.stringify(args)}'] = ${JSON.stringify(
-						result
-					)};\n`
+					`buildBridgeCache('${modulePath}','${JSON.stringify(args)}', ${JSON.stringify(result)});\n`
 				);
 				return result;
 			}
@@ -247,6 +245,11 @@ export default class BuildTimeRender {
 		if (!Object.keys(this._buildBridgeResult).length) {
 			return;
 		}
+		const buildBridgeCacheFunctionString = `function buildBridgeCache(modulePath, args, value) {
+	window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};
+	window.__dojoBuildBridgeCache[modulePath] = window.__dojoBuildBridgeCache[modulePath] || {};
+	window.__dojoBuildBridgeCache[modulePath][args] = value;
+};\n`;
 		Object.keys(this._manifestContent)
 			.filter((chunkname) => {
 				const real = this._originalManifest[chunkname];
@@ -262,17 +265,18 @@ export default class BuildTimeRender {
 						if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
 							const buildBridgeResults = this._buildBridgeResult[modulePath];
 							buildBridgeResults.forEach((buildBridgeResult: any) => {
-								node.prepend(buildBridgeResult);
+								if (content.indexOf(buildBridgeResult) === -1) {
+									node.prepend(buildBridgeResult);
+								}
 							});
-							node.prepend(
-								`window.__dojoBuildBridgeCache['${modulePath}'] = window.__dojoBuildBridgeCache['${modulePath}'] || {};`
-							);
 							modified = true;
 							this._hasBuildBridgeCache = true;
 						}
 					});
 					if (modified) {
-						node.prepend(`window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};`);
+						if (content.indexOf(buildBridgeCacheFunctionString) === -1) {
+							node.prepend(buildBridgeCacheFunctionString);
+						}
 						const result = node.toStringWithSourceMap({ file: chunkname });
 						if (this._manifest[chunkname] === chunkname) {
 							this._manifestContent[chunkname] = result.code;

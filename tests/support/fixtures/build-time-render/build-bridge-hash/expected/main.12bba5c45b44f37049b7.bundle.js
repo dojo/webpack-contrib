@@ -14,4 +14,4 @@ buildBridgeCache('foo.block','["a"]', "hello world a");
     });
     app.appendChild(div);
 })();
-//# sourceMappingURL=main.js.map
+//# sourceMappingURL=main.12bba5c45b44f37049b7.bundle.js.map

@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import * as path from 'path';
+import * as minimatch from 'minimatch';
 const shared = require('./shared');
 
 const dImportPath = '@dojo/framework/widget-core/d';
@@ -204,6 +205,7 @@ class Visitor {
 			if (
 				this.all ||
 				this.bundlePaths.indexOf(targetPath) !== -1 ||
+				this.bundlePaths.some((bundlePattern) => minimatch(targetPath, bundlePattern)) ||
 				(outletName && this.outlets.indexOf(outletName) !== -1)
 			) {
 				this.registryItems[text] = this.modulesMap.get(text) as string;
@@ -300,6 +302,7 @@ class Visitor {
 		if (
 			this.all ||
 			this.bundlePaths.indexOf(targetPath) !== -1 ||
+			this.bundlePaths.some((bundlePattern) => minimatch(targetPath, bundlePattern)) ||
 			(outletName && this.outlets.indexOf(outletName) !== -1)
 		) {
 			this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);

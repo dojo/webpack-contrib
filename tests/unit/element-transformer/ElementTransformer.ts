@@ -33,7 +33,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] };
+		DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
 `;
 		assertCompile(
 			{
@@ -48,20 +48,20 @@ describe('element-transformer', () => {
 
 	it('it modifies classes that are the default export, but aliased', () => {
 		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-		export default DojoInput;
-`;
+			class WidgetBase<T> {}
+			interface DojoInputProperties {}
+			export class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+			export default DojoInput;
+	`;
 		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] };
-		export default DojoInput;
-`;
+			class WidgetBase<T> {}
+			interface DojoInputProperties {}
+			export class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			export default DojoInput;
+	`;
 		assertCompile(
 			{
 				'actual.ts': source,
@@ -75,19 +75,19 @@ describe('element-transformer', () => {
 
 	it('it does not modify classes that are not listed in files', () => {
 		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-		export default DojoInput;
-`;
+			class WidgetBase<T> {}
+			interface DojoInputProperties {}
+			export class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+			export default DojoInput;
+	`;
 		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-		export default DojoInput;
-`;
+			class WidgetBase<T> {}
+			interface DojoInputProperties {}
+			export class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+			export default DojoInput;
+	`;
 		assertCompile(
 			{
 				'actual.ts': source,
@@ -101,28 +101,39 @@ describe('element-transformer', () => {
 
 	it('it adds attributes, properties, and events', () => {
 		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			attribute: string;
-			property: boolean;
-			onClick: () => void;
-			onChange(value: string): void;
-		}
-		export default class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-`;
+			enum StringEnum { value1 = 'value1', value2 = 'value2' };
+			enum IntEnum { value1 = 0, value 2 = 1 };
+			type stringOrNumber = string | number;
+			
+			class WidgetBase<T> {}
+			interface DojoInputProperties {
+				attribute: string;
+				property: boolean;
+				onClick: () => void;
+				onChange(value: string): void;
+				stringEnum: StringEnum;
+				intEnum?: IntEnum;
+				stringOrNumber: stringOrNumber;
+			}
+			export default class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+	`;
 		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {
-			attribute: string;
-			property: boolean;
-			onClick: () => void;
-			onChange: Function;
-		}
-		export default class DojoInput extends WidgetBase<DojoInputProperties> {
-		}
-		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: ["attribute"], properties: ["property"], events: ["onClick", "onChange"] };
-`;
+			enum StringEnum { value1 = 'value1', value2 = 'value2' };
+			enum IntEnum { value1 = 0, value 2 = 1 };
+			type stringOrNumber = string | number;
+
+			class WidgetBase<T> {}
+			interface DojoInputProperties {
+				attribute: string;
+				property: boolean;
+				onClick: () => void;
+				onChange: Function;
+			}
+			export default class DojoInput extends WidgetBase<DojoInputProperties> {
+			}
+			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+	`;
 		assertCompile(
 			{
 				'actual.ts': source,
@@ -136,11 +147,11 @@ describe('element-transformer', () => {
 
 	it('it leaves classes that do not extend', () => {
 		const source = `
-		interface DojoInputProperties {
-		}
-		export default class DojoInput {
-		}
-`;
+			interface DojoInputProperties {
+			}
+			export default class DojoInput {
+			}
+	`;
 		assertCompile(
 			{
 				'actual.ts': source,
@@ -154,49 +165,30 @@ describe('element-transformer', () => {
 
 	it('it modifies classes that do not take generics', () => {
 		const source = `
-		export class WidgetBase {
-		}
-		export default class DojoInput extends WidgetBase {
-		}
-`;
+			export class WidgetBase {
+			}
+			export default class DojoInput extends WidgetBase {
+			}
+	`;
 		const expected = `
-		export class WidgetBase {
-		}
-		export default class DojoInput extends WidgetBase {
-		}
-		DojoInput.prototype.__customElementDescriptor = { tagName: "dojo-input", attributes: [], properties: [], events: [] };
-`;
+			export class WidgetBase {
+			}
+			export default class DojoInput extends WidgetBase {
+			}
+			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+	`;
 		assertCompile(
 			{
 				'actual.ts': source,
 				'expected.ts': expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
-			})
-		);
-	});
-
-	it('prepends the element prefix if there are no dashes in the name', () => {
-		const source = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export default class Hello extends WidgetBase<DojoInputProperties> {
-		}`;
-		const expected = `
-		class WidgetBase<T> {}
-		interface DojoInputProperties {}
-		export default class Hello extends WidgetBase<DojoInputProperties> {
-		}
-		Hello.prototype.__customElementDescriptor = { tagName: "widget-hello", attributes: [], properties: [], events: [] };
-`;
-		assertCompile(
-			{
-				'actual.ts': source,
-				'expected.ts': expected
-			},
-			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [
+					elementTransformer(program, {
+						elementPrefix: 'widget',
+						customElementFiles: ['actual.ts']
+					})
+				]
 			})
 		);
 	});

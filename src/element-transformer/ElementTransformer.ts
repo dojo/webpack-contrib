@@ -49,10 +49,9 @@ export default function elementTransformer<T extends ts.Node>(
 				classNode.heritageClauses.length > 0
 			) {
 				const widgetName = classNode.name!.getText();
-				let tagName = widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-				if (tagName.indexOf('-') === -1) {
-					tagName = `${preparedElementPrefix}-${tagName}`;
-				}
+				const tagName = `${preparedElementPrefix}-${widgetName
+					.replace(/([a-z])([A-Z])/g, '$1-$2')
+					.toLowerCase()}`;
 
 				const [
 					{
@@ -98,10 +97,7 @@ export default function elementTransformer<T extends ts.Node>(
 									properties.push(name);
 								}
 							} else {
-								const namedTypes = types.map((t) => checker.typeToString(t));
-								const stringRegEx = /^".*"$/;
-
-								if (namedTypes.every((n) => stringRegEx.test(n))) {
+								if (types.some((type) => Boolean(type.flags & ts.TypeFlags.StringLike))) {
 									attributes.push(name);
 								} else {
 									properties.push(name);
@@ -118,18 +114,26 @@ export default function elementTransformer<T extends ts.Node>(
 					ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
 				]);
 
+				const prototypeAccess = ts.createPropertyAccess(
+					ts.createPropertyAccess(ts.createIdentifier(widgetName), ts.createIdentifier('prototype')),
+					'__customElementDescriptor'
+				);
+
+				const existingDescriptor = ts.createBinary(
+					prototypeAccess,
+					ts.SyntaxKind.BarBarToken,
+					ts.createObjectLiteral()
+				);
+
 				return [
 					node,
 					ts.createStatement(
 						ts.createAssignment(
-							ts.createPropertyAccess(
-								ts.createPropertyAccess(
-									ts.createIdentifier(widgetName),
-									ts.createIdentifier('prototype')
-								),
-								'__customElementDescriptor'
-							),
-							customElementDeclaration
+							prototypeAccess,
+							ts.createObjectLiteral([
+								ts.createSpreadAssignment(customElementDeclaration),
+								ts.createSpreadAssignment(existingDescriptor)
+							])
 						)
 					)
 				];

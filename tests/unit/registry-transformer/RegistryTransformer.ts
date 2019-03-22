@@ -243,6 +243,86 @@ export class Another extends WidgetBase {
 		assert.equal(nl(resultTsx.outputText), expectedTsx);
 	});
 
+	it('elide modules and transform when based on a glob patterns', () => {
+		const transformer = registryTransformer(process.cwd(), ['**/Bar', 'Qux', 'Baz']);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const resultTsx = ts.transpileModule(sourceTsx, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext,
+				jsx: ts.JsxEmit.Preserve,
+				jsxFactory: 'tsx'
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
+import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import Quz from './Quz';
+import { Blah } from './Qux';
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
+export class Foo extends WidgetBase {
+    render() {
+        return v('div'[v('div', ['Foo']),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
+            w(Blah, {})]);
+    }
+}
+export class Another extends WidgetBase {
+    render() {
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w({ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }, {}),
+            w(Quz, {})]);
+    }
+}
+export default HelloWorld;
+`;
+		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import { Blah } from './Qux';
+var Loadable__ = { type: "registry" };
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
+export class Foo extends WidgetBase {
+    render() {
+        return (<div>
+				<div>
+					<div>Foo</div>
+					<Loadable__ prop="hello" __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>
+					<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }}>
+						<div>child</div>
+					</Loadable__>
+					<Blah />
+				</div>
+			</div>);
+    }
+}
+export class Another extends WidgetBase {
+    render() {
+        return (<div>
+				<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>
+				<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Baz", registryItem: __autoRegistryItems.Baz }}/>
+				<Qux />
+			</div>);
+    }
+}
+`;
+		assert.equal(nl(result.outputText), expected);
+		assert.equal(nl(resultTsx.outputText), expectedTsx);
+	});
+
 	it('replaces all widgets in all mode', () => {
 		const transformer = registryTransformer(process.cwd(), [], true);
 		const result = ts.transpileModule(source, {

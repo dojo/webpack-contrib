@@ -19,6 +19,7 @@ const webpack = require('webpack');
 const SourceNode = require('source-map').SourceNode;
 const SourceMapConsumer = require('source-map').SourceMapConsumer;
 const postcss = require('postcss');
+const clearModule = require('clear-module');
 const createHash = require('webpack/lib/util/createHash');
 import { parse } from 'node-html-parser';
 
@@ -372,6 +373,7 @@ export default class BuildTimeRender {
 				})
 				.map((key) => this._manifest[key]);
 
+			clearModule.all();
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);
 			try {

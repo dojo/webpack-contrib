@@ -1,5 +1,4 @@
 var has = require('@dojo/framework/has/has');
-require('@dojo/framework/shim/Promise');
 require('./common');
 
 var modules = [];

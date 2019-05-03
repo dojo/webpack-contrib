@@ -280,7 +280,7 @@ export default function loader(
 		}
 	});
 
-	// Now we want to walk the AST and find an expressions where the default import ir `exists` of `*/has` is
+	// Now we want to walk the AST and find an expressions where the default import or `exists` of `*/has` is
 	// called. This will be a CallExpression, where the callee is an object named the import from above
 	// accessing the `default` or `exists` properties, with one argument, which is a string literal.
 	if (hasIdentifier) {

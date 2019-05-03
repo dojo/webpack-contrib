@@ -100,6 +100,7 @@ declare module 'webpack/lib/Module' {
 
 declare module 'webpack/lib/NormalModule' {
 	import Module = require('webpack/lib/Module');
+	import Source = require('webpack-sources/lib/Source');
 
 	interface NormalModuleParams {
 		type: string;
@@ -125,6 +126,8 @@ declare module 'webpack/lib/NormalModule' {
 		generator?: Function;
 
 		constructor(params: NormalModuleParams);
+
+		originalSource(): Source;
 	}
 
 	export = NormalModule;

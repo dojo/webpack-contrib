@@ -24,6 +24,7 @@ This repository contains all of the custom Webpack [plugins](https://webpack.js.
 	- [bootstrap-plugin](#bootstrap-plugin)
 - [Transformers](#transformers)
 	- [registry-transformer](#registry-transformer)
+	- [element-transformer](#element-transformer)
 - [How do I contribute?](#how-do-i-contribute)
   - [Code Style](#code-style)
   - [Testing](#testing)
@@ -523,6 +524,61 @@ new BootstrapPlugin({
 A custom [TypeScript transformer](https://github.com/TypeStrong/ts-loader#getcustomtransformers-----before-transformerfactory-after-transformerfactory--) that generates [registry](https://github.com/dojo/widget-core/#registry) keys for [widgets](https://github.com/dojo/widget-core) included in lazily-loaded bundles. This allows widget authors to use the same pattern for authoring widgets regardless of whether they are loaded from a registry or imported directly.
 
 For example, if `LazyWidget` needs to be split into a separate bundle and this transformer is not applied, then `LazyWidget` would need to be added to the registry (`registry.define('lazy-widget', LazyWidget)`), and all calls to `w(LazyWidget)` would need to be updated to reference its registry key (`w<LazyWidget>('lazy-widget')`). By using this transformer, `LazyWidget` would instead be added to the registry at build time, allowing existing code to remain unchanged.
+
+## element-transformer
+
+A custom [TypeScript transformer](https://github.com/TypeStrong/ts-loader#getcustomtransformers-----before-transformerfactory-after-transformerfactory--) that generates a custom element definition for specified widgets.
+
+For example given a widget `Hello`,
+
+```typescript
+import { v } from '@dojo/framework/widget-core/d';
+import { WidgetBase } from '@dojo/framework/widget-core/WidgetBase';
+
+interface HelloProperties {
+	name: string;
+	flag: boolean;
+	onClick(): void;
+	onChange(value: string): void;
+}
+
+export class Hello extends WidgetBase<HelloProperties> {
+	protected render() {
+		const { name } = this.properties;
+		return v('h1', { }, [
+			'Hello ${name}!'
+		]);
+	}
+}
+
+export default Hello;
+```
+
+The generated output would be ,
+
+```typescript
+import { v } from '@dojo/framework/widget-core/d';
+import { WidgetBase } from '@dojo/framework/widget-core/WidgetBase';
+
+interface HelloProperties {
+	name: string;
+	flag: boolean;
+	onClick(): void;
+	onChange(value: string): void;
+}
+
+export class Hello extends WidgetBase<HelloProperties> {
+	protected render() {
+		const { name } = this.properties;
+		return v('h1', { }, [
+			'Hello ${name}!'
+		]);
+	}
+}
+Hello.prototype.__customElementDescriptor = { ...{ tagName: 'widget-hello', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] }, ...Hello.prototype.__customElementDescriptor || {} };
+
+export default Hello;
+```
 
 ## How do I contribute?
 

@@ -46,6 +46,16 @@ else {
 	doY();
 }
 
+if (somename.exists('foo')) {
+	doX();
+}
+
+if (!somename.exists('foo')) {
+	doY();
+} else if (somename.exists('bar')) {
+	doX();
+}
+
 if (!somename.default('foo')) {
 	doX();
 }

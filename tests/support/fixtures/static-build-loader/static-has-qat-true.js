@@ -9,16 +9,16 @@ const afterHasRequire = true;
 "use strict";
 exports.__esModule = true;
 require("foo");
-// !has('bar')
+// has('bar')
 require("bar");
 require("baz");
-// has('qat')
-require("qat");
-// has('qat')
+// !has('qat')
+// elided: import 'qat'
+// !has('qat')
 const foo = 'bar';
 require(foo);
-require('foo');
-// has('baz')
+// elided: import 'foo'
+// !has('baz')
 require("qat");
 // has('bar')
 var importedValue = require('bar');
@@ -46,6 +46,16 @@ else {
 	doY();
 }
 
+if (somename.exists('foo')) {
+	doX();
+}
+
+if (!somename.exists('foo')) {
+	doY();
+} else if (somename.exists('bar')) {
+	doX();
+}
+
 if (!somename.default('foo')) {
 	doX();
 }
@@ -58,7 +68,7 @@ function returnArg(arg) {
 	return arg;
 }
 
-if (returnArg(!somename.default('foo')) && (somename.default('baz') || returnArg(somename.default('qat')) || somename.default('foo'))) {
+if (returnArg(!somename.default('foo')) && (somename.default('baz') || returnArg(true) || somename.default('foo'))) {
 	doX();
 	doY();
 }

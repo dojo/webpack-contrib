@@ -14,7 +14,10 @@ let mockRecastUtil: { composeSourceMaps: sinon.SinonStub };
 let mockRecast: { types: any; print: sinon.SinonStub; parse: sinon.SinonStub };
 
 function loadCode(name: string) {
-	return readFileSync(join(resolve(__dirname), `../../support/fixtures/${name}.js`), 'utf8').replace(/\r\n/g, '\n');
+	return readFileSync(
+		join(resolve(__dirname), `../../support/fixtures/static-build-loader/${name}.js`),
+		'utf8'
+	).replace(/\r\n/g, '\n');
 }
 
 const { registerSuite } = intern.getInterface('object');

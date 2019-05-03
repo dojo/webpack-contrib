@@ -1,5 +1,4 @@
-import checkHas, { exists, arbitrary } from 'dojo/has';
-
+import { default as checkHas, exists as doesItExist, arbitrary } from 'dojo/has';
 
 function doX() {
 
@@ -20,10 +19,10 @@ if (checkHas('bar')) {
 	doX();
 }
 
-if (exists('bar')) {
+if (doesItExist('bar')) {
 	doX();
 }
 
-if (exists('foo')) {
+if (doesItExist('foo')) {
 	doY();
 }

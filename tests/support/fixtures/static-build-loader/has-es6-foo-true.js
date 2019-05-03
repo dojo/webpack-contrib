@@ -1,4 +1,4 @@
-import checkHas, { exists } from 'dojo/has';
+import checkHas, { exists, arbitrary } from 'dojo/has';
 
 
 function doX() {
@@ -18,4 +18,12 @@ if (!true) {
 
 if (checkHas('bar')) {
 	doX();
+}
+
+if (exists('bar')) {
+	doX();
+}
+
+if (true) {
+	doY();
 }

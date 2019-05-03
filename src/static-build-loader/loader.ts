@@ -32,9 +32,9 @@ function hasCheck(hasIdentifier: string, args: any, callee: any) {
 	);
 }
 
-function existsCheck(hasIdentifier: string, args: any, callee: any) {
+function existsCheck(existsIdentifier: string, hasIdentifier: string, args: any, callee: any) {
 	return (
-		(namedTypes.Identifier.check(callee) && callee.name === hasIdentifier && args.length === 1) ||
+		(namedTypes.Identifier.check(callee) && callee.name === existsIdentifier && args.length === 1) ||
 		(namedTypes.MemberExpression.check(callee) &&
 			namedTypes.Identifier.check(callee.object) &&
 			callee.object.name === hasIdentifier &&
@@ -114,6 +114,7 @@ export default function loader(
 	let features: StaticHasFeatures;
 	let elideNextImport = false;
 	let hasIdentifier: string | undefined;
+	let existsIdentifier: string | undefined;
 	let comment: string | undefined;
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption);
@@ -167,7 +168,6 @@ export default function loader(
 			const { node, parentPath, name } = path;
 			if (namedTypes.ImportDeclaration.check(path.node)) {
 				const value = path.node.source.value;
-				const specifier = path.node.specifiers[0];
 
 				if (elideNextImport) {
 					comment = ` elided: import '${value}'`;
@@ -191,10 +191,17 @@ export default function loader(
 
 				comment = undefined;
 
-				if (specifier && specifier.type === 'ImportDefaultSpecifier') {
-					if (typeof value === 'string' && HAS_MID.test(value)) {
-						hasIdentifier = specifier.local.name;
-					}
+				if (typeof value === 'string' && HAS_MID.test(value)) {
+					path.node.specifiers.forEach((specifier) => {
+						if (
+							specifier.type === 'ImportDefaultSpecifier' ||
+							(specifier.type === 'ImportSpecifier' && specifier.imported.name === 'default')
+						) {
+							hasIdentifier = specifier.local.name;
+						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
+							existsIdentifier = specifier.local.name;
+						}
+					});
 				}
 			}
 			this.traverse(path);
@@ -283,7 +290,7 @@ export default function loader(
 					node: { arguments: args, callee }
 				} = path;
 				let isHasCheck = hasCheck(hasIdentifier as string, args, callee);
-				let isExistsCheck = existsCheck(hasIdentifier as string, args, callee);
+				let isExistsCheck = existsCheck(existsIdentifier as string, hasIdentifier as string, args, callee);
 				if (isHasCheck || isExistsCheck) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {

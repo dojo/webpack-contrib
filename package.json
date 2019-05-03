@@ -43,7 +43,7 @@
     "watch": "run-p watch:ts \"build:static:** -- --watch\""
   },
   "dependencies": {
-    "@dojo/framework": "^5.0.0",
+    "@dojo/framework": "6.0.0-alpha.1",
     "acorn": "5.3.0",
     "acorn-dynamic-import": "3.0.0",
     "bfj": "6.1.1",

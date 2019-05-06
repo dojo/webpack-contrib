@@ -59,6 +59,7 @@ export default class BuildTimeRender {
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
+	private _buildBridgePaths: any[] = [];
 	private _output?: string;
 	private _paths: any[];
 	private _puppeteerOptions: any;
@@ -165,7 +166,12 @@ export default class BuildTimeRender {
 			if (module && module.default) {
 				const promise = module.default(...args);
 				this._bridgePromises.push(promise);
-				const result = await promise;
+				let result = await promise;
+				if (module.paths) {
+					this._buildBridgePaths = this._buildBridgePaths.concat(
+						typeof module.paths === 'function' ? module.paths() : module.paths
+					);
+				}
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
 				this._buildBridgeResult[modulePath].push(
 					`buildBridgeCache('${modulePath}','${JSON.stringify(args)}', ${JSON.stringify(result)});\n`
@@ -399,8 +405,9 @@ export default class BuildTimeRender {
 				let renderResults: RenderResult[] = [];
 				renderResults.push(await this._getRenderResult(page, undefined));
 
-				for (let i = 0; i < this._paths.length; i++) {
-					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
+				const paths = this._paths.concat(this._buildBridgePaths);
+				for (let i = 0; i < paths.length; i++) {
+					let path = typeof paths[i] === 'object' ? paths[i].path : paths[i];
 					await page.goto(`http://localhost:${app.port}/${path}`);
 					const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
 					await page.reload();
@@ -414,13 +421,13 @@ export default class BuildTimeRender {
 					const scripts = await getScriptSources(page, app.port);
 					this._writeBuildBridgeCache(scripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
-					let result = await this._getRenderResult(page, this._paths[i]);
+					let result = await this._getRenderResult(page, paths[i]);
 					renderResults.push(result);
 				}
 
 				this._writeBuildTimeCacheFiles();
 
-				if (!this._useHistory && this._paths.length) {
+				if (!this._useHistory && paths.length) {
 					renderResults = [this._createCombinedRenderResult(renderResults)];
 				}
 

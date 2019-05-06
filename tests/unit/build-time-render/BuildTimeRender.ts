@@ -22,7 +22,16 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
-const createCompilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash' | 'build-bridge-error') => {
+const createCompilation = (
+	type:
+		| 'state'
+		| 'hash'
+		| 'build-bridge'
+		| 'build-bridge-hash'
+		| 'build-bridge-error'
+		| 'build-bridge-path'
+		| 'build-bridge-path-async'
+) => {
 	const errors: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
@@ -640,6 +649,135 @@ describe('build-time-render', () => {
 				assert.strictEqual(
 					normalise(originalManifest),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
+				);
+			});
+		});
+
+		it('should add paths from block modules to btr paths', () => {
+			outputPath = path.join(
+				__dirname,
+				'..',
+				'..',
+				'support',
+				'fixtures',
+				'build-time-render',
+				'build-bridge-path'
+			);
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-path');
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			assert.equal(
+				resource.request,
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+			);
+			const compilation = createCompilation('build-bridge-path');
+			return runBtr(compilation, callbackStub).then(() => {
+				assert.isTrue(outputFileSync.calledOnce);
+
+				const [filename, content] = outputFileSync.firstCall.args;
+				assert.match(filename, /index\.html$/);
+				assert.strictEqual(
+					normalise(content),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+				);
+			});
+		});
+
+		it('should add paths from async block modules to btr paths', () => {
+			outputPath = path.join(
+				__dirname,
+				'..',
+				'..',
+				'support',
+				'fixtures',
+				'build-time-render',
+				'build-bridge-path-async'
+			);
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const basePath = path.join(
+				process.cwd(),
+				'tests/support/fixtures/build-time-render/build-bridge-path-async'
+			);
+			const btr = new Btr({
+				basePath,
+				paths: [],
+				entries: ['bootstrap', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+			const resource = {
+				context: `${basePath}/foo/bar`,
+				request: `something.build.js`
+			};
+			callback(resource);
+			assert.equal(
+				resource.request,
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+			);
+			const compilation = createCompilation('build-bridge-path-async');
+			return runBtr(compilation, callbackStub).then(() => {
+				assert.isTrue(outputFileSync.calledOnce);
+
+				const [filename, content] = outputFileSync.firstCall.args;
+				assert.match(filename, /index\.html$/);
+				assert.strictEqual(
+					normalise(content),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 				);
 			});
 		});

@@ -14,7 +14,10 @@ let mockRecastUtil: { composeSourceMaps: sinon.SinonStub };
 let mockRecast: { types: any; print: sinon.SinonStub; parse: sinon.SinonStub };
 
 function loadCode(name: string) {
-	return readFileSync(join(resolve(__dirname), `../../support/fixtures/${name}.js`), 'utf8').replace(/\r\n/g, '\n');
+	return readFileSync(
+		join(resolve(__dirname), `../../support/fixtures/static-build-loader/${name}.js`),
+		'utf8'
+	).replace(/\r\n/g, '\n');
 }
 
 const { registerSuite } = intern.getInterface('object');
@@ -76,6 +79,38 @@ registerSuite('static-build-loader', {
 				'Dynamic features: foo, bar, baz',
 				'should have logged properly'
 			);
+		},
+
+		'static features with es6 import'() {
+			const code = loadCode('has-es6');
+			mockLoaderUtils.getOptions.returns({
+				features: { foo: true }
+			});
+
+			const context = {
+				callback: sandbox.stub()
+			};
+			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
+			assert.equal(resultCode, loadCode('has-es6-foo-true'));
+			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
+			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
+			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: bar', 'should have logged properly');
+		},
+
+		'static features with renamed default es6 import'() {
+			const code = loadCode('has-es6-named-imports');
+			mockLoaderUtils.getOptions.returns({
+				features: { foo: false }
+			});
+
+			const context = {
+				callback: sandbox.stub()
+			};
+			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
+			assert.equal(resultCode, loadCode('has-es6-named-imports-foo-false'));
+			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
+			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
+			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: bar', 'should have logged properly');
 		},
 
 		'should pass to callback if a sourcemap was provided'() {

@@ -32,6 +32,18 @@ function hasCheck(hasIdentifier: string, args: any, callee: any) {
 	);
 }
 
+function existsCheck(existsIdentifier: string, hasIdentifier: string, args: any, callee: any) {
+	return (
+		(namedTypes.Identifier.check(callee) && callee.name === existsIdentifier && args.length === 1) ||
+		(namedTypes.MemberExpression.check(callee) &&
+			namedTypes.Identifier.check(callee.object) &&
+			callee.object.name === hasIdentifier &&
+			namedTypes.Identifier.check(callee.property) &&
+			callee.property.name === 'exists' &&
+			args.length === 1)
+	);
+}
+
 function getExpressionValue(node: ExpressionStatement): string | undefined {
 	if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
 		return node.expression.value;
@@ -72,7 +84,7 @@ export default function loader(
 	content: string,
 	sourceMap?: webpack.RawSourceMap
 ): string | void {
-	if (content.indexOf('/has') < 0 && content.indexOf('has(') < 0) {
+	if (content.indexOf('/has') < 0 && content.indexOf('has(') < 0 && content.indexOf('exists(') < 0) {
 		if (sourceMap) {
 			this.callback(null, content, sourceMap);
 			return;
@@ -102,6 +114,7 @@ export default function loader(
 	let features: StaticHasFeatures;
 	let elideNextImport = false;
 	let hasIdentifier: string | undefined;
+	let existsIdentifier: string | undefined;
 	let comment: string | undefined;
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption);
@@ -155,7 +168,6 @@ export default function loader(
 			const { node, parentPath, name } = path;
 			if (namedTypes.ImportDeclaration.check(path.node)) {
 				const value = path.node.source.value;
-				const specifier = path.node.specifiers[0];
 
 				if (elideNextImport) {
 					comment = ` elided: import '${value}'`;
@@ -179,10 +191,17 @@ export default function loader(
 
 				comment = undefined;
 
-				if (specifier && specifier.type === 'ImportDefaultSpecifier') {
-					if (typeof value === 'string' && HAS_MID.test(value)) {
-						hasIdentifier = specifier.local.name;
-					}
+				if (typeof value === 'string' && HAS_MID.test(value)) {
+					path.node.specifiers.forEach((specifier) => {
+						if (
+							specifier.type === 'ImportDefaultSpecifier' ||
+							(specifier.type === 'ImportSpecifier' && specifier.imported.name === 'default')
+						) {
+							hasIdentifier = specifier.local.name;
+						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
+							existsIdentifier = specifier.local.name;
+						}
+					});
 				}
 			}
 			this.traverse(path);
@@ -261,21 +280,23 @@ export default function loader(
 		}
 	});
 
-	// Now we want to walk the AST and find an expressions where the default import of `*/has` is
-	// called. Which is a CallExpression, where the callee is an object named the import from above
-	// accessing the `default` property, with one argument, which is a string literal.
+	// Now we want to walk the AST and find an expressions where the default import or `exists` of `*/has` is
+	// called. This will be a CallExpression, where the callee is an object named the import from above
+	// accessing the `default` or `exists` properties, with one argument, which is a string literal.
 	if (hasIdentifier) {
 		types.visit(ast, {
 			visitCallExpression(path) {
 				const {
 					node: { arguments: args, callee }
 				} = path;
-				if (hasCheck(hasIdentifier as string, args, callee)) {
+				let isHasCheck = hasCheck(hasIdentifier as string, args, callee);
+				let isExistsCheck = existsCheck(existsIdentifier as string, hasIdentifier as string, args, callee);
+				if (isHasCheck || isExistsCheck) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
 						// check to see if we have a flag that we want to statically swap
 						if (arg.value in features) {
-							path.replace(builders.literal(features[arg.value]));
+							path.replace(builders.literal(isExistsCheck ? true : features[arg.value]));
 						} else {
 							dynamicFlags.add(arg.value);
 						}

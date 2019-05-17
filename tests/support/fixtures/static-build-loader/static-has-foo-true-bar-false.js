@@ -50,6 +50,16 @@ else {
 	doY();
 }
 
+if (true) {
+	doX();
+}
+
+if (!true) {
+	doY();
+} else if (true) {
+	doX();
+}
+
 if (!true) {
 	doX();
 }

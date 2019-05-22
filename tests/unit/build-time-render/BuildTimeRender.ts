@@ -148,7 +148,6 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
-				console.log(compilation.errors);
 				assert.lengthOf(compilation.errors, 2);
 				assert.strictEqual(compilation.errors[0].message, 'Block error');
 				assert.include(
@@ -191,7 +190,6 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
-				console.log(compilation.errors);
 				assert.lengthOf(compilation.errors, 3);
 				assert.strictEqual(compilation.errors[0].message, 'Block error');
 				assert.include(

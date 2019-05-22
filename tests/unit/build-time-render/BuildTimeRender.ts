@@ -148,12 +148,13 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
+				console.log(compilation.errors);
 				assert.lengthOf(compilation.errors, 2);
+				assert.strictEqual(compilation.errors[0].message, 'Block error');
 				assert.include(
-					compilation.errors[0].message,
+					compilation.errors[1].message,
 					'BTR runtime Error: runtime error\n    at main (http://localhost'
 				);
-				assert.strictEqual(compilation.errors[1].message, 'Block error');
 			});
 		});
 
@@ -190,12 +191,14 @@ describe('build-time-render', () => {
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
 				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 2);
+				console.log(compilation.errors);
+				assert.lengthOf(compilation.errors, 3);
+				assert.strictEqual(compilation.errors[0].message, 'Block error');
 				assert.include(
-					compilation.errors[0].message,
+					compilation.errors[1].message,
 					'BTR runtime Error: runtime error\n    at main (http://localhost'
 				);
-				assert.strictEqual(compilation.errors[1].message, 'Test Error');
+				assert.strictEqual(compilation.errors[2].message, 'Test Error');
 			});
 		});
 	});

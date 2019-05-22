@@ -323,6 +323,19 @@ export default class BuildTimeRender {
 		this._bridgePromises = [];
 	}
 
+	private async _createPage(browser: any) {
+		const reportError = (err: Error) => {
+			err.message = `BTR runtime ${err.message}`;
+			this._blockErrors.push(err);
+		};
+		const page = await browser.newPage();
+		page.on('error', reportError);
+		page.on('pageerror', reportError);
+		await setHasFlags(page);
+		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
+		return page;
+	}
+
 	public apply(compiler: Compiler) {
 		if (!this._root) {
 			return;
@@ -390,17 +403,9 @@ export default class BuildTimeRender {
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`);
 			try {
-				const reportError = (err: Error) => {
-					err.message = `BTR runtime ${err.message}`;
-					compilation.errors.push(err);
-				};
 				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
 				ensureDirSync(screenshotDirectory);
-				const page = await browser.newPage();
-				page.on('error', reportError);
-				page.on('pageerror', reportError);
-				await setHasFlags(page);
-				await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
+				let page = await this._createPage(browser);
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
 				await page.goto(`http://localhost:${app.port}/`);
 				await wait;
@@ -411,12 +416,13 @@ export default class BuildTimeRender {
 
 				let renderResults: RenderResult[] = [];
 				renderResults.push(await this._getRenderResult(page, undefined));
+				await page.close();
 
 				for (let i = 0; i < this._paths.length; i++) {
 					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
-					await page.goto(`http://localhost:${app.port}/${path}`);
+					page = await this._createPage(browser);
 					const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
-					await page.reload();
+					await page.goto(`http://localhost:${app.port}/${path}`);
 					const pathDirectories = path.replace('#', '').split('/');
 					if (pathDirectories.length > 0) {
 						pathDirectories.pop();
@@ -429,6 +435,7 @@ export default class BuildTimeRender {
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					renderResults.push(result);
+					await page.close();
 				}
 
 				this._writeBuildTimeCacheFiles();
@@ -449,6 +456,9 @@ export default class BuildTimeRender {
 					compilation.errors.push(...this._blockErrors);
 				}
 			} catch (error) {
+				if (this._blockErrors.length) {
+					compilation.errors.push(...this._blockErrors);
+				}
 				compilation.errors.push(error);
 			} finally {
 				await browser.close();

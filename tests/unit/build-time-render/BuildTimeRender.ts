@@ -135,12 +135,15 @@ describe('build-time-render', () => {
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
 			const resource = {
 				context: `${basePath}/foo/bar`,
-				request: `something.build.js`
+				request: `something.build.js`,
+				contextInfo: {
+					issuer: 'foo'
+				}
 			};
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
@@ -174,12 +177,15 @@ describe('build-time-render', () => {
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
 			const resource = {
 				context: `${basePath}/foo/bar`,
-				request: `something.build.js`
+				request: `something.build.js`,
+				contextInfo: {
+					issuer: 'foo'
+				}
 			};
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
@@ -512,12 +518,15 @@ describe('build-time-render', () => {
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
 			const resource = {
 				context: `${basePath}/foo/bar`,
-				request: `something.build.js`
+				request: `something.build.js`,
+				contextInfo: {
+					issuer: 'foo'
+				}
 			};
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
@@ -594,7 +603,10 @@ describe('build-time-render', () => {
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
 			const resource = {
 				context: `${basePath}/foo/bar`,
-				request: `something.build.js`
+				request: `something.build.js`,
+				contextInfo: {
+					issuer: 'foo'
+				}
 			};
 			callback(resource);
 			return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
@@ -625,14 +637,14 @@ describe('build-time-render', () => {
 				assert.strictEqual(
 					normalise(source),
 					normalise(
-						readFileSync(path.join(outputPath, 'expected', 'main.12bba5c45b44f37049b7.bundle.js'), 'utf-8')
+						readFileSync(path.join(outputPath, 'expected', 'main.2c08d1e662f4c73da16d.bundle.js'), 'utf-8')
 					)
 				);
 				assert.strictEqual(
 					normalise(map),
 					normalise(
 						readFileSync(
-							path.join(outputPath, 'expected', 'main.12bba5c45b44f37049b7.bundle.js.map'),
+							path.join(outputPath, 'expected', 'main.2c08d1e662f4c73da16d.bundle.js.map'),
 							'utf-8'
 						)
 					)

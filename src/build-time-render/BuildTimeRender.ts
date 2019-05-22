@@ -159,16 +159,16 @@ export default class BuildTimeRender {
 		return { content, styles, script, path };
 	}
 
-	private async _buildBridge(modulePath: string, args: any[]) {
+	private async _buildBridge(modulePath: string, id: string, args: any[]) {
 		try {
 			const module = require(`${this._basePath}/${modulePath}`);
 			if (module && module.default) {
 				const promise = module.default(...args);
 				this._bridgePromises.push(promise);
 				const result = await promise;
-				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || [];
-				this._buildBridgeResult[modulePath].push(
-					`buildBridgeCache('${modulePath}','${JSON.stringify(args)}', ${JSON.stringify(result)});\n`
+				this._buildBridgeResult[id] = this._buildBridgeResult[id] || [];
+				this._buildBridgeResult[id].push(
+					`buildBridgeCache('${id}','${JSON.stringify(args)}', ${JSON.stringify(result)});\n`
 				);
 				return result;
 			}
@@ -246,10 +246,10 @@ export default class BuildTimeRender {
 		if (!Object.keys(this._buildBridgeResult).length) {
 			return;
 		}
-		const buildBridgeCacheFunctionString = `function buildBridgeCache(modulePath, args, value) {
+		const buildBridgeCacheFunctionString = `function buildBridgeCache(id, args, value) {
 	window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};
-	window.__dojoBuildBridgeCache[modulePath] = window.__dojoBuildBridgeCache[modulePath] || {};
-	window.__dojoBuildBridgeCache[modulePath][args] = value;
+	window.__dojoBuildBridgeCache[id] = window.__dojoBuildBridgeCache[id] || {};
+	window.__dojoBuildBridgeCache[id][args] = value;
 };\n`;
 		Object.keys(this._manifestContent)
 			.filter((chunkname) => {
@@ -262,9 +262,9 @@ export default class BuildTimeRender {
 					const content = this._manifestContent[chunkname];
 					const sourceMap = this._manifestContent[`${chunkname}.map`];
 					const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
-					Object.keys(this._buildBridgeResult).forEach((modulePath) => {
-						if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${modulePath}' **/`) !== -1) {
-							const buildBridgeResults = this._buildBridgeResult[modulePath];
+					Object.keys(this._buildBridgeResult).forEach((id) => {
+						if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${id}' **/`) !== -1) {
+							const buildBridgeResults = this._buildBridgeResult[id];
 							buildBridgeResults.forEach((buildBridgeResult: any) => {
 								if (content.indexOf(buildBridgeResult) === -1) {
 									node.prepend(buildBridgeResult);
@@ -328,12 +328,25 @@ export default class BuildTimeRender {
 			return;
 		}
 
+		let id = 0;
+		const issuers: string[] = [];
 		const plugin = new webpack.NormalModuleReplacementPlugin(/\.block/, (resource: any) => {
 			const modulePath = join(resource.context, resource.request)
 				.replace(this._basePath, '')
 				.replace(/\\/g, '/')
 				.replace(/^\//, '');
-			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
+			const issuer = resource.contextInfo.issuer
+				.replace(this._basePath, '')
+				.replace(/\\/g, '/')
+				.replace(/^\//, '');
+			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='${id++}'&modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
+			if (issuers.indexOf(issuer) === -1) {
+				issuers.push(issuer);
+				const newPlugin = new webpack.NormalModuleReplacementPlugin(new RegExp(issuer), (resource: any) => {
+					resource.request = `${resource.request}?${id}`;
+				});
+				newPlugin.apply(compiler);
+			}
 		});
 		plugin.apply(compiler);
 

@@ -4,7 +4,7 @@ import { join, resolve } from 'path';
 import MockModule from '../../support/MockModule';
 const recast = require('recast');
 
-let loader: (content: string, sourceMap?: { file: string }) => undefined | string;
+let loader: (content: string, sourceMap?: { file: string }) => string;
 let sandbox: sinon.SinonSandbox;
 let logStub: sinon.SinonStub;
 let mockModule: MockModule;
@@ -203,7 +203,7 @@ registerSuite('static-build-loader', {
 
 		'should call callback with sourcemap in code with no pragmas or calls to has'() {
 			const code = loadCode('should-not-parse');
-			const sourceMap = { source: 'maps' };
+			const sourceMap = { source: 'maps', file: '' };
 			mockLoaderUtils.getOptions.returns({
 				features: {}
 			});

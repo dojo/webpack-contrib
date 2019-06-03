@@ -1,4 +1,4 @@
-import has from '@dojo/framework/has/has';
+import has from '@dojo/framework/core/has';
 import global from '@dojo/framework/shim/global';
 
 export default function () {

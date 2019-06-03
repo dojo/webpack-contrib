@@ -1,4 +1,4 @@
-var has = require('@dojo/framework/has/has');
+var has = require('@dojo/framework/core/has');
 require('./common');
 
 if (has.default('build-serve')) {

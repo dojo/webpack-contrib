@@ -1,4 +1,4 @@
-var has = require('@dojo/framework/has/has');
+var has = require('@dojo/framework/core/has');
 var global = require('@dojo/framework/shim/global');
 
 if (!has.exists('build-time-render')) {

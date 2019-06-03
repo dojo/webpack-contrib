@@ -1,5 +1,5 @@
 import global from '@dojo/framework/shim/global';
-import has, { add } from '@dojo/framework/has/has';
+import has, { add } from '@dojo/framework/core/has';
 import { SinonStub, stub } from 'sinon';
 import MockModule from '../../support/MockModule';
 

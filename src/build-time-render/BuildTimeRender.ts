@@ -65,7 +65,7 @@ export default class BuildTimeRender {
 	private _basePath = '';
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
-	private _originalRoot: string;
+	private _originalRoot!: string;
 	private _bridgePromises: Promise<any>[] = [];
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;

@@ -40,7 +40,7 @@ export default function elementTransformer<T extends ts.Node>(
 			const classNode = node as ts.ClassDeclaration;
 
 			if (
-				customElementFilesIncludingDefaults.indexOf(node.getSourceFile().fileName) !== -1 &&
+				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
 				defaultExport &&
 				classSymbol &&
 				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===

@@ -18,8 +18,8 @@ export interface BundleAnalyzerOptions {
 export default class BundleAnalyzerPlugin {
 	private opts: BundleAnalyzerOptions;
 	private compiler: any;
-	private _outputDirectory: string;
-	private _outputPath: string;
+	private _outputDirectory!: string;
+	private _outputPath!: string;
 
 	constructor(opts: Partial<BundleAnalyzerOptions>) {
 		this.opts = {

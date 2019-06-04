@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as minimatch from 'minimatch';
 const shared = require('./shared');
 
-const dImportPath = '@dojo/framework/widget-core/d';
+const dImportPath = '@dojo/framework/core/vdom';
 const wPragma = 'w';
 const fakeComponentName = 'Loadable__';
 const outletImportPath = '@dojo/framework/routing/Outlet';
@@ -54,7 +54,7 @@ class Visitor {
 		this.sync = options.sync;
 	}
 
-	public visit(node: ts.Node) {
+	public visit(node: ts.Node): any {
 		if (ts.isImportDeclaration(node)) {
 			const importPath = (node.moduleSpecifier as ts.StringLiteral).text;
 			if (importPath.match(/^(\.|\.\.)/)) {
@@ -236,37 +236,24 @@ class Visitor {
 				this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);
 				if (ts.isJsxElement(inputNode)) {
 					let openingElement;
-
-					if (ts.updateJsxOpeningElement.length === 3) {
-						openingElement = ts.updateJsxOpeningElement(
-							node as ts.JsxOpeningElement,
-							ts.createIdentifier(fakeComponentName),
-							attrs
-						);
-					} else {
-						openingElement = (ts as any).updateJsxOpeningElement(
-							node as ts.JsxOpeningElement,
-							ts.createIdentifier(fakeComponentName),
-							(node as any).typeArguments,
-							attrs
-						);
-					}
+					openingElement = ts.updateJsxOpeningElement(
+						node as ts.JsxOpeningElement,
+						ts.createIdentifier(fakeComponentName),
+						(node as any).typeArguments,
+						attrs
+					);
 					const closingElement = ts.updateJsxClosingElement(
 						inputNode.closingElement,
 						ts.createIdentifier(fakeComponentName)
 					);
 					return ts.updateJsxElement(inputNode, openingElement, inputNode.children, closingElement);
 				} else {
-					if (ts.updateJsxSelfClosingElement.length === 3) {
-						return ts.updateJsxSelfClosingElement(inputNode, ts.createIdentifier(fakeComponentName), attrs);
-					} else {
-						return (ts as any).updateJsxSelfClosingElement(
-							inputNode,
-							ts.createIdentifier(fakeComponentName),
-							(inputNode as any).typeArguments,
-							attrs
-						);
-					}
+					return ts.updateJsxSelfClosingElement(
+						inputNode,
+						ts.createIdentifier(fakeComponentName),
+						(inputNode as any).typeArguments,
+						attrs
+					);
 				}
 			}
 		}

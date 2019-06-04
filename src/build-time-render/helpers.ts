@@ -55,7 +55,7 @@ export async function getClasses(page: any): Promise<String[]> {
 
 		while (treeWalker.nextNode()) {
 			const node = treeWalker.currentNode as HTMLElement;
-			node.classList.length && classes.push.apply(classes, node.classList);
+			node.classList.length && classes.push.apply(classes, Array.from(node.classList));
 		}
 
 		classes = classes.map((className) => `.${className}`);

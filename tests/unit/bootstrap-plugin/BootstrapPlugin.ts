@@ -88,15 +88,22 @@ describe('bootstrap-plugin', () => {
 						userRequest: path.normalize('foo/bar')
 					},
 					userRequest: path.normalize('foo/bar/@dojo/framework/core/Bar')
+				},
+				{
+					issuer: {
+						userRequest: path.normalize('some/other/module')
+					},
+					userRequest: path.normalize(`foo/bar?modulePath='foo/bar.block'`)
 				}
 			]
 		});
 		runner['BootstrapPlugin']();
 
-		assert.deepEqual(bootstrapPlugin.hasFlagMap, {
+		assert.deepEqual(bootstrapPlugin.flagMap, {
 			bar: false,
 			baz: false,
 			foo: true,
+			'build-blocks': true,
 			'no-bootstrap': true
 		});
 
@@ -105,7 +112,7 @@ describe('bootstrap-plugin', () => {
 
 		assert.strictEqual(
 			header(),
-			`var shimFeatures = {"no-bootstrap":true,"foo":true,"bar":false,"baz":false};
+			`var shimFeatures = {"no-bootstrap":true,"foo":true,"bar":false,"baz":false,"build-blocks":true};
 if (window.DojoHasEnvironment && window.DojoHasEnvironment.staticFeatures) {
 	Object.keys(window.DojoHasEnvironment.staticFeatures).forEach(function (key) {
 		shimFeatures[key] = window.DojoHasEnvironment.staticFeatures[key];
@@ -123,6 +130,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 			__dojoframeworkshimFetch: '"no-bootstrap"',
 			__dojoframeworkshimFoo: '"foo"',
 			__dojoframeworkshimBar: '"bar"',
+			__dojoBuildBlocks: '"build-blocks"',
 			__dojoframeworkshimBaz: '"baz"'
 		});
 		const [normalReplacementTest, normalReplaceCallback] = normalReplacementStub.firstCall.args;

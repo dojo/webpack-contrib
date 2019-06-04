@@ -206,11 +206,11 @@ export default class BuildTimeRender {
 	private _writeBuildBridgeCache(modules: string[]) {
 		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
 		const chunkMarker = `main:"${mainHash}",`;
-		const blockChunk = 'blocks.js';
+		const blockChunk = 'runtime/blocks.js';
 		Object.keys(this._buildBridgeResult).forEach((modulePath) => {
 			Object.keys(this._buildBridgeResult[modulePath]).forEach((args) => {
 				this._hasBuildBridgeCache = true;
-				const chunkName = `block-${genHash(modulePath + args)}`;
+				const chunkName = `runtime/block-${genHash(modulePath + args)}`;
 				const blockCacheEntry = `blockCacheEntry('${modulePath}', '${args}', '${chunkName}')`;
 				if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
 					const blockResult = this._buildBridgeResult[modulePath][args];

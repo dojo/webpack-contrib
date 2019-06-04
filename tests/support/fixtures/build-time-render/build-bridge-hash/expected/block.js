@@ -1,5 +1,5 @@
-(window['foo'] = window['foo'] || []).push([['block-49e457933c3c36eeb77f'],{
-/***/ 'block-49e457933c3c36eeb77f.js':
+(window['foo'] = window['foo'] || []).push([['runtime/block-49e457933c3c36eeb77f'],{
+/***/ 'runtime/block-49e457933c3c36eeb77f.js':
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 "use strict";

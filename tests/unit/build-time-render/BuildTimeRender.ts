@@ -652,7 +652,7 @@ describe('build-time-render', () => {
 					normalise(html),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 				);
-				assert.strictEqual(bootstrapFilename, 'bootstrap.8ac6da72a3eb6bbf6eeb.bundle.js');
+				assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
 				assert.strictEqual(
 					normalise(bootstrap),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
@@ -662,7 +662,7 @@ describe('build-time-render', () => {
 					normalise(blocks),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
 				);
-				assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.f2165508dc8dd49df0a9.bundle.js');
+				assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.9eba5eaa6f8cfe7b34e3.bundle.js');
 				assert.strictEqual(
 					normalise(block),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))

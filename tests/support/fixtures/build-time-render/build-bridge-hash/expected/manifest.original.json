@@ -5,5 +5,5 @@
 	"bootstrap.js": "bootstrap.abcdefghij0123456789.bundle.js",
 	"bootstrap.js.map": "bootstrap.abcdefghij0123456789.bundle.js.map",
 	"index.html": "index.html",
-	"blocks.js": "blocks.abcdefghij0123456789.bundle.js"
+	"runtime/blocks.js": "runtime/blocks.abcdefghij0123456789.bundle.js"
 }

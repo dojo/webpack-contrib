@@ -8,4 +8,4 @@ window.blockCacheEntry = function (modulePath, args, hash) {
     };
 };
 /** @preserve APPEND_BLOCK_CACHE_ENTRY **/
-blockCacheEntry('foo.block', '["a"]', 'block-49e457933c3c36eeb77f')
+blockCacheEntry('foo.block', '["a"]', 'runtime/block-49e457933c3c36eeb77f')

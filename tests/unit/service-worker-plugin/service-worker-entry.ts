@@ -14,8 +14,8 @@ describe('service worker entry', () => {
 
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/service-worker-plugin/service-worker-entry', require);
-		mockModule.dependencies(['@dojo/framework/has/has']);
-		mockModule.getMock('@dojo/framework/has/has').default = has;
+		mockModule.dependencies(['@dojo/framework/core/has']);
+		mockModule.getMock('@dojo/framework/core/has').default = has;
 		registerSpy = stub();
 		addEventListenerSpy = stub().callsFake((event: string, callback: () => void) => callback());
 		global.addEventListener = addEventListenerSpy;

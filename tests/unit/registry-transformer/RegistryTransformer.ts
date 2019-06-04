@@ -6,8 +6,8 @@ const { beforeEach, describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 const source = `
-import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';
@@ -37,7 +37,7 @@ export default HelloWorld;
 `;
 
 const sourceTsx = `
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';
@@ -108,8 +108,8 @@ describe('registry-transformer', () => {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';
@@ -131,7 +131,7 @@ export class Another extends WidgetBase {
 }
 export default HelloWorld;
 `;
-		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expectedTsx = `import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import { Blah } from './Qux';
@@ -189,8 +189,8 @@ export class Another extends WidgetBase {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Quz from './Quz';
 import { Blah } from './Qux';
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
@@ -211,7 +211,7 @@ export class Another extends WidgetBase {
 }
 export default HelloWorld;
 `;
-		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expectedTsx = `import WidgetBase from '@dojo/framework/core/WidgetBase';
 import { Blah } from './Qux';
 var Loadable__ = { type: "registry" };
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
@@ -269,8 +269,8 @@ export class Another extends WidgetBase {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Quz from './Quz';
 import { Blah } from './Qux';
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
@@ -291,7 +291,7 @@ export class Another extends WidgetBase {
 }
 export default HelloWorld;
 `;
-		const expectedTsx = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expectedTsx = `import WidgetBase from '@dojo/framework/core/WidgetBase';
 import { Blah } from './Qux';
 var Loadable__ = { type: "registry" };
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz") };
@@ -336,8 +336,8 @@ export class Another extends WidgetBase {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import { Blah } from './Qux';
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Baz: () => import("./Baz"), Quz: () => import("./Quz") };
 export class Foo extends WidgetBase {
@@ -374,8 +374,8 @@ export default HelloWorld;
 
 	it('can distinguish widgets in an outlet renderer', () => {
 		const source = `
-		import { v, w } from '@dojo/framework/widget-core/d';
-		import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		import { v, w } from '@dojo/framework/core/vdom';
+		import WidgetBase from '@dojo/framework/core/WidgetBase';
 		import { Outlet } from '@dojo/framework/routing/Outlet';
 		import Bar from './widgets/Bar';
 		import Baz from './Baz';
@@ -432,8 +432,8 @@ export default HelloWorld;
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import { Outlet } from '@dojo/framework/routing/Outlet';
 import Baz from './Baz';
 import Blah from './Qux';
@@ -487,7 +487,7 @@ export default HelloWorld;
 
 	it('can distinguish widgets in an outlet renderer tsx', () => {
 		const source = `
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Blah from './Qux';
@@ -525,7 +525,7 @@ export class Foo extends WidgetBase {
 			}
 		});
 
-		const expected = `import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Baz from './Baz';
 import Blah from './Qux';
 import Outlet from '@dojo/framework/routing/Outlet';
@@ -574,8 +574,8 @@ export class Foo extends WidgetBase {
 			}
 		});
 
-		const expected = `import { v, w } from '@dojo/framework/widget-core/d';
-import WidgetBase from '@dojo/framework/widget-core/WidgetBase';
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Quz from './Quz';

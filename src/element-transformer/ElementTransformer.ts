@@ -109,9 +109,18 @@ export default function elementTransformer<T extends ts.Node>(
 
 				const customElementDeclaration = ts.createObjectLiteral([
 					ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
-					ts.createPropertyAssignment('attributes', ts.createArrayLiteral(attributes.map(ts.createLiteral))),
-					ts.createPropertyAssignment('properties', ts.createArrayLiteral(properties.map(ts.createLiteral))),
-					ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map(ts.createLiteral)))
+					ts.createPropertyAssignment(
+						'attributes',
+						ts.createArrayLiteral(attributes.map((item) => ts.createLiteral(item)))
+					),
+					ts.createPropertyAssignment(
+						'properties',
+						ts.createArrayLiteral(properties.map((item) => ts.createLiteral(item)))
+					),
+					ts.createPropertyAssignment(
+						'events',
+						ts.createArrayLiteral(events.map((item) => ts.createLiteral(item)))
+					)
 				]);
 
 				const prototypeAccess = ts.createPropertyAccess(

@@ -16,21 +16,22 @@ const staticLoaderRegExp = /@dojo(\/|\\)webpack-contrib(\/|\\)static-build-loade
 const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 
 export class BootstrapPlugin {
-	public hasFlagMap: { [index: string]: boolean };
+	public flagMap: { [index: string]: boolean };
 	private _entryPath: string;
 	private _shimModules: ShimModules[];
 	private _defineConfiguration: { [index: string]: string } = {
 		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),
 		__dojoframeworkshimWebAnimations: JSON.stringify('no-bootstrap'),
 		__dojoframeworkshimResizeObserver: JSON.stringify('no-bootstrap'),
-		__dojoframeworkshimFetch: JSON.stringify('no-bootstrap')
+		__dojoframeworkshimFetch: JSON.stringify('no-bootstrap'),
+		__dojoBuildBlocks: JSON.stringify('build-blocks')
 	};
 
 	constructor(options: BootstrapPluginOptions) {
 		const { shimModules, entryPath } = options;
 		this._entryPath = entryPath;
 		this._shimModules = shimModules;
-		this.hasFlagMap = shimModules.reduce(
+		this.flagMap = shimModules.reduce(
 			(flags, module) => {
 				flags[module.has.toLowerCase()] = false;
 				return flags;
@@ -57,11 +58,15 @@ export class BootstrapPlugin {
 							const pattern = new RegExp(shimModule.module.replace(/\//g, '(/|\\\\)'));
 							if (pattern.test(module.userRequest)) {
 								matchedModule = index;
-								this.hasFlagMap[shimModule.has.toLowerCase()] = true;
+								this.flagMap[shimModule.has.toLowerCase()] = true;
 								return true;
 							}
 							return false;
 						});
+
+						if (/modulePath='.*\.block'/.test(module.userRequest)) {
+							this.flagMap['build-blocks'] = true;
+						}
 
 						if (matchedModule !== -1) {
 							this._shimModules.splice(matchedModule, 1);
@@ -75,7 +80,7 @@ export class BootstrapPlugin {
 		const wrapper = new WrapperPlugin({
 			test: /(bootstrap.*(\.js$))/,
 			header: () => {
-				return `var shimFeatures = ${JSON.stringify(this.hasFlagMap)};
+				return `var shimFeatures = ${JSON.stringify(this.flagMap)};
 if (window.DojoHasEnvironment && window.DojoHasEnvironment.staticFeatures) {
 	Object.keys(window.DojoHasEnvironment.staticFeatures).forEach(function (key) {
 		shimFeatures[key] = window.DojoHasEnvironment.staticFeatures[key];

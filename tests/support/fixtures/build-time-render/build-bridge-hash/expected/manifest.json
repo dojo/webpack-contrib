@@ -1,8 +1,10 @@
 {
-	"main.js": "main.0123456789abcdefghij.bundle.js",
-	"main.js.map": "main.0123456789abcdefghij.bundle.js.map",
-	"main.css": "main.css",
-	"bootstrap.js": "bootstrap.abcdefghij0123456789.bundle.js",
-	"bootstrap.js.map": "bootstrap.abcdefghij0123456789.bundle.js.map",
-	"index.html": "index.html"
+  "main.js": "main.0123456789abcdefghij.bundle.js",
+  "main.js.map": "main.0123456789abcdefghij.bundle.js.map",
+  "main.css": "main.css",
+  "bootstrap.js": "bootstrap.247d4597a12706983d2c.bundle.js",
+  "bootstrap.js.map": "bootstrap.abcdefghij0123456789.bundle.js.map",
+  "index.html": "index.html",
+  "runtime/blocks.js": "runtime/blocks.abcdefghij0123456789.bundle.js",
+  "runtime/block-49e457933c3c36eeb77f.js": "runtime/block-49e457933c3c36eeb77f.9eba5eaa6f8cfe7b34e3.bundle.js"
 }

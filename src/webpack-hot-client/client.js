@@ -1,5 +1,5 @@
 var global = require('@dojo/framework/shim/global').default;
-var has = require('@dojo/framework/has/has').default;
+var has = require('@dojo/framework/core/has').default;
 
 var ANSI_REGEX = /(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/g;
 

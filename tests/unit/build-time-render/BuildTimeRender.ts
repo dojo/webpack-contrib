@@ -143,7 +143,7 @@ describe('build-time-render', () => {
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
@@ -185,7 +185,7 @@ describe('build-time-render', () => {
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			const compilation = createCompilation('build-bridge-error');
 			return runBtr(compilation, callbackStub).then(() => {
@@ -497,7 +497,8 @@ describe('build-time-render', () => {
 				},
 				options: {
 					output: {
-						path: outputPath
+						path: outputPath,
+						jsonpFunction: 'foo'
 					}
 				}
 			};
@@ -527,23 +528,23 @@ describe('build-time-render', () => {
 			callback(resource);
 			assert.equal(
 				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='0'&modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 			);
 			return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
 				let html = '';
-				let source = '';
-				let map = '';
+				let blocks = '';
+				let block = '';
 				calls.map((call) => {
 					const [filename, content] = call.args;
 					if (filename.match(/index\.html$/)) {
 						html = content;
 					}
-					if (filename.match(/main\.js$/)) {
-						source = content;
+					if (filename.match(/blocks\.js$/)) {
+						blocks = content;
 					}
-					if (filename.match(/main\.js\.map$/)) {
-						map = content;
+					if (filename.match(/block-.*\.js$/)) {
+						block = content;
 					}
 				});
 				assert.strictEqual(
@@ -551,12 +552,12 @@ describe('build-time-render', () => {
 					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 				);
 				assert.strictEqual(
-					normalise(source),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
+					normalise(blocks),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
 				);
 				assert.strictEqual(
-					normalise(map),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'main.js.map'), 'utf-8'))
+					normalise(block),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
 				);
 			});
 		});
@@ -582,7 +583,8 @@ describe('build-time-render', () => {
 				},
 				options: {
 					output: {
-						path: outputPath
+						path: outputPath,
+						jsonpFunction: 'foo'
 					}
 				}
 			};
@@ -613,45 +615,64 @@ describe('build-time-render', () => {
 			return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
 				const calls = outputFileSync.getCalls();
 				let html = '';
-				let source = '';
-				let map = '';
+				let blocks = '';
+				let blocksFileName = '';
+				let block = '';
+				let blockFilename;
 				let originalManifest = '';
+				let manifest = '';
+				let bootstrap = '';
+				let bootstrapFilename = '';
 				calls.forEach((call) => {
 					const [filename, content] = call.args;
+					const parsedFilename = path.parse(filename);
 					if (filename.match(/index\.html$/)) {
 						html = content;
 					}
-					if (filename.match(/main\..*\.bundle\.js$/)) {
-						source = content;
+					if (filename.match(/blocks\..*\.bundle\.js$/)) {
+						blocks = content;
+						blocksFileName = `${parsedFilename.name}${parsedFilename.ext}`;
 					}
-					if (filename.match(/main\..*\.bundle\.js\.map$/)) {
-						map = content;
+					if (filename.match(/block-.*\.js$/)) {
+						block = content;
+						blockFilename = `${parsedFilename.name}${parsedFilename.ext}`;
+					}
+					if (filename.match(/bootstrap\..*\.bundle\.js$/)) {
+						bootstrap = content;
+						bootstrapFilename = `${parsedFilename.name}${parsedFilename.ext}`;
 					}
 					if (filename.match(/manifest\.original\.json$/)) {
 						originalManifest = content;
+					}
+					if (filename.match(/manifest\.json$/)) {
+						manifest = content;
 					}
 				});
 				assert.strictEqual(
 					normalise(html),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 				);
+				assert.strictEqual(bootstrapFilename, 'bootstrap.8ac6da72a3eb6bbf6eeb.bundle.js');
 				assert.strictEqual(
-					normalise(source),
-					normalise(
-						readFileSync(path.join(outputPath, 'expected', 'main.2c08d1e662f4c73da16d.bundle.js'), 'utf-8')
-					)
+					normalise(bootstrap),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
 				);
+				assert.strictEqual(blocksFileName, 'blocks.abcdefghij0123456789.bundle.js');
 				assert.strictEqual(
-					normalise(map),
-					normalise(
-						readFileSync(
-							path.join(outputPath, 'expected', 'main.2c08d1e662f4c73da16d.bundle.js.map'),
-							'utf-8'
-						)
-					)
+					normalise(blocks),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+				);
+				assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.f2165508dc8dd49df0a9.bundle.js');
+				assert.strictEqual(
+					normalise(block),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
 				);
 				assert.strictEqual(
 					normalise(originalManifest),
+					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.original.json'), 'utf-8'))
+				);
+				assert.strictEqual(
+					normalise(manifest),
 					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
 				);
 			});

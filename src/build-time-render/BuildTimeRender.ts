@@ -16,8 +16,6 @@ import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
 const puppeteer = require('puppeteer');
 const webpack = require('webpack');
-const SourceNode = require('source-map').SourceNode;
-const SourceMapConsumer = require('source-map').SourceMapConsumer;
 const postcss = require('postcss');
 const clearModule = require('clear-module');
 const createHash = require('webpack/lib/util/createHash');
@@ -55,11 +53,11 @@ function genHash(content: string): string {
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
-	private _originalManifest: any;
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
 	private _output?: string;
+	private _jsonpName?: string;
 	private _paths: any[];
 	private _puppeteerOptions: any;
 	private _root: string;
@@ -159,57 +157,20 @@ export default class BuildTimeRender {
 		return { content, styles, script, path };
 	}
 
-	private async _buildBridge(modulePath: string, id: string, args: any[]) {
+	private async _buildBridge(modulePath: string, args: any[]) {
 		try {
 			const module = require(`${this._basePath}/${modulePath}`);
 			if (module && module.default) {
 				const promise = module.default(...args);
 				this._bridgePromises.push(promise);
 				const result = await promise;
-				this._buildBridgeResult[id] = this._buildBridgeResult[id] || [];
-				this._buildBridgeResult[id].push(
-					`buildBridgeCache('${id}','${JSON.stringify(args)}', ${JSON.stringify(result)});\n`
-				);
+				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || {};
+				this._buildBridgeResult[modulePath][JSON.stringify(args)] = JSON.stringify(result);
 				return result;
 			}
 		} catch (e) {
 			this._blockErrors.push(e);
 		}
-	}
-
-	private _updateSourceAndMap(chunkname: string, source: string, sourceMap: string) {
-		this._manifestContent[chunkname] = source;
-		this._manifestContent[`${chunkname}.map`] = sourceMap;
-
-		this._filesToRemove.add(this._manifest[chunkname]);
-		this._filesToRemove.add(this._manifest[`${chunkname}.map`]);
-
-		let content = this._manifestContent[chunkname];
-		const oldHash = this._manifest[chunkname].replace(chunkname.replace('js', ''), '').replace(/\..*/, '');
-		const hash = genHash(this._manifestContent[chunkname]);
-		content = content.replace(new RegExp(oldHash, 'g'), hash);
-		this._manifest[chunkname] = this._manifest[chunkname].replace(oldHash, hash);
-		this._manifestContent[chunkname] = content;
-
-		const mapName = `${chunkname}.map`;
-		let mapContent = this._manifestContent[mapName];
-		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
-		this._manifest[mapName] = this._manifest[mapName].replace(oldHash, hash);
-		this._manifestContent[mapName] = mapContent;
-
-		this._filesToWrite.add(chunkname);
-		this._filesToWrite.add(mapName);
-		return [oldHash, hash];
-	}
-
-	private _updateBootstrap(oldHash: string, hash: string) {
-		const name = 'bootstrap.js';
-		let content = this._manifestContent[name];
-		content = content.replace(new RegExp(oldHash, 'g'), hash);
-		const mapName = `${name}.map`;
-		let mapContent = this._manifestContent[mapName];
-		mapContent = mapContent.replace(new RegExp(oldHash, 'g'), hash);
-		return this._updateSourceAndMap(name, content, mapContent);
 	}
 
 	private _updateHTML(oldHash: string, hash: string) {
@@ -243,60 +204,56 @@ export default class BuildTimeRender {
 	}
 
 	private _writeBuildBridgeCache(modules: string[]) {
-		if (!Object.keys(this._buildBridgeResult).length) {
-			return;
-		}
-		const buildBridgeCacheFunctionString = `function buildBridgeCache(id, args, value) {
-	window.__dojoBuildBridgeCache = window.__dojoBuildBridgeCache || {};
-	window.__dojoBuildBridgeCache[id] = window.__dojoBuildBridgeCache[id] || {};
-	window.__dojoBuildBridgeCache[id][args] = value;
-};\n`;
-		Object.keys(this._manifestContent)
-			.filter((chunkname) => {
-				const real = this._originalManifest[chunkname];
-				return modules.indexOf(real) > -1;
-			})
-			.forEach((chunkname) => {
-				let modified = false;
-				if (/\.js$/.test(chunkname) && this._manifestContent[`${chunkname}.map`]) {
-					const content = this._manifestContent[chunkname];
-					const sourceMap = this._manifestContent[`${chunkname}.map`];
-					const node = SourceNode.fromStringWithSourceMap(content, new SourceMapConsumer(sourceMap));
-					Object.keys(this._buildBridgeResult).forEach((id) => {
-						if (content.indexOf(`/** @preserve dojoBuildBridgeCache '${id}' **/`) !== -1) {
-							const buildBridgeResults = this._buildBridgeResult[id];
-							buildBridgeResults.forEach((buildBridgeResult: any) => {
-								if (content.indexOf(buildBridgeResult) === -1) {
-									node.prepend(buildBridgeResult);
-								}
-							});
-							modified = true;
-							this._hasBuildBridgeCache = true;
-						}
-					});
-					if (modified) {
-						if (content.indexOf(buildBridgeCacheFunctionString) === -1) {
-							node.prepend(buildBridgeCacheFunctionString);
-						}
-						const result = node.toStringWithSourceMap({ file: chunkname });
-						if (this._manifest[chunkname] === chunkname) {
-							this._manifestContent[chunkname] = result.code;
-							this._manifestContent[`${chunkname}.map`] = JSON.stringify(result.map);
-							this._filesToWrite.add(chunkname);
-							this._filesToWrite.add(`${chunkname}.map`);
-						} else {
-							const [oldHash, hash] = this._updateSourceAndMap(
-								chunkname,
-								result.code,
-								JSON.stringify(result.map)
-							);
-							const [oldBootstrapHash, bootstrapHash] = this._updateBootstrap(oldHash, hash);
-							this._updateHTML(oldHash, hash);
-							this._updateHTML(oldBootstrapHash, bootstrapHash);
-						}
+		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
+		const chunkMarker = `main:"${mainHash}",`;
+		const blockChunk = 'blocks.js';
+		Object.keys(this._buildBridgeResult).forEach((modulePath) => {
+			Object.keys(this._buildBridgeResult[modulePath]).forEach((args) => {
+				this._hasBuildBridgeCache = true;
+				const chunkName = `block-${genHash(modulePath + args)}`;
+				const blockCacheEntry = `blockCacheEntry('${modulePath}', '${args}', '${chunkName}')`;
+				if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
+					const blockResult = this._buildBridgeResult[modulePath][args];
+					this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
+						'APPEND_BLOCK_CACHE_ENTRY **/',
+						`APPEND_BLOCK_CACHE_ENTRY **/
+${blockCacheEntry}`
+					);
+					const blockResultChunk = `
+(window['${this._jsonpName}'] = window['${this._jsonpName}'] || []).push([['${chunkName}'],{
+/***/ '${chunkName}.js':
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = (${blockResult});
+/***/ })
+}]);
+`;
+					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
+					if (mainHash) {
+						const blockResultChunkHash = genHash(blockResultChunk);
+						this._manifest[`${chunkName}.js`] = `${chunkName}.${blockResultChunkHash}.bundle.js`;
+						this._manifestContent['bootstrap.js'] = this._manifestContent['bootstrap.js'].replace(
+							chunkMarker,
+							`${chunkMarker}"${chunkName}":"${blockResultChunkHash}",`
+						);
+						const currentBootstrapHash = this._manifest['bootstrap.js']
+							.replace('bootstrap.js'.replace('js', ''), '')
+							.replace(/\..*/, '');
+						const newBootstrapHash = genHash(this._manifestContent['bootstrap.js']);
+						const bootstrapChunkName = `bootstrap.${newBootstrapHash}.bundle.js`;
+						this._manifest['bootstrap.js'] = bootstrapChunkName;
+						this._updateHTML(currentBootstrapHash, newBootstrapHash);
+						this._filesToRemove.add(bootstrapChunkName);
+						this._filesToWrite.add('bootstrap.js');
 					}
+					this._manifestContent[`${chunkName}.js`] = blockResultChunk;
+					this._filesToWrite.add(blockChunk);
+					this._filesToWrite.add(`${chunkName}.js`);
 				}
 			});
+		});
 		this._buildBridgeResult = {};
 	}
 
@@ -341,31 +298,22 @@ export default class BuildTimeRender {
 			return;
 		}
 
-		let id = 0;
-		const issuers: string[] = [];
 		const plugin = new webpack.NormalModuleReplacementPlugin(/\.block/, (resource: any) => {
 			const modulePath = join(resource.context, resource.request)
 				.replace(this._basePath, '')
 				.replace(/\\/g, '/')
 				.replace(/^\//, '');
-			const issuer = resource.contextInfo.issuer
-				.replace(this._basePath, '')
-				.replace(/\\/g, '/')
-				.replace(/^\//, '');
-			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?id='${id++}'&modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
-			if (issuers.indexOf(issuer) === -1) {
-				issuers.push(issuer);
-				const newPlugin = new webpack.NormalModuleReplacementPlugin(new RegExp(issuer), (resource: any) => {
-					resource.request = `${resource.request}?${id}`;
-				});
-				newPlugin.apply(compiler);
-			}
+			resource.request = `@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='${modulePath}'!@dojo/webpack-contrib/build-time-render/bridge`;
 		});
 		plugin.apply(compiler);
 
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._buildBridgeResult = {};
-			this._output = compiler.options.output && compiler.options.output.path;
+			if (compiler.options.output) {
+				this._output = compiler.options.output.path;
+				this._jsonpName = compiler.options.output.jsonpFunction;
+			}
+
 			if (!this._output) {
 				return Promise.resolve().then(() => {
 					callback();
@@ -373,7 +321,6 @@ export default class BuildTimeRender {
 			}
 
 			this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
-			this._originalManifest = JSON.parse(compilation.assets['manifest.json'].source());
 			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
 				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;

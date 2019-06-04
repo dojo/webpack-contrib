@@ -7,6 +7,8 @@ if (has.default('build-serve')) {
 	modules.push(import(/* webpackChunkName: "platform/client" */ '../webpack-hot-client/client'));
 }
 
+modules.push(import(/* webpackChunkName: "blocks" */ '../build-time-render/blocks'));
+
 if (has.default(__dojoframeworkshimIntersectionObserver) && !has.default('dom-intersection-observer')) {
 	modules.push(
 		import(/* webpackChunkName: "platform/IntersectionObserver" */ '@dojo/framework/shim/IntersectionObserver')

@@ -1,8 +1,12 @@
 import * as ts from 'typescript';
 import elementTransformer from '../../../src/element-transformer/ElementTransformer';
+import * as path from 'path';
 
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
+
+const actualPath = path.resolve('actual.ts');
+const expectedPath = path.resolve('expected.ts');
 
 describe('element-transformer', () => {
 	it('does not touch classes that are not the default export', () => {
@@ -13,11 +17,11 @@ describe('element-transformer', () => {
 		}`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': source
+				[actualPath]: source,
+				[expectedPath]: source
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
 			})
 		);
 	});
@@ -37,11 +41,11 @@ describe('element-transformer', () => {
 `;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': expected
+				[actualPath]: source,
+				[expectedPath]: expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
 			})
 		);
 	});
@@ -64,11 +68,11 @@ describe('element-transformer', () => {
 	`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': expected
+				[actualPath]: source,
+				[expectedPath]: expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
 			})
 		);
 	});
@@ -90,8 +94,8 @@ describe('element-transformer', () => {
 	`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': expected
+				[actualPath]: source,
+				[expectedPath]: expected
 			},
 			(program) => ({
 				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [] })]
@@ -136,11 +140,11 @@ describe('element-transformer', () => {
 	`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': expected
+				[actualPath]: source,
+				[expectedPath]: expected
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
 			})
 		);
 	});
@@ -154,11 +158,11 @@ describe('element-transformer', () => {
 	`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': source
+				[actualPath]: source,
+				[expectedPath]: source
 			},
 			(program) => ({
-				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: ['actual.ts'] })]
+				before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
 			})
 		);
 	});
@@ -179,14 +183,14 @@ describe('element-transformer', () => {
 	`;
 		assertCompile(
 			{
-				'actual.ts': source,
-				'expected.ts': expected
+				[actualPath]: source,
+				[expectedPath]: expected
 			},
 			(program) => ({
 				before: [
 					elementTransformer(program, {
 						elementPrefix: 'widget',
-						customElementFiles: ['actual.ts']
+						customElementFiles: [actualPath]
 					})
 				]
 			})

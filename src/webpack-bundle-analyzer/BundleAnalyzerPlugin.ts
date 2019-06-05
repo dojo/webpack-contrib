@@ -57,7 +57,9 @@ export default class BundleAnalyzerPlugin {
 			);
 			let updatedStats = JSON.stringify(stats);
 			Object.keys(manifest).forEach((key) => {
-				updatedStats = updatedStats.replace(new RegExp(originalManifest[key], 'g'), manifest[key]);
+				if (originalManifest[key]) {
+					updatedStats = updatedStats.replace(new RegExp(originalManifest[key], 'g'), manifest[key]);
+				}
 			});
 			return JSON.parse(updatedStats);
 		} catch (e) {

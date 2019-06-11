@@ -39,7 +39,7 @@ export interface BuildTimeRenderArguments {
 	useManifest?: boolean;
 	paths?: (BuildTimePath | string)[];
 	useHistory?: boolean;
-	static: boolean;
+	static?: boolean;
 	puppeteerOptions?: any;
 	basePath: string;
 }

@@ -257,6 +257,7 @@ The plugin takes an options object with the following properties:
 | paths | `string[]` or `{ path: string; match: string[] }` | Yes | An array of paths that will be matched against the URL hash, rendering the HTML associated with any matched path. If the path is a string, then it will be compared directly to `window.location.hash`. If the path is an object, then it should include a `path` string that will be used to resolve the HTML, and `match` string array that represents multiple paths that should trigger the `path` to be rendered. Defaults to an empty array ('[]'). |
 | root | `string` | Yes | The ID for the root HTML element. If falsy, then no HTML will be generated. Defaults to an emtpy string (`''`). |
 | useManifest | `boolean` | Yes | Determines whether a manifest file should be used to resolve the entries. Defaults to `false`. |
+| static | `boolean` | Yes | Removes js and css scripts tags from generated `index.html` files for truly static sites. Not compatible with hash routing. Defaults to `false`. |
 
 ### Usage
 

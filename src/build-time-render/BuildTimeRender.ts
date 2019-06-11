@@ -39,6 +39,7 @@ export interface BuildTimeRenderArguments {
 	useManifest?: boolean;
 	paths?: (BuildTimePath | string)[];
 	useHistory?: boolean;
+	static?: boolean;
 	puppeteerOptions?: any;
 	basePath: string;
 }
@@ -59,6 +60,7 @@ export default class BuildTimeRender {
 	private _output?: string;
 	private _jsonpName?: string;
 	private _paths: any[];
+	private _static = false;
 	private _puppeteerOptions: any;
 	private _root: string;
 	private _useHistory = false;
@@ -81,6 +83,9 @@ export default class BuildTimeRender {
 		this._root = root;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
+		if (this._useHistory) {
+			this._static = args.static || false;
+		}
 	}
 
 	private async _writeIndexHtml({ content, script, path = '', styles }: RenderResult) {
@@ -101,7 +106,11 @@ export default class BuildTimeRender {
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
+		if (this._static) {
+			html = html.replace(this._createScripts(), '');
+		} else {
+			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
+		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 

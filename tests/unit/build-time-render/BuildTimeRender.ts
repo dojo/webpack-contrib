@@ -22,7 +22,9 @@ function normalise(value: string) {
 
 const callbackStub = stub();
 
-const createCompilation = (type: 'state' | 'hash' | 'build-bridge' | 'build-bridge-hash' | 'build-bridge-error') => {
+const createCompilation = (
+	type: 'state' | 'state-static' | 'hash' | 'build-bridge' | 'build-bridge-hash' | 'build-bridge-error'
+) => {
 	const errors: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
@@ -479,6 +481,107 @@ describe('build-time-render', () => {
 					normalise(outputFileSync.getCall(3).args[1]),
 					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
 				);
+			});
+		});
+
+		describe('static', () => {
+			beforeEach(() => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'state-static'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath
+						}
+					}
+				};
+			});
+
+			it('should create index files for each route without js and css', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = mockModule.getModuleUnderTest().default;
+				const btr = new Btr({
+					paths: [
+						{
+							path: 'my-path'
+						},
+						'other',
+						'my-path/other'
+					],
+					static: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] }
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-static'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-static',
+								'my-path',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state-static', 'other', 'index.html')
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+					);
+				});
 			});
 		});
 	});

@@ -7,6 +7,7 @@ const { assert } = intern.getPlugin('chai');
 
 const source = `
 import { v, w } from '@dojo/framework/core/vdom';
+import renderer from '@dojo/framework/core/vdom';
 import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';

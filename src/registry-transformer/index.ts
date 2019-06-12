@@ -174,14 +174,16 @@ class Visitor {
 	private setWPragma(node: ts.ImportDeclaration) {
 		if (node.importClause) {
 			const namedBindings = node.importClause.namedBindings as ts.NamedImports;
-			namedBindings.elements.some((element: ts.ImportSpecifier) => {
-				const text = element.name.getText();
-				if (text === wPragma || (element.propertyName && element.propertyName.escapedText === wPragma)) {
-					this.wPragma = text;
-					return true;
-				}
-				return false;
-			});
+			if (namedBindings) {
+				namedBindings.elements.some((element: ts.ImportSpecifier) => {
+					const text = element.name.getText();
+					if (text === wPragma || (element.propertyName && element.propertyName.escapedText === wPragma)) {
+						this.wPragma = text;
+						return true;
+					}
+					return false;
+				});
+			}
 		}
 	}
 

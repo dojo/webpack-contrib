@@ -30,7 +30,8 @@ export interface RenderResult {
 
 export interface BuildTimePath {
 	path: string;
-	match: string[];
+	match?: string[];
+	static?: boolean;
 }
 
 export interface BuildTimeRenderArguments {
@@ -84,12 +85,20 @@ export default class BuildTimeRender {
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory) {
-			this._static = args.static || false;
+			this._static = !!args.static;
 		}
 	}
 
 	private async _writeIndexHtml({ content, script, path = '', styles }: RenderResult) {
-		path = typeof path === 'object' ? path.path : path;
+		let staticPath = false;
+		if (typeof path === 'object') {
+			if (this._useHistory) {
+				staticPath = !!path.static;
+			}
+			path = path.path;
+		} else {
+			path = path;
+		}
 		let html = this._manifestContent['index.html'];
 		const prefix = getPrefix(path);
 		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
@@ -106,7 +115,7 @@ export default class BuildTimeRender {
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		if (this._static) {
+		if (this._static || staticPath) {
 			html = html.replace(this._createScripts(), '');
 		} else {
 			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);

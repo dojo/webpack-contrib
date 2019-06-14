@@ -8,7 +8,8 @@ const types = recast.types;
 const namedTypes = types.namedTypes;
 const builders = types.builders;
 const compose = require('recast/lib/util').composeSourceMaps;
-const acorn = require('acorn-dynamic-import').default;
+const { Parser } = require('acorn');
+const dynamicImport = require('acorn-dynamic-import').default;
 
 /**
  * A map of features that should be statically replaced in the code
@@ -16,6 +17,8 @@ const acorn = require('acorn-dynamic-import').default;
 export interface StaticHasFeatures {
 	[feature: string]: boolean;
 }
+
+const acorn = Parser.extend(dynamicImport);
 
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;

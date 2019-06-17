@@ -46,6 +46,7 @@
     "@dojo/framework": "6.0.0-alpha.3",
     "acorn": "6.1.1",
     "acorn-dynamic-import": "4.0.0",
+    "acorn-walk": "6.1.1",
     "bfj": "6.1.1",
     "chalk": "2.3.0",
     "clear-module": "3.1.0",

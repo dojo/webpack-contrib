@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as acorn from 'acorn';
-const walk = require('acorn/dist/walk');
+const walk = require('acorn-walk/dist/walk');
 
 export function parseBundle(bundlePath: any) {
 	const content = fs.readFileSync(bundlePath, 'utf8');

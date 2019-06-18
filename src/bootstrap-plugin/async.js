@@ -4,6 +4,7 @@ require('./common');
 var modules = [];
 
 if (has.default('build-serve')) {
+	modules.push(import(/* webpackChunkName: "runtime/client" */ 'eventsource-polyfill'));
 	modules.push(import(/* webpackChunkName: "runtime/client" */ '../webpack-hot-client/client'));
 }
 

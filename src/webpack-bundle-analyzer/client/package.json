@@ -21,6 +21,7 @@
 		"@types/d3": "~3.5.17",
 		"@types/filesize": "^3.6.0",
 		"@types/node": "~9.6.5",
+		"caniuse-lite": "1.0.30000973",
 		"shx": "^0.3.2",
 		"typescript": "~2.6.1"
 	}

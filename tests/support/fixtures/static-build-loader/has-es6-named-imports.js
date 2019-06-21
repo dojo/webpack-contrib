@@ -1,4 +1,4 @@
-import { default as checkHas, exists as doesItExist, arbitrary } from 'dojo/has';
+import { default as checkHas, exists as doesItExist, add as addIt, arbitrary } from 'dojo/has';
 
 function doX() {
 
@@ -26,3 +26,6 @@ if (doesItExist('bar')) {
 if (doesItExist('foo')) {
 	doY();
 }
+
+addIt('foo', () => 'no', false);
+addIt('bar', () => 'yes', true);

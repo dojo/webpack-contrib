@@ -1,4 +1,4 @@
-import checkHas, { exists, arbitrary } from 'dojo/has';
+import checkHas, { exists, add, arbitrary } from 'dojo/has';
 
 
 function doX() {
@@ -28,7 +28,19 @@ if (exists('foo')) {
 	doY();
 }
 
+add('foo', false, true);
+add('foo', false);
+add('foo', function () { return true; });
+add('foo', function addFoo() { return true; });
+add('foo', () => true, false);
+add('bar', true);
+add('bar', false, true);
+add('bar', function () { return true }, true);
+
 // Should not parse
 if (checkHas.exists('foo')) {
 	doY();
 }
+
+// Should not parse
+checkHas.add('foo', true);

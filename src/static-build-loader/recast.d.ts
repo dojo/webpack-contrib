@@ -12,6 +12,7 @@ declare module 'recast/main' {
 		Literal,
 		Identifier,
 		CallExpression,
+		Expression,
 		ExpressionStatement,
 		VariableDeclaration,
 		MemberExpression,
@@ -19,7 +20,11 @@ declare module 'recast/main' {
 		AssignmentExpression,
 		TemplateLiteral,
 		TemplateElement,
-		VariableDeclarator
+		VariableDeclarator,
+		SourceLocation,
+		SimpleCallExpression,
+		Super,
+		SpreadElement
 	} from 'estree';
 
 	namespace recast {
@@ -67,6 +72,7 @@ declare module 'recast/main' {
 				literal(value: boolean | string | number | null | RegExp): Literal;
 				variableDeclarator(id: Identifier, value: Literal | Identifier): VariableDeclarator;
 				variableDeclaration(value: string, declarators: VariableDeclarator[]): VariableDeclaration;
+				callExpression(callee: Expression | Super, args: Array<Expression | SpreadElement>): CallExpression;
 			};
 			export function visit(
 				ast: AST,

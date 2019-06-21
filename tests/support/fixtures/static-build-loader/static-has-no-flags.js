@@ -76,6 +76,18 @@ if (returnArg(!somename.default('foo')) && (somename.default('baz') || returnArg
 if (somename.default('foo'))
 	doX();
 
+somename.add('foo', function () {
+	return true;
+});
+
+somename.add('bar', true, true);
+
+somename.add('qat', function addqat() {
+	if (true) {
+		return false;
+	}
+}, true);
+
 var variable = somename.default('bar') || returnArg(somename.default('foo'));
 
 // !has('foo')

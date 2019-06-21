@@ -47,6 +47,20 @@ function existsCheck(existsIdentifier: string, hasNamespaceIdentifier: string | 
 	);
 }
 
+function addCheck(addIdentifier: string, hasNamespaceIdentifier: string | undefined, args: any, callee: any) {
+	return (
+		(namedTypes.Identifier.check(callee) &&
+			callee.name === addIdentifier &&
+			(args.length === 3 || args.length === 2)) ||
+		(namedTypes.MemberExpression.check(callee) &&
+			namedTypes.Identifier.check(callee.object) &&
+			callee.object.name === hasNamespaceIdentifier &&
+			namedTypes.Identifier.check(callee.property) &&
+			callee.property.name === 'add' &&
+			(args.length === 3 || args.length === 2))
+	);
+}
+
 function getExpressionValue(node: ExpressionStatement): string | undefined {
 	if (namedTypes.Literal.check(node.expression) && typeof node.expression.value === 'string') {
 		return node.expression.value;
@@ -119,6 +133,7 @@ export default function loader(
 	let hasIdentifier: string | undefined;
 	let hasNamespaceIdentifier: string | undefined;
 	let existsIdentifier: string | undefined;
+	let addIdentifier: string | undefined;
 	let comment: string | undefined;
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
 		features = getFeatures(featuresOption);
@@ -206,6 +221,8 @@ export default function loader(
 							hasNamespaceIdentifier = specifier.local.name;
 						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
 							existsIdentifier = specifier.local.name;
+						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'add') {
+							addIdentifier = specifier.local.name;
 						}
 					});
 				}
@@ -295,13 +312,14 @@ export default function loader(
 				const {
 					node: { arguments: args, callee }
 				} = path;
-				let isHasCheck = hasCheck(hasIdentifier as string, hasNamespaceIdentifier, args, callee);
-				let isExistsCheck = existsCheck(
+				const isHasCheck = hasCheck(hasIdentifier as string, hasNamespaceIdentifier, args, callee);
+				const isExistsCheck = existsCheck(
 					existsIdentifier as string,
 					hasNamespaceIdentifier as string,
 					args,
 					callee
 				);
+				const isAdd = addCheck(addIdentifier as string, hasNamespaceIdentifier, args, callee);
 				if (isHasCheck || isExistsCheck) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {
@@ -312,6 +330,22 @@ export default function loader(
 							dynamicFlags.add(arg.value);
 						}
 					}
+					return false;
+				}
+
+				if (isAdd) {
+					const [feature] = args;
+
+					if (
+						namedTypes.Literal.check(feature) &&
+						typeof feature.value === 'string' &&
+						feature.value in features
+					) {
+						path.replace(
+							builders.callExpression(callee, [args[0], builders.literal(features[feature.value])])
+						);
+					}
+
 					return false;
 				}
 				this.traverse(path);

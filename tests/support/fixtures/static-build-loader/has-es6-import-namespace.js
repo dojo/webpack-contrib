@@ -26,3 +26,8 @@ if (has.exists('bar')) {
 if (has.exists('foo')) {
 	doY();
 }
+
+add('bar', false, true);
+add('bar', function addBar() { return true; });
+has.add('foo', false, true);
+has.add('foo', function addFoo() { return true; });

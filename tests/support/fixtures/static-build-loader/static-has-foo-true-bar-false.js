@@ -80,4 +80,14 @@ if (returnArg(!true) && (somename.default('baz') || returnArg(somename.default('
 if (true)
 	doX();
 
+somename.add('foo', true);
+
+somename.add('bar', false);
+
+somename.add('qat', function addqat() {
+	if (true) {
+		return false;
+	}
+}, true);
+
 var variable = false || returnArg(true);

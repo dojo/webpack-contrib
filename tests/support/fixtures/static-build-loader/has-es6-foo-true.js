@@ -27,3 +27,8 @@ if (exists('bar')) {
 if (true) {
 	doY();
 }
+
+// Should not parse
+if (checkHas.exists('foo')) {
+	doY();
+}

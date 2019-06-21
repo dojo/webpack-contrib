@@ -23,24 +23,24 @@ const acorn = Parser.extend(dynamicImport);
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
 
-function hasCheck(hasIdentifier: string, args: any, callee: any) {
+function hasCheck(hasIdentifier: string, hasNamespaceIdentifier: string | undefined, args: any, callee: any) {
 	return (
 		(namedTypes.Identifier.check(callee) && callee.name === hasIdentifier && args.length === 1) ||
 		(namedTypes.MemberExpression.check(callee) &&
 			namedTypes.Identifier.check(callee.object) &&
-			callee.object.name === hasIdentifier &&
+			callee.object.name === hasNamespaceIdentifier &&
 			namedTypes.Identifier.check(callee.property) &&
 			callee.property.name === 'default' &&
 			args.length === 1)
 	);
 }
 
-function existsCheck(existsIdentifier: string, hasIdentifier: string, args: any, callee: any) {
+function existsCheck(existsIdentifier: string, hasNamespaceIdentifier: string | undefined, args: any, callee: any) {
 	return (
 		(namedTypes.Identifier.check(callee) && callee.name === existsIdentifier && args.length === 1) ||
 		(namedTypes.MemberExpression.check(callee) &&
 			namedTypes.Identifier.check(callee.object) &&
-			callee.object.name === hasIdentifier &&
+			callee.object.name === hasNamespaceIdentifier &&
 			namedTypes.Identifier.check(callee.property) &&
 			callee.property.name === 'exists' &&
 			args.length === 1)
@@ -117,6 +117,7 @@ export default function loader(
 	let features: StaticHasFeatures;
 	let elideNextImport = false;
 	let hasIdentifier: string | undefined;
+	let hasNamespaceIdentifier: string | undefined;
 	let existsIdentifier: string | undefined;
 	let comment: string | undefined;
 	if (!featuresOption || Array.isArray(featuresOption) || typeof featuresOption === 'string') {
@@ -201,6 +202,8 @@ export default function loader(
 							(specifier.type === 'ImportSpecifier' && specifier.imported.name === 'default')
 						) {
 							hasIdentifier = specifier.local.name;
+						} else if (specifier.type === 'ImportNamespaceSpecifier') {
+							hasNamespaceIdentifier = specifier.local.name;
 						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
 							existsIdentifier = specifier.local.name;
 						}
@@ -210,7 +213,7 @@ export default function loader(
 			this.traverse(path);
 		},
 
-		// Look for `require('*/has');` and set the variable name to `hasIdentifier`
+		// Look for `require('*/has');` and set the variable name to `hasNamespaceIdentifier`
 		visitVariableDeclaration(path) {
 			const {
 				name,
@@ -260,9 +263,9 @@ export default function loader(
 			}
 
 			// Get all the top level variable declarations
-			if (ast.program === parentNode && !hasIdentifier) {
+			if (ast.program === parentNode && !hasNamespaceIdentifier) {
 				declarations.forEach(({ id, init }) => {
-					if (!hasIdentifier) {
+					if (!hasNamespaceIdentifier) {
 						if (namedTypes.Identifier.check(id) && init && namedTypes.CallExpression.check(init)) {
 							const { callee, arguments: args } = init;
 							if (namedTypes.Identifier.check(callee) && callee.name === 'require' && args.length === 1) {
@@ -272,7 +275,7 @@ export default function loader(
 									typeof arg.value === 'string' &&
 									HAS_MID.test(arg.value)
 								) {
-									hasIdentifier = id.name;
+									hasNamespaceIdentifier = id.name;
 								}
 							}
 						}
@@ -286,14 +289,19 @@ export default function loader(
 	// Now we want to walk the AST and find an expressions where the default import or `exists` of `*/has` is
 	// called. This will be a CallExpression, where the callee is an object named the import from above
 	// accessing the `default` or `exists` properties, with one argument, which is a string literal.
-	if (hasIdentifier) {
+	if (hasIdentifier || hasNamespaceIdentifier) {
 		types.visit(ast, {
 			visitCallExpression(path) {
 				const {
 					node: { arguments: args, callee }
 				} = path;
-				let isHasCheck = hasCheck(hasIdentifier as string, args, callee);
-				let isExistsCheck = existsCheck(existsIdentifier as string, hasIdentifier as string, args, callee);
+				let isHasCheck = hasCheck(hasIdentifier as string, hasNamespaceIdentifier, args, callee);
+				let isExistsCheck = existsCheck(
+					existsIdentifier as string,
+					hasNamespaceIdentifier as string,
+					args,
+					callee
+				);
 				if (isHasCheck || isExistsCheck) {
 					const [arg] = args;
 					if (namedTypes.Literal.check(arg) && typeof arg.value === 'string') {

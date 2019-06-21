@@ -113,6 +113,22 @@ registerSuite('static-build-loader', {
 			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: bar', 'should have logged properly');
 		},
 
+		'static features with namespace import'() {
+			const code = loadCode('has-es6-import-namespace');
+			mockLoaderUtils.getOptions.returns({
+				features: { foo: true }
+			});
+
+			const context = {
+				callback: sandbox.stub()
+			};
+			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
+			assert.equal(resultCode, loadCode('has-es6-import-namespace-foo-true'));
+			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
+			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
+			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: bar', 'should have logged properly');
+		},
+
 		'should pass to callback if a sourcemap was provided'() {
 			const map = 'map';
 			const returnedCode = 'code';

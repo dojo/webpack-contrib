@@ -19,6 +19,7 @@ registerSuite('getFeatures', {
 			'es2017-string': true,
 			'es6-array': true,
 			'es6-array-fill': true,
+			'es6-iterator': true,
 			'es6-map': true,
 			'es6-math': true,
 			'es6-math-imul': true,

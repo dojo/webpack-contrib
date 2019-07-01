@@ -1,9 +1,12 @@
 import * as cssnano from 'cssnano';
+import * as fs from 'fs';
 import * as path from 'path';
+import * as ts from 'typescript';
 import * as webpack from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
 
 export interface EmitAllPluginOptions {
+	additionalAssets?: Set<string>;
 	assetFilter?: (key: string, asset: any) => boolean;
 	basePath?: string;
 	inlineSourceMaps?: boolean;
@@ -15,22 +18,77 @@ const createSource = (content: string) => ({
 	size: () => Buffer.byteLength(content)
 });
 
+/**
+ * @private
+ * A custom TS transformer that adds d.ts files to a shared set.
+ *
+ * Since webpack is a bundler and not normally used to emit individual files, the common TS loaders/plugins do not
+ * consider imported `.d.ts` files assets to be emitted. As a result, when building a TypeScript library project,
+ * any declaration files imported by the project must be manually injected into the build pipeline to avoid downstream
+ * type errors.
+ */
+function createTransformer<T extends ts.Node>(basePath: string, sharedDeclarationFiles: Set<string>) {
+	return (context: ts.TransformationContext) => {
+		const visit: any = (node: any) => {
+			if (node.resolvedModules) {
+				node.resolvedModules.forEach((value: any) => {
+					if (value && value.extension === '.d.ts' && value.resolvedFileName.startsWith(basePath)) {
+						sharedDeclarationFiles.add(value.resolvedFileName);
+					}
+				});
+			}
+			return ts.visitEachChild(node, (child) => visit(child), context);
+		};
+		return (node: any) => ts.visitNode(node, visit);
+	};
+}
+
+/**
+ * Generate a plugin instance and TypeScript transformer factory that can be used together to ensure
+ * that all desired files are correctly emitted.
+ *
+ * @param options The plugin options
+ */
+export function emitAllFactory(options?: EmitAllPluginOptions) {
+	const basePath = (options && options.basePath) || path.join(process.cwd(), 'src');
+	const sharedDeclarationFiles = new Set<string>();
+
+	return {
+		plugin: new EmitAllPlugin({
+			...options,
+			basePath,
+			additionalAssets: sharedDeclarationFiles
+		}),
+		transformer: createTransformer(basePath, sharedDeclarationFiles)
+	};
+}
+
 export default class EmitAllPlugin {
+	private additionalAssets: Set<string>;
 	private assetFilter: (key: string, asset: any) => boolean;
 	private basePath: string;
 	private inlineSourceMaps: boolean;
 	private legacy: boolean;
 
 	constructor(options: EmitAllPluginOptions = {}) {
+		this.additionalAssets = options.additionalAssets || new Set<string>();
+		this.assetFilter = options.assetFilter || (() => true);
 		this.basePath = options.basePath || path.join(process.cwd(), 'src');
 		this.inlineSourceMaps = Boolean(options.inlineSourceMaps);
 		this.legacy = Boolean(options.legacy);
-		this.assetFilter = options.assetFilter || (() => true);
 	}
 
 	apply(compiler: webpack.Compiler) {
 		const { basePath, inlineSourceMaps, legacy } = this;
 		compiler.hooks.emit.tapAsync(this.constructor.name, async (compilation, callback) => {
+			this.additionalAssets.forEach((file) => {
+				if (fs.existsSync(file)) {
+					const assetName = file.replace(this.basePath, '').replace(/^(\/|\\)/, '');
+					const source = fs.readFileSync(file, 'utf-8').toString();
+					compilation.assets[assetName] = createSource(source);
+				}
+			});
+
 			compilation.chunks = [];
 			Object.keys(compilation.assets).forEach((key) => {
 				if (!this.assetFilter(key, compilation.assets[key])) {

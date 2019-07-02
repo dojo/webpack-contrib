@@ -314,9 +314,49 @@ The plugin constructor accepts a single argument:
 
 ## emit-all-plugin
 
-Webpack is a bundler, which does not work well when build libraries. Rather than create separate toolchains for building libraries and applications/custom elements, the existing build tooling can be used to emit library files by way of the `EmitAllPlugin`. At the very least CSS and transpiled TS files will be emitted, but additional assets can be included with a filter.
+Webpack is a bundler, which does not work well when build libraries. Rather than create separate toolchains for building libraries and applications/custom elements, the existing build tooling can be used to emit library files by way of the `emitAllFactory` that produces both a plugin instance and a custom TypeScript transformer. The transformer is needed to ensure that any `.d.ts` dependencies are correctly emitted, while the plugin ensures assets are emitted as individual files instead of as a generated bundle:
 
-The plugin takes an options object with the following properties:
+```ts
+import { emitAllFactory } from '@dojo/webpack-contrib/emit-all-plugin/EmitAllPlugin';
+
+// See list of available options below
+const emitAll = emitAllFactory(options);
+
+const config = {
+	// ...
+	plugins: [
+		...,
+		emitAll.plugin
+	],
+	module: {
+		rules: [
+			// ...
+			{
+				test: /.*\.ts(x)?$/,
+				use: [
+					{
+						loader: 'ts-loader',
+						options: {
+							// ...
+							getCustomTransformers(program) {
+								return {
+									before: [
+										emitAll.transformer()
+									]
+								};
+							}
+						}
+					}
+				]
+			}
+		]
+	}
+}
+```
+
+At the very least CSS and transpiled TS files will be emitted, but additional assets can be included with a filter.
+
+The factory takes an options object with the following properties:
 
 | Property | Type | Optional | Description |
 | -------- | ---- | -------- | ----------- |

@@ -1,4 +1,4 @@
-export default {
+window.__bundleContent = {
 	'main.86872bf26a41c30488c3.bundle.js': {
 		label: 'main.86872bf26a41c30488c3.bundle.js',
 		statSize: 176156,

@@ -3,26 +3,24 @@
 	"version": "1.0.0",
 	"scripts": {
 		"build:dev": "npm install && dojo build -m dev",
-		"build:dist": "npm install && dojo build -f env=prod --single-bundle"
+		"build:dist": "npm install && dojo build"
 	},
 	"dependencies": {
-		"@dojo/framework": "~3.0.0",
-		"@dojo/themes": "~3.0.1",
-		"@dojo/widgets": "~3.0.0",
+		"@dojo/framework": "6.0.0-alpha.8",
+		"@dojo/widgets": "6.0.0-alpha.4",
+		"@dojo/themes": "^5.0.0",
 		"d3": "3.5.17",
 		"filesize": "3.5.11",
-		"resize-observer-polyfill": "^1.5.0",
-		"tslib": "~1.8.1"
+		"tslib": "1.9.1"
 	},
 	"devDependencies": {
-		"@dojo/cli": "~3.0.0",
-		"@dojo/cli-build-app": "~3.0.0",
-		"@dojo/cli-test-intern": "~3.0.0",
+		"@dojo/cli": "~5.0.0",
+		"@dojo/cli-build-app": "6.0.0-alpha.5",
 		"@types/d3": "~3.5.17",
-		"@types/filesize": "^3.6.0",
-		"@types/node": "~9.6.5",
+		"@types/filesize": "3.6.0",
+		"@types/node": "9.6.5",
 		"caniuse-lite": "1.0.30000973",
 		"shx": "^0.3.2",
-		"typescript": "~2.6.1"
+		"typescript": "~3.4.5"
 	}
 }

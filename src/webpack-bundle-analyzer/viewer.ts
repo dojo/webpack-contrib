@@ -37,18 +37,30 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 	}, {});
 
 	const reporterFiles = glob.sync(path.join(__dirname, 'reporter', '**', '*.*'));
+	let bundleContentFileName = 'bundleContent.js';
+	let bundleListFileName = 'bundleList.js';
 	reporterFiles.forEach((file) => {
-		fs.copySync(
-			file,
-			path.join(path.dirname(reportFilePath), 'analyzer', `${path.parse(file).name}${path.parse(file).ext}`)
-		);
+		if (file.indexOf('bundleContent') > -1) {
+			bundleContentFileName = path.parse(file).base;
+		} else if (file.indexOf('bundleList') > -1) {
+			bundleListFileName = path.parse(file).base;
+		} else {
+			fs.copySync(
+				file,
+				path.join(
+					path.dirname(reportFilePath),
+					'analyzer',
+					path.relative(path.join(__dirname, 'reporter'), file)
+				)
+			);
+		}
 	});
 	fs.writeFileSync(
-		path.join(path.dirname(reportFilePath), 'analyzer', 'bundleContent.js'),
+		path.join(path.dirname(reportFilePath), 'analyzer', bundleListFileName),
 		`window.__bundleContent = ${JSON.stringify(bundleContent)}`
 	);
 	fs.writeFileSync(
-		path.join(path.dirname(reportFilePath), 'analyzer', 'bundleList.js'),
+		path.join(path.dirname(reportFilePath), 'analyzer', bundleContentFileName),
 		`window.__bundleList = ${JSON.stringify(bundlesList)}`
 	);
 }

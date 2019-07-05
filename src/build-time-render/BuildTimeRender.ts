@@ -84,7 +84,7 @@ export default class BuildTimeRender {
 		this._root = root;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
-		if (this._useHistory) {
+		if (this._useHistory || paths.length === 0) {
 			this._static = !!args.static;
 		}
 	}

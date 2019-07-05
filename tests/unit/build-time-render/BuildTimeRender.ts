@@ -27,6 +27,7 @@ const createCompilation = (
 		| 'state'
 		| 'state-static'
 		| 'state-static-per-path'
+		| 'state-static-no-paths'
 		| 'hash'
 		| 'build-bridge'
 		| 'build-bridge-hash'
@@ -690,6 +691,75 @@ describe('build-time-render', () => {
 					assert.strictEqual(
 						normalise(outputFileSync.getCall(3).args[1]),
 						normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+					);
+				});
+			});
+
+			it('should create index without js and css even with no paths', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'state-static-no-paths'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = mockModule.getModuleUnderTest().default;
+				const btr = new Btr({
+					static: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] }
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 1);
+					assert.isTrue(
+						outputFileSync.firstCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state-static-no-paths', 'index.html')
+						) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.firstCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-no-paths',
+									'expected',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 				});
 			});

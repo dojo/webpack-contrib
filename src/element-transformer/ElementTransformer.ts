@@ -22,6 +22,23 @@ export default function elementTransformer<T extends ts.Node>(
 		}
 	});
 
+	function findVariable(node: ts.Node, defaultExportType: ts.Type) {
+		if (
+			defaultExportType &&
+			ts.isVariableStatement(node) &&
+			node.declarationList &&
+			node.declarationList.declarations
+		) {
+			const declarations = node.declarationList.declarations;
+			for (let i = 0; i < declarations.length; i++) {
+				const variableSymbol = declarations[i].name && checker.getSymbolAtLocation(declarations[i].name);
+				if (variableSymbol && defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)) {
+					return { variableSymbol, variableNode: declarations[i] };
+				}
+			}
+		}
+	}
+
 	const preparedElementPrefix = elementPrefix
 		.toLowerCase()
 		.replace(/[^a-z]/g, '-')
@@ -37,10 +54,18 @@ export default function elementTransformer<T extends ts.Node>(
 				: [];
 			const classSymbol =
 				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
-			const variableSymbol =
-				ts.isVariableDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
+			// const isVariableStatement = ts.isVariableStatement(node);
+			const defaultExportType =
+				defaultExport && checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile());
 
-			let widgetName: string = '';
+			if (!defaultExportType) {
+				return ts.visitEachChild(node, (child) => visit(child), context);
+			}
+
+			const { variableSymbol = undefined, variableNode = undefined } =
+				findVariable(node, defaultExportType) || {};
+
+			let widgetName = '';
 			const attributes: string[] = [];
 			const properties: string[] = [];
 			const events: string[] = [];
@@ -83,10 +108,8 @@ export default function elementTransformer<T extends ts.Node>(
 				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
 				defaultExport &&
 				variableSymbol &&
-				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===
-					checker.getTypeOfSymbolAtLocation(variableSymbol, node)
+				variableNode
 			) {
-				const variableNode = node as ts.VariableDeclaration;
 				const initializer = variableNode.initializer;
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
@@ -122,10 +145,8 @@ export default function elementTransformer<T extends ts.Node>(
 				}
 			} else if (
 				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
-				defaultExport &&
 				classSymbol &&
-				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===
-					checker.getTypeOfSymbolAtLocation(classSymbol, node)
+				defaultExportType === checker.getTypeOfSymbolAtLocation(classSymbol, node)
 			) {
 				const classNode = node as ts.ClassDeclaration;
 				if (classNode.heritageClauses && classNode.heritageClauses.length > 0) {
@@ -187,7 +208,7 @@ export default function elementTransformer<T extends ts.Node>(
 
 				return [
 					node,
-					ts.createStatement(
+					ts.createExpressionStatement(
 						ts.createAssignment(
 							propertyAccess,
 							ts.createObjectLiteral([

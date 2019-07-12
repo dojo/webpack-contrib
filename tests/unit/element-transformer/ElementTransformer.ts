@@ -38,7 +38,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+		DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
 `;
 			assertCompile(
 				{
@@ -64,7 +64,7 @@ describe('element-transformer', () => {
 			interface DojoInputProperties {}
 			export class DojoInput extends WidgetBase<DojoInputProperties> {
 			}
-			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
 			export default DojoInput;
 	`;
 			assertCompile(
@@ -109,7 +109,7 @@ describe('element-transformer', () => {
 			enum StringEnum { value1 = 'value1', value2 = 'value2' };
 			enum IntEnum { value1 = 0, value 2 = 1 };
 			type stringOrNumber = string | number;
-			
+
 			class WidgetBase<T> {}
 			interface DojoInputProperties {
 				attribute: string;
@@ -137,7 +137,7 @@ describe('element-transformer', () => {
 			}
 			export default class DojoInput extends WidgetBase<DojoInputProperties> {
 			}
-			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...DojoInput.prototype.__customElementDescriptor || {} };
 	`;
 			assertCompile(
 				{
@@ -180,7 +180,7 @@ describe('element-transformer', () => {
 			}
 			export default class DojoInput extends WidgetBase {
 			}
-			DojoInput.prototype.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
 	`;
 			assertCompile(
 				{
@@ -206,7 +206,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -232,7 +232,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -247,7 +247,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -275,7 +275,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -305,7 +305,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -331,7 +331,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -370,7 +370,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -396,7 +396,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -435,7 +435,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}
@@ -461,7 +461,7 @@ describe('element-transformer', () => {
     		return {
         		properties: <T>() =>
             		function render(callback: (options: { properties: B & T }) => string) {
-                		return (properties: B & T) => '';    
+                		return (properties: B & T) => '';
             	}
     		};
 		}

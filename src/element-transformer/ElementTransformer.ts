@@ -173,7 +173,7 @@ export default function elementTransformer<T extends ts.Node>(
 					}
 
 					propertyAccess = ts.createPropertyAccess(
-						ts.createPropertyAccess(ts.createIdentifier(widgetName), ts.createIdentifier('prototype')),
+						ts.createIdentifier(widgetName),
 						'__customElementDescriptor'
 					);
 				}

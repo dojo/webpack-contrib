@@ -630,7 +630,7 @@ export class Hello extends WidgetBase<HelloProperties> {
 		]);
 	}
 }
-Hello.prototype.__customElementDescriptor = { ...{ tagName: 'widget-hello', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] }, ...Hello.prototype.__customElementDescriptor || {} };
+Hello.__customElementDescriptor = { ...{ tagName: 'widget-hello', attributes: ['name'], properties: ['flag'], events: ['onClick', onChange'] }, ...Hello.prototype.__customElementDescriptor || {} };
 
 export default Hello;
 ```

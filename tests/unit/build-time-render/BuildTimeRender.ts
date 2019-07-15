@@ -414,15 +414,64 @@ describe('build-time-render', () => {
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.secondCall.args[1]),
-					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'my-path',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.thirdCall.args[1]),
-					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.getCall(3).args[1]),
-					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'my-path',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 			});
 		});
@@ -479,15 +528,64 @@ describe('build-time-render', () => {
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.secondCall.args[1]),
-					normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'my-path',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.thirdCall.args[1]),
-					normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 				assert.strictEqual(
 					normalise(outputFileSync.getCall(3).args[1]),
-					normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state',
+								'expected',
+								'my-path',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
 				);
 			});
 		});
@@ -579,15 +677,64 @@ describe('build-time-render', () => {
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.secondCall.args[1]),
-						normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 				});
 			});
@@ -682,15 +829,64 @@ describe('build-time-render', () => {
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.secondCall.args[1]),
-						normalise(readFileSync(outputFileSync.getCall(1).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(readFileSync(outputFileSync.getCall(2).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 					assert.strictEqual(
 						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(readFileSync(outputFileSync.getCall(3).args[0], 'utf8'))
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
 					);
 				});
 			});

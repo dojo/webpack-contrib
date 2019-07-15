@@ -12,6 +12,7 @@ export interface ServeDetails {
 export async function serve(directory: string): Promise<ServeDetails> {
 	const app = express();
 	const port = await getPort();
+	app.use(express.static(directory));
 	app.use(
 		history({
 			rewrites: [

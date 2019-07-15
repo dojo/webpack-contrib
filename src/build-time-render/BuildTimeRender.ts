@@ -120,14 +120,14 @@ export default class BuildTimeRender {
 			html = html.replace(this._createScripts(), '');
 		} else {
 			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
+			const scriptPrefix = this._useHistory ? getPrefix(path) : '';
+			blockScripts.forEach((blockScript, i) => {
+				html = html.replace(
+					'</body>',
+					`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
+				);
+			});
 		}
-		const scriptPrefix = this._useHistory ? getPrefix(path) : '';
-		blockScripts.forEach((blockScript, i) => {
-			html = html.replace(
-				'</body>',
-				`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
-			);
-		});
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 

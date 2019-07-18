@@ -26,6 +26,7 @@ export interface RenderResult {
 	content: string;
 	styles: string;
 	script: string;
+	blockScripts: string[];
 }
 
 export interface BuildTimePath {
@@ -89,7 +90,7 @@ export default class BuildTimeRender {
 		}
 	}
 
-	private async _writeIndexHtml({ content, script, path = '', styles }: RenderResult) {
+	private async _writeIndexHtml({ content, script, path = '', styles, blockScripts }: RenderResult) {
 		let staticPath = false;
 		if (typeof path === 'object') {
 			if (this._useHistory) {
@@ -119,6 +120,13 @@ export default class BuildTimeRender {
 			html = html.replace(this._createScripts(), '');
 		} else {
 			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
+			const scriptPrefix = this._useHistory ? getPrefix(path) : '';
+			blockScripts.forEach((blockScript, i) => {
+				html = html.replace(
+					'</body>',
+					`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
+				);
+			});
 		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
@@ -172,7 +180,7 @@ export default class BuildTimeRender {
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 		}
-		return { content, styles, script, path };
+		return { content, styles, script, path, blockScripts: [] };
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
@@ -205,23 +213,27 @@ export default class BuildTimeRender {
 				combined.styles = result.styles ? `${combined.styles}\n${result.styles}` : combined.styles;
 				combined.html.push(result.content);
 				combined.paths.push(result.path || '');
+				combined.blockScripts.push(...result.blockScripts);
 				return combined;
 			},
-			{ styles: '', html: [], paths: [] } as {
+			{ styles: '', html: [], paths: [], blockScripts: [] } as {
 				paths: (string | BuildTimePath)[];
 				styles: string;
 				html: string[];
+				blockScripts: string[];
 			}
 		);
 		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
 		return {
 			styles: combined.styles,
 			content: this._originalRoot,
-			script
+			script,
+			blockScripts: combined.blockScripts
 		};
 	}
 
 	private _writeBuildBridgeCache(modules: string[]) {
+		const scripts: string[] = [];
 		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
 		const chunkMarker = `main:"${mainHash}",`;
 		const blockChunk = 'runtime/blocks.js';
@@ -230,14 +242,8 @@ export default class BuildTimeRender {
 				this._hasBuildBridgeCache = true;
 				const chunkName = `runtime/block-${genHash(modulePath + args)}`;
 				const blockCacheEntry = `blockCacheEntry('${modulePath}', '${args}', '${chunkName}')`;
-				if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
-					const blockResult = this._buildBridgeResult[modulePath][args];
-					this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
-						'APPEND_BLOCK_CACHE_ENTRY **/',
-						`APPEND_BLOCK_CACHE_ENTRY **/
-${blockCacheEntry}`
-					);
-					const blockResultChunk = `
+				const blockResult = this._buildBridgeResult[modulePath][args];
+				const blockResultChunk = `
 (window['${this._jsonpName}'] = window['${this._jsonpName}'] || []).push([['${chunkName}'],{
 /***/ '${chunkName}.js':
 /*! exports provided: default */
@@ -248,6 +254,18 @@ __webpack_require__.r(__webpack_exports__);
 /***/ })
 }]);
 `;
+				if (mainHash) {
+					scripts.push(`${chunkName}.${genHash(blockResultChunk)}.bundle.js`);
+				} else {
+					scripts.push(`${chunkName}.js`);
+				}
+
+				if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
+					this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
+						'APPEND_BLOCK_CACHE_ENTRY **/',
+						`APPEND_BLOCK_CACHE_ENTRY **/
+${blockCacheEntry}`
+					);
 					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
 					if (mainHash) {
 						const blockResultChunkHash = genHash(blockResultChunk);
@@ -273,6 +291,7 @@ __webpack_require__.r(__webpack_exports__);
 			});
 		});
 		this._buildBridgeResult = {};
+		return scripts;
 	}
 
 	private _writeBuildTimeCacheFiles() {
@@ -376,11 +395,13 @@ __webpack_require__.r(__webpack_exports__);
 				await wait;
 				await this._waitForBridge();
 				const scripts = await getScriptSources(page, app.port);
-				this._writeBuildBridgeCache(scripts);
+				const blockScripts = this._writeBuildBridgeCache(scripts);
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 
 				let renderResults: RenderResult[] = [];
-				renderResults.push(await this._getRenderResult(page, undefined));
+				const renderResult = await this._getRenderResult(page, undefined);
+				renderResult.blockScripts = blockScripts;
+				renderResults.push(renderResult);
 				await page.close();
 
 				for (let i = 0; i < this._paths.length; i++) {
@@ -396,9 +417,10 @@ __webpack_require__.r(__webpack_exports__);
 					await wait;
 					await this._waitForBridge();
 					const scripts = await getScriptSources(page, app.port);
-					this._writeBuildBridgeCache(scripts);
+					const blockScripts = this._writeBuildBridgeCache(scripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
+					result.blockScripts = blockScripts;
 					renderResults.push(result);
 					await page.close();
 				}

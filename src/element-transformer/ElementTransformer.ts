@@ -22,29 +22,48 @@ export default function elementTransformer<T extends ts.Node>(
 		}
 	});
 
-	function findVariable(node: ts.Node, defaultExportType: ts.Type) {
-		if (
-			defaultExportType &&
-			ts.isVariableStatement(node) &&
-			node.declarationList &&
-			node.declarationList.declarations
-		) {
-			const declarations = node.declarationList.declarations;
-			for (let i = 0; i < declarations.length; i++) {
-				const variableSymbol = declarations[i].name && checker.getSymbolAtLocation(declarations[i].name);
-				if (variableSymbol && defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)) {
-					return { variableSymbol, variableNode: declarations[i] };
-				}
-			}
-		}
-	}
-
 	const preparedElementPrefix = elementPrefix
 		.toLowerCase()
 		.replace(/[^a-z]/g, '-')
 		.replace(/[-{2,]/g, '-')
 		.replace(/^-(.*?)-?$/, '$1')
 		.trim();
+
+	function createCustomElementExpression(
+		identifier: string,
+		widgetName: string,
+		attributes: string[],
+		properties: string[],
+		events: string[]
+	) {
+		const propertyAccess = ts.createPropertyAccess(ts.createIdentifier(identifier), '__customElementDescriptor');
+		const tagName = `${preparedElementPrefix}-${widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
+
+		const customElementDeclaration = ts.createObjectLiteral([
+			ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
+			ts.createPropertyAssignment(
+				'attributes',
+				ts.createArrayLiteral(attributes.map((item) => ts.createLiteral(item)))
+			),
+			ts.createPropertyAssignment(
+				'properties',
+				ts.createArrayLiteral(properties.map((item) => ts.createLiteral(item)))
+			),
+			ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map((item) => ts.createLiteral(item))))
+		]);
+
+		const existingDescriptor = ts.createBinary(propertyAccess, ts.SyntaxKind.BarBarToken, ts.createObjectLiteral());
+
+		return ts.createExpressionStatement(
+			ts.createAssignment(
+				propertyAccess,
+				ts.createObjectLiteral([
+					ts.createSpreadAssignment(customElementDeclaration),
+					ts.createSpreadAssignment(existingDescriptor)
+				])
+			)
+		);
+	}
 
 	return (context) => {
 		const visit: any = (node: ts.Node) => {
@@ -62,8 +81,9 @@ export default function elementTransformer<T extends ts.Node>(
 				return ts.visitEachChild(node, (child) => visit(child), context);
 			}
 
-			const { variableSymbol = undefined, variableNode = undefined } =
-				findVariable(node, defaultExportType) || {};
+			const variableNode = ts.isVariableDeclaration(node) && node;
+			const variableSymbol =
+				variableNode && variableNode.name ? checker.getSymbolAtLocation(variableNode.name) : undefined;
 
 			let widgetName = '';
 			const attributes: string[] = [];
@@ -105,18 +125,22 @@ export default function elementTransformer<T extends ts.Node>(
 
 			if (
 				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
-				defaultExport &&
+				variableNode &&
 				variableSymbol &&
-				variableNode
+				defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)
 			) {
 				const initializer = variableNode.initializer;
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
 					const renderOptionsCallback = call.arguments[0];
 					let typeOfOptions: ts.Type | undefined;
-					if (ts.isFunctionLike(renderOptionsCallback) && renderOptionsCallback.parameters[0]) {
+					if (
+						renderOptionsCallback &&
+						ts.isFunctionLike(renderOptionsCallback) &&
+						renderOptionsCallback.parameters[0]
+					) {
 						typeOfOptions = checker.getTypeAtLocation(renderOptionsCallback.parameters[0]);
-					} else if (ts.isIdentifier(renderOptionsCallback)) {
+					} else if (renderOptionsCallback && ts.isIdentifier(renderOptionsCallback)) {
 						const functionType = checker.getTypeAtLocation(renderOptionsCallback);
 						const signatures = functionType.getCallSignatures();
 						for (const signature of signatures) {
@@ -133,9 +157,9 @@ export default function elementTransformer<T extends ts.Node>(
 					}
 
 					if (typeOfOptions && typeOfOptions.getProperty('properties')) {
-						const properties = typeOfOptions.getProperty('properties');
+						const optionProperties = typeOfOptions.getProperty('properties');
 						const typeOfProperties =
-							properties && checker.getTypeOfSymbolAtLocation(properties, variableNode);
+							optionProperties && checker.getTypeOfSymbolAtLocation(optionProperties, variableNode);
 
 						if (typeOfProperties && typeOfProperties.getCallSignatures()) {
 							const propertyCallSignatures = typeOfProperties.getCallSignatures();
@@ -150,6 +174,45 @@ export default function elementTransformer<T extends ts.Node>(
 									parsePropertyType(prop, variableNode);
 								});
 								widgetName = variableNode.name!.getText();
+
+								const updatedNode = ts.updateVariableDeclaration(
+									variableNode,
+									variableNode.name,
+									variableNode.type,
+									ts.createCall(
+										ts.createArrowFunction(
+											undefined,
+											undefined,
+											[],
+											undefined,
+											undefined,
+											ts.createBlock(
+												[
+													ts.createVariableStatement(undefined, [
+														ts.createVariableDeclaration(
+															ts.createIdentifier('temp'),
+															undefined,
+															variableNode.initializer
+														)
+													]),
+													createCustomElementExpression(
+														'temp',
+														widgetName,
+														attributes,
+														properties,
+														events
+													),
+													ts.createReturn(ts.createIdentifier('temp'))
+												],
+												true
+											)
+										),
+										undefined,
+										undefined
+									)
+								);
+
+								return [updatedNode];
 							}
 						}
 					}
@@ -182,52 +245,12 @@ export default function elementTransformer<T extends ts.Node>(
 							});
 						}
 					}
+
+					return [
+						node,
+						createCustomElementExpression(widgetName, widgetName, attributes, properties, events)
+					];
 				}
-			}
-
-			if (widgetName) {
-				const propertyAccess = ts.createPropertyAccess(
-					ts.createIdentifier(widgetName),
-					'__customElementDescriptor'
-				);
-				const tagName = `${preparedElementPrefix}-${widgetName
-					.replace(/([a-z])([A-Z])/g, '$1-$2')
-					.toLowerCase()}`;
-
-				const customElementDeclaration = ts.createObjectLiteral([
-					ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
-					ts.createPropertyAssignment(
-						'attributes',
-						ts.createArrayLiteral(attributes.map((item) => ts.createLiteral(item)))
-					),
-					ts.createPropertyAssignment(
-						'properties',
-						ts.createArrayLiteral(properties.map((item) => ts.createLiteral(item)))
-					),
-					ts.createPropertyAssignment(
-						'events',
-						ts.createArrayLiteral(events.map((item) => ts.createLiteral(item)))
-					)
-				]);
-
-				const existingDescriptor = ts.createBinary(
-					propertyAccess,
-					ts.SyntaxKind.BarBarToken,
-					ts.createObjectLiteral()
-				);
-
-				return [
-					node,
-					ts.createExpressionStatement(
-						ts.createAssignment(
-							propertyAccess,
-							ts.createObjectLiteral([
-								ts.createSpreadAssignment(customElementDeclaration),
-								ts.createSpreadAssignment(existingDescriptor)
-							])
-						)
-					)
-				];
 			}
 
 			return ts.visitEachChild(node, (child) => visit(child), context);

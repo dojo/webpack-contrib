@@ -73,7 +73,7 @@ export default function elementTransformer<T extends ts.Node>(
 				: [];
 			const classSymbol =
 				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
-			// const isVariableStatement = ts.isVariableStatement(node);
+
 			const defaultExportType =
 				defaultExport && checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile());
 

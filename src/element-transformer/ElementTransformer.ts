@@ -30,13 +30,16 @@ export default function elementTransformer<T extends ts.Node>(
 		.trim();
 
 	function createCustomElementExpression(
-		identifier: string,
+		identifier: string | ts.Identifier,
 		widgetName: string,
 		attributes: string[],
 		properties: string[],
 		events: string[]
 	) {
-		const propertyAccess = ts.createPropertyAccess(ts.createIdentifier(identifier), '__customElementDescriptor');
+		const propertyAccess = ts.createPropertyAccess(
+			typeof identifier === 'string' ? ts.createIdentifier(identifier) : identifier,
+			'__customElementDescriptor'
+		);
 		const tagName = `${preparedElementPrefix}-${widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
 
 		const customElementDeclaration = ts.createObjectLiteral([
@@ -175,6 +178,7 @@ export default function elementTransformer<T extends ts.Node>(
 								});
 								widgetName = variableNode.name!.getText();
 
+								const uniqueIdentifier = ts.createUniqueName('temp');
 								const updatedNode = ts.updateVariableDeclaration(
 									variableNode,
 									variableNode.name,
@@ -190,19 +194,19 @@ export default function elementTransformer<T extends ts.Node>(
 												[
 													ts.createVariableStatement(undefined, [
 														ts.createVariableDeclaration(
-															ts.createIdentifier('temp'),
+															uniqueIdentifier,
 															undefined,
 															variableNode.initializer
 														)
 													]),
 													createCustomElementExpression(
-														'temp',
+														uniqueIdentifier,
 														widgetName,
 														attributes,
 														properties,
 														events
 													),
-													ts.createReturn(ts.createIdentifier('temp'))
+													ts.createReturn(uniqueIdentifier)
 												],
 												true
 											)

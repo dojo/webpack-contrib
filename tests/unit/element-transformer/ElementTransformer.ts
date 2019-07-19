@@ -255,9 +255,9 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		const render = create().properties<DojoInputProperties>();
 		const DojoInput = (() => {
-			var temp = render(({ properties }) => 'foo');
-			temp.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...temp.__customElementDescriptor || {} };	
-			return temp;
+			var temp_1 = render(({ properties }) => 'foo');
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
 		})()
 		export default DojoInput;
 		`;
@@ -350,9 +350,9 @@ describe('element-transformer', () => {
 		}
 		const render = create().properties<DojoInputProperties>();
 		const DojoInput = (() => {
-			var temp = render(({ properties }) => 'foo')
-			temp.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp.__customElementDescriptor || {} };
-			return temp;
+			var temp_1 = render(({ properties }) => 'foo')
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp_1.__customElementDescriptor || {} };
+			return temp_1;
 		})();
 		export default DojoInput;
 		`;
@@ -418,9 +418,9 @@ describe('element-transformer', () => {
 		}
 		const render = create<any, { foo: string }>().properties<DojoInputProperties>();
 		const DojoInput = (() => {
-			var temp = render(({ properties }) => 'foo');
-			temp.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["foo", "attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp.__customElementDescriptor || {} };	
-			return temp;
+			var temp_1 = render(({ properties }) => 'foo');
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["foo", "attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
 		})();
 		export default DojoInput;
 		`;
@@ -468,9 +468,9 @@ describe('element-transformer', () => {
 
 		const render = create().properties();
 		const DojoInput = (() => {
-			var temp = render(({ properties }: { properties: () => { bar: string; } }) => 'foo');	
-			temp.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...temp.__customElementDescriptor || {} };	
-			return temp;
+			var temp_1 = render(({ properties }: { properties: () => { bar: string; } }) => 'foo');	
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
 		})();
 		export default DojoInput;
 		`;
@@ -526,9 +526,9 @@ describe('element-transformer', () => {
 		type Callback = (options: Options) => any;
 		const callback: Callback = () => 'foo';
 		const DojoInput = (() => {
-			var temp = render(callback);
-			temp.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...temp.__customElementDescriptor || {} };	
-			return temp;
+			var temp_1 = render(callback);
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
 		})();
 		export default DojoInput;
 		`;

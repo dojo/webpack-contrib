@@ -69,7 +69,6 @@ export default function elementTransformer<T extends ts.Node>(
 			const attributes: string[] = [];
 			const properties: string[] = [];
 			const events: string[] = [];
-			let propertyAccess: ts.PropertyAccessExpression | undefined = undefined;
 
 			function parsePropertyType(prop: ts.Symbol, locationNode: ts.Node) {
 				const type = checker.getTypeOfSymbolAtLocation(prop, locationNode);
@@ -114,32 +113,44 @@ export default function elementTransformer<T extends ts.Node>(
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
 					const renderOptionsCallback = call.arguments[0];
-					let optionsNode: ts.Node | undefined;
-					if (ts.isFunctionLike(renderOptionsCallback)) {
-						optionsNode = renderOptionsCallback.parameters[0];
+					let typeOfOptions: ts.Type | undefined;
+					if (ts.isFunctionLike(renderOptionsCallback) && renderOptionsCallback.parameters[0]) {
+						typeOfOptions = checker.getTypeAtLocation(renderOptionsCallback.parameters[0]);
 					} else if (ts.isIdentifier(renderOptionsCallback)) {
-						// TODO
-						// const type = checker.getTypeAtLocation(renderOptionsCallback);
-						// type.is
-						// ts.isFunctionTypeNode(type)
-						// (renderOptionsCallback as ts.Identifier).
-						optionsNode = undefined;
+						const functionType = checker.getTypeAtLocation(renderOptionsCallback);
+						const signatures = functionType.getCallSignatures();
+						for (const signature of signatures) {
+							if (signature.getParameters()[0]) {
+								typeOfOptions = checker.getTypeOfSymbolAtLocation(
+									signature.getParameters()[0],
+									renderOptionsCallback
+								);
+								if (typeOfOptions.getProperty('properties')) {
+									break;
+								}
+							}
+						}
 					}
 
-					if (optionsNode) {
-						const typeOfOptions = checker.getTypeAtLocation(optionsNode);
+					if (typeOfOptions && typeOfOptions.getProperty('properties')) {
 						const properties = typeOfOptions.getProperty('properties');
 						const typeOfProperties =
-							properties && checker.getTypeOfSymbolAtLocation(properties, optionsNode);
-						if (typeOfProperties) {
-							typeOfProperties.getProperties().forEach((prop) => {
-								parsePropertyType(prop, optionsNode!);
-							});
-							widgetName = variableNode.name!.getText();
-							propertyAccess = ts.createPropertyAccess(
-								ts.createIdentifier(widgetName),
-								'__customElementDescriptor'
-							);
+							properties && checker.getTypeOfSymbolAtLocation(properties, variableNode);
+
+						if (typeOfProperties && typeOfProperties.getCallSignatures()) {
+							const propertyCallSignatures = typeOfProperties.getCallSignatures();
+							let propertyType;
+							for (const propertyCallSignature of propertyCallSignatures) {
+								if (!propertyCallSignature.getParameters().length) {
+									propertyType = propertyCallSignature.getReturnType();
+								}
+							}
+							if (propertyType) {
+								propertyType.getProperties().forEach((prop) => {
+									parsePropertyType(prop, variableNode);
+								});
+								widgetName = variableNode.name!.getText();
+							}
 						}
 					}
 				}
@@ -171,15 +182,14 @@ export default function elementTransformer<T extends ts.Node>(
 							});
 						}
 					}
-
-					propertyAccess = ts.createPropertyAccess(
-						ts.createIdentifier(widgetName),
-						'__customElementDescriptor'
-					);
 				}
 			}
 
-			if (widgetName && propertyAccess) {
+			if (widgetName) {
+				const propertyAccess = ts.createPropertyAccess(
+					ts.createIdentifier(widgetName),
+					'__customElementDescriptor'
+				);
 				const tagName = `${preparedElementPrefix}-${widgetName
 					.replace(/([a-z])([A-Z])/g, '$1-$2')
 					.toLowerCase()}`;

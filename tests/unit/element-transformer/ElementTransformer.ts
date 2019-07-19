@@ -38,7 +38,7 @@ describe('element-transformer', () => {
 		interface DojoInputProperties {}
 		export default class DojoInput extends WidgetBase<DojoInputProperties> {
 		}
-		DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+		DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
 `;
 			assertCompile(
 				{
@@ -64,7 +64,7 @@ describe('element-transformer', () => {
 			interface DojoInputProperties {}
 			export class DojoInput extends WidgetBase<DojoInputProperties> {
 			}
-			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
 			export default DojoInput;
 	`;
 			assertCompile(
@@ -137,7 +137,7 @@ describe('element-transformer', () => {
 			}
 			export default class DojoInput extends WidgetBase<DojoInputProperties> {
 			}
-			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...DojoInput.__customElementDescriptor || {} };
 	`;
 			assertCompile(
 				{
@@ -180,7 +180,7 @@ describe('element-transformer', () => {
 			}
 			export default class DojoInput extends WidgetBase {
 			}
-			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.prototype.__customElementDescriptor || {} };
+			DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: [], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
 	`;
 			assertCompile(
 				{
@@ -205,7 +205,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -231,7 +231,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -246,7 +246,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -274,7 +274,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -304,7 +304,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -330,7 +330,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -369,7 +369,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -395,7 +395,7 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
@@ -434,23 +434,14 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
 		}
 
-		interface DojoInputProperties {
-			attribute: string;
-			property: boolean;
-			onClick: () => void;
-			onChange(value: string): void;
-			stringEnum: StringEnum;
-			intEnum?: IntEnum;
-			stringOrNumber: stringOrNumber;
-		}
 		const render = create().properties();
-		const DojoInput = render(({ properties }: { properties: { bar: string; } }) => 'foo');
+		const DojoInput = render(({ properties }: { properties: () => { bar: string; } }) => 'foo');
 		export default DojoInput;
 		`;
 			const expected = `
@@ -460,24 +451,124 @@ describe('element-transformer', () => {
 		function create<A = any, B = {}>() {
     		return {
         		properties: <T>() =>
-            		function render(callback: (options: { properties: B & T }) => string) {
+            		function render(callback: (options: { properties: () => B & T }) => string) {
                 		return (properties: B & T) => '';
             	}
     		};
 		}
 
-		interface DojoInputProperties {
-			attribute: string;
-			property: boolean;
-			onClick: () => void;
-			onChange(value: string): void;
-			stringEnum: StringEnum;
-			intEnum?: IntEnum;
-			stringOrNumber: stringOrNumber;
-		}
 		const render = create().properties();
-		const DojoInput = render(({ properties }: { properties: { bar: string; } }) => 'foo');
+		const DojoInput = render(({ properties }: { properties: () => { bar: string; } }) => 'foo');
 		DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
+		export default DojoInput;
+		`;
+			assertCompile(
+				{
+					[actualPath]: source,
+					[expectedPath]: expected
+				},
+				(program) => ({
+					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+				})
+			);
+		});
+
+		it('handles using variables and types in widget creation', () => {
+			const source = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		const render = create().properties();
+		type Props = () => { bar: string; };
+		type Options = { properties: Props };
+		type Callback = (options: Options) => any;
+		const callback: Callback = () => 'foo';
+		const DojoInput = render(callback);
+		export default DojoInput;
+		`;
+			const expected = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		const render = create().properties();
+		type Props = () => { bar: string; };
+		type Options = { properties: Props };
+		type Callback = (options: Options) => any;
+		const callback: Callback = () => 'foo';
+		const DojoInput = render(callback);
+		DojoInput.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["bar"], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
+		export default DojoInput;
+		`;
+			assertCompile(
+				{
+					[actualPath]: source,
+					[expectedPath]: expected
+				},
+				(program) => ({
+					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+				})
+			);
+		});
+
+		it('ignores default exports that have the wrong signature', () => {
+			const source = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: () => { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		const render = create().properties();
+		type Props = () => { bar: string; };
+		type Options = () => { properties: Props };
+		type Callback = (options: Options) => any;
+		const callback: Callback = () => 'foo';
+		const DojoInput = render(callback);
+		export default DojoInput;
+		`;
+			const expected = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: () => { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		const render = create().properties();
+		type Props = () => { bar: string; };
+		type Options = () => { properties: Props };
+		type Callback = (options: Options) => any;
+		const callback: Callback = () => 'foo';
+		const DojoInput = render(callback);
 		export default DojoInput;
 		`;
 			assertCompile(

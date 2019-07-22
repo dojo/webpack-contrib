@@ -41,6 +41,11 @@
 		div.classList.add('other');
 		div.innerHTML = 'Other';
 		app.appendChild(div);
+
+		let script = document.createElement('script');
+		script.setAttribute('src', 'additional.js');
+
+		document.body.appendChild(script);
 	} else {
 		renderDefault();
 	}

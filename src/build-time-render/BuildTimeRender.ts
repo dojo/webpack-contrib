@@ -54,6 +54,8 @@ function genHash(content: string): string {
 		.substr(0, 20);
 }
 
+const ignoreAdditionalChunks = ['main.js', 'bootstrap.js', 'runtime.js'];
+
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
@@ -74,7 +76,6 @@ export default class BuildTimeRender {
 	private _bridgePromises: Promise<any>[] = [];
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;
-	private _ignoreScripts = ['main.js', 'bootstrap.js'];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -200,7 +201,7 @@ export default class BuildTimeRender {
 			const jsCoverage = await page.coverage.stopJSCoverage();
 			additionalChunks = jsCoverage
 				.map((coverage: any) => coverage.url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => this._ignoreScripts.indexOf(url) === -1);
+				.filter((url: string) => ignoreAdditionalChunks.every((rule) => !url.endsWith(rule)));
 		}
 
 		return {

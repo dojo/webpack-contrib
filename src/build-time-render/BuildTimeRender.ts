@@ -27,6 +27,7 @@ export interface RenderResult {
 	styles: string;
 	script: string;
 	blockScripts: string[];
+	additionalChunks: string[];
 }
 
 export interface BuildTimePath {
@@ -73,6 +74,7 @@ export default class BuildTimeRender {
 	private _bridgePromises: Promise<any>[] = [];
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;
+	private _ignoreScripts = ['main.js', 'bootstrap.js'];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
@@ -90,7 +92,14 @@ export default class BuildTimeRender {
 		}
 	}
 
-	private async _writeIndexHtml({ content, script, path = '', styles, blockScripts }: RenderResult) {
+	private async _writeIndexHtml({
+		content,
+		script,
+		path = '',
+		styles,
+		blockScripts,
+		additionalChunks
+	}: RenderResult) {
 		let staticPath = false;
 		if (typeof path === 'object') {
 			if (this._useHistory) {
@@ -125,6 +134,12 @@ export default class BuildTimeRender {
 				html = html.replace(
 					'</body>',
 					`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
+				);
+			});
+			additionalChunks.forEach((additionalChunk, i) => {
+				html = html.replace(
+					'</body>',
+					`<script type="text/javascript" src="${scriptPrefix}${additionalChunk}" async="true"></script></body>`
 				);
 			});
 		}
@@ -174,13 +189,28 @@ export default class BuildTimeRender {
 		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
+		let additionalChunks: string[] = [];
+
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
+
+			const jsCoverage = await page.coverage.stopJSCoverage();
+			additionalChunks = jsCoverage
+				.map((coverage: any) => coverage.url.replace(/http:\/\/localhost:\d+\//g, ''))
+				.filter((url: string) => this._ignoreScripts.indexOf(url) === -1);
 		}
-		return { content, styles, script, path, blockScripts: [] };
+
+		return {
+			content,
+			styles,
+			script,
+			path,
+			blockScripts: [],
+			additionalChunks
+		};
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
@@ -214,13 +244,15 @@ export default class BuildTimeRender {
 				combined.html.push(result.content);
 				combined.paths.push(result.path || '');
 				combined.blockScripts.push(...result.blockScripts);
+				combined.additionalChunks.push(...result.additionalChunks);
 				return combined;
 			},
-			{ styles: '', html: [], paths: [], blockScripts: [] } as {
+			{ styles: '', html: [], paths: [], blockScripts: [], additionalChunks: [] } as {
 				paths: (string | BuildTimePath)[];
 				styles: string;
 				html: string[];
 				blockScripts: string[];
+				additionalChunks: string[];
 			}
 		);
 		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
@@ -228,7 +260,8 @@ export default class BuildTimeRender {
 			styles: combined.styles,
 			content: this._originalRoot,
 			script,
-			blockScripts: combined.blockScripts
+			blockScripts: combined.blockScripts,
+			additionalChunks: combined.additionalChunks
 		};
 	}
 
@@ -329,6 +362,7 @@ ${blockCacheEntry}`
 		page.on('pageerror', reportError);
 		await setHasFlags(page);
 		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
+		await page.coverage.startJSCoverage();
 		return page;
 	}
 
@@ -424,6 +458,7 @@ ${blockCacheEntry}`
 					let result = await this._getRenderResult(page, this._paths[i]);
 					result.blockScripts = blockScripts;
 					renderResults.push(result);
+
 					await page.close();
 				}
 

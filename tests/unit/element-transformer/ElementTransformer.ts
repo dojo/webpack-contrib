@@ -435,6 +435,142 @@ describe('element-transformer', () => {
 			);
 		});
 
+		it('it handles a direct export type', () => {
+			const source = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		interface DojoInputProperties {
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange(value: string): void;
+			stringEnum: StringEnum;
+			intEnum?: IntEnum;
+			stringOrNumber: stringOrNumber;
+		}
+		const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+		export default render(function DojoInput({ properties }) {
+			return 'foo'
+		});
+		`;
+			const expected = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		interface DojoInputProperties {
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange(value: string): void;
+			stringEnum: StringEnum;
+			intEnum?: IntEnum;
+			stringOrNumber: stringOrNumber;
+		}
+		const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+		export default (() => {
+			var temp_1 = render(function DojoInput({ properties }) {
+				return 'foo'
+			});
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-dojo-input", attributes: ["foo", "attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
+		})();
+		`;
+			assertCompile(
+				{
+					[actualPath]: source,
+					[expectedPath]: expected
+				},
+				(program) => ({
+					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+				})
+			);
+		});
+
+		it('it handles a direct export with no function name', () => {
+			const source = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		interface DojoInputProperties {
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange(value: string): void;
+			stringEnum: StringEnum;
+			intEnum?: IntEnum;
+			stringOrNumber: stringOrNumber;
+		}
+		const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+		export default render(({ properties }) => 'foo');
+		`;
+			const expected = `
+		enum StringEnum { value1 = 'value1', value2 = 'value2' };
+		enum IntEnum { value1 = 0, value 2 = 1 };
+		type stringOrNumber = string | number;
+		function create<A = any, B = {}>() {
+    		return {
+        		properties: <T>() =>
+            		function render(callback: (options: { properties: () => B & T }) => string) {
+                		return (properties: B & T) => '';
+            	}
+    		};
+		}
+
+		interface DojoInputProperties {
+			attribute: string;
+			property: boolean;
+			onClick: () => void;
+			onChange(value: string): void;
+			stringEnum: StringEnum;
+			intEnum?: IntEnum;
+			stringOrNumber: stringOrNumber;
+		}
+		const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+		export default (() => {
+			var temp_1 = render(({ properties }) => 'foo');
+			temp_1.__customElementDescriptor = { ...{ tagName: "widget-actual", attributes: ["foo", "attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp_1.__customElementDescriptor || {} };	
+			return temp_1;
+		})();
+		`;
+			assertCompile(
+				{
+					[actualPath]: source,
+					[expectedPath]: expected
+				},
+				(program) => ({
+					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+				})
+			);
+		});
+
 		it('it handles an explicit type', () => {
 			const source = `
 		enum StringEnum { value1 = 'value1', value2 = 'value2' };

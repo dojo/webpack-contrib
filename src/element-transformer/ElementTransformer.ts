@@ -68,14 +68,43 @@ export default function elementTransformer<T extends ts.Node>(
 		);
 	}
 
+	function createCallExpression(
+		uniqueIdentifier: ts.Identifier,
+		initializer: ts.Expression | undefined,
+		widgetName: string,
+		attributes: string[],
+		properties: string[],
+		events: string[]
+	) {
+		return ts.createCall(
+			ts.createArrowFunction(
+				undefined,
+				undefined,
+				[],
+				undefined,
+				undefined,
+				ts.createBlock(
+					[
+						ts.createVariableStatement(undefined, [
+							ts.createVariableDeclaration(uniqueIdentifier, undefined, initializer)
+						]),
+						createCustomElementExpression(uniqueIdentifier, widgetName, attributes, properties, events),
+						ts.createReturn(uniqueIdentifier)
+					],
+					true
+				)
+			),
+			undefined,
+			undefined
+		);
+	}
+
 	return (context) => {
 		const visit: any = (node: ts.Node) => {
 			const moduleSymbol = checker.getSymbolAtLocation(node.getSourceFile());
 			const [defaultExport = undefined] = moduleSymbol
 				? checker.getExportsOfModule(moduleSymbol).filter((symbol) => symbol.escapedName === 'default')
 				: [];
-			const classSymbol =
-				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
 
 			const defaultExportType =
 				defaultExport && checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile());
@@ -84,11 +113,27 @@ export default function elementTransformer<T extends ts.Node>(
 				return ts.visitEachChild(node, (child) => visit(child), context);
 			}
 
+			// Class case
+			const classSymbol =
+				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
+			// Factory result assigned to variable
+			let initializer: ts.Expression | undefined;
 			const variableNode = ts.isVariableDeclaration(node) && node;
 			const variableSymbol =
 				variableNode && variableNode.name ? checker.getSymbolAtLocation(variableNode.name) : undefined;
+			if (
+				variableNode &&
+				variableSymbol &&
+				defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)
+			) {
+				initializer = variableNode.initializer;
+			}
 
-			let widgetName = '';
+			// Direct export of factory result
+			if (ts.isExportAssignment(node) && !node.isExportEquals) {
+				initializer = node.expression;
+			}
+
 			const attributes: string[] = [];
 			const properties: string[] = [];
 			const events: string[] = [];
@@ -128,11 +173,8 @@ export default function elementTransformer<T extends ts.Node>(
 
 			if (
 				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
-				variableNode &&
-				variableSymbol &&
-				defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)
+				initializer
 			) {
-				const initializer = variableNode.initializer;
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
 					const renderOptionsCallback = call.arguments[0];
@@ -162,7 +204,7 @@ export default function elementTransformer<T extends ts.Node>(
 					if (typeOfOptions && typeOfOptions.getProperty('properties')) {
 						const optionProperties = typeOfOptions.getProperty('properties');
 						const typeOfProperties =
-							optionProperties && checker.getTypeOfSymbolAtLocation(optionProperties, variableNode);
+							optionProperties && checker.getTypeOfSymbolAtLocation(optionProperties, node);
 
 						if (typeOfProperties && typeOfProperties.getCallSignatures()) {
 							const propertyCallSignatures = typeOfProperties.getCallSignatures();
@@ -174,49 +216,60 @@ export default function elementTransformer<T extends ts.Node>(
 							}
 							if (propertyType) {
 								propertyType.getProperties().forEach((prop) => {
-									parsePropertyType(prop, variableNode);
+									parsePropertyType(prop, node);
 								});
-								widgetName = variableNode.name!.getText();
+								if (variableNode) {
+									const widgetName = variableNode.name!.getText();
 
-								const uniqueIdentifier = ts.createUniqueName('temp');
-								const updatedNode = ts.updateVariableDeclaration(
-									variableNode,
-									variableNode.name,
-									variableNode.type,
-									ts.createCall(
-										ts.createArrowFunction(
-											undefined,
-											undefined,
-											[],
-											undefined,
-											undefined,
-											ts.createBlock(
-												[
-													ts.createVariableStatement(undefined, [
-														ts.createVariableDeclaration(
-															uniqueIdentifier,
-															undefined,
-															variableNode.initializer
-														)
-													]),
-													createCustomElementExpression(
-														uniqueIdentifier,
-														widgetName,
-														attributes,
-														properties,
-														events
-													),
-													ts.createReturn(uniqueIdentifier)
-												],
-												true
+									const uniqueIdentifier = ts.createUniqueName('temp');
+									return [
+										ts.updateVariableDeclaration(
+											variableNode,
+											variableNode.name,
+											variableNode.type,
+											createCallExpression(
+												uniqueIdentifier,
+												initializer,
+												widgetName,
+												attributes,
+												properties,
+												events
 											)
-										),
-										undefined,
-										undefined
-									)
-								);
+										)
+									];
+								} else {
+									let widgetName;
+									if (renderOptionsCallback && (renderOptionsCallback as any).name) {
+										widgetName = (renderOptionsCallback as any).name.getText();
+									} else {
+										const fileName =
+											node
+												.getSourceFile()
+												.fileName.split(/[\\/]/)
+												.pop() || '';
+										widgetName = fileName.split('.')[0];
+									}
 
-								return [updatedNode];
+									if (widgetName) {
+										const uniqueIdentifier = ts.createUniqueName('temp');
+										const exportAssignment = node as ts.ExportAssignment;
+										return [
+											ts.updateExportAssignment(
+												exportAssignment,
+												exportAssignment.decorators,
+												exportAssignment.modifiers,
+												createCallExpression(
+													uniqueIdentifier,
+													initializer,
+													widgetName,
+													attributes,
+													properties,
+													events
+												)
+											)
+										];
+									}
+								}
 							}
 						}
 					}
@@ -228,7 +281,7 @@ export default function elementTransformer<T extends ts.Node>(
 			) {
 				const classNode = node as ts.ClassDeclaration;
 				if (classNode.heritageClauses && classNode.heritageClauses.length > 0) {
-					widgetName = classNode.name!.getText();
+					const widgetName = classNode.name!.getText();
 
 					const [
 						{

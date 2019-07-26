@@ -74,7 +74,7 @@
     "puppeteer": "1.11.0",
     "recast": "0.12.7",
     "source-map": "0.6.1",
-    "ts-loader": "5.3.0",
+    "ts-loader": "5.4.5",
     "ts-node": "^8.0.3",
     "typed-css-modules": "0.3.7",
     "webpack-hot-middleware": "2.24.3",

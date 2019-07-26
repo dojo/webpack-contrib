@@ -29,123 +29,285 @@ export default function elementTransformer<T extends ts.Node>(
 		.replace(/^-(.*?)-?$/, '$1')
 		.trim();
 
+	function createCustomElementExpression(
+		identifier: string | ts.Identifier,
+		widgetName: string,
+		attributes: string[],
+		properties: string[],
+		events: string[]
+	) {
+		const propertyAccess = ts.createPropertyAccess(
+			typeof identifier === 'string' ? ts.createIdentifier(identifier) : identifier,
+			'__customElementDescriptor'
+		);
+		const tagName = `${preparedElementPrefix}-${widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
+
+		const customElementDeclaration = ts.createObjectLiteral([
+			ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
+			ts.createPropertyAssignment(
+				'attributes',
+				ts.createArrayLiteral(attributes.map((item) => ts.createLiteral(item)))
+			),
+			ts.createPropertyAssignment(
+				'properties',
+				ts.createArrayLiteral(properties.map((item) => ts.createLiteral(item)))
+			),
+			ts.createPropertyAssignment('events', ts.createArrayLiteral(events.map((item) => ts.createLiteral(item))))
+		]);
+
+		const existingDescriptor = ts.createBinary(propertyAccess, ts.SyntaxKind.BarBarToken, ts.createObjectLiteral());
+
+		return ts.createExpressionStatement(
+			ts.createAssignment(
+				propertyAccess,
+				ts.createObjectLiteral([
+					ts.createSpreadAssignment(customElementDeclaration),
+					ts.createSpreadAssignment(existingDescriptor)
+				])
+			)
+		);
+	}
+
+	function createCallExpression(
+		uniqueIdentifier: ts.Identifier,
+		initializer: ts.Expression | undefined,
+		widgetName: string,
+		attributes: string[],
+		properties: string[],
+		events: string[]
+	) {
+		return ts.createCall(
+			ts.createArrowFunction(
+				undefined,
+				undefined,
+				[],
+				undefined,
+				undefined,
+				ts.createBlock(
+					[
+						ts.createVariableStatement(undefined, [
+							ts.createVariableDeclaration(uniqueIdentifier, undefined, initializer)
+						]),
+						createCustomElementExpression(uniqueIdentifier, widgetName, attributes, properties, events),
+						ts.createReturn(uniqueIdentifier)
+					],
+					true
+				)
+			),
+			undefined,
+			undefined
+		);
+	}
+
 	return (context) => {
 		const visit: any = (node: ts.Node) => {
 			const moduleSymbol = checker.getSymbolAtLocation(node.getSourceFile());
 			const [defaultExport = undefined] = moduleSymbol
 				? checker.getExportsOfModule(moduleSymbol).filter((symbol) => symbol.escapedName === 'default')
 				: [];
+
+			const defaultExportType =
+				defaultExport && checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile());
+
+			if (!defaultExportType) {
+				return ts.visitEachChild(node, (child) => visit(child), context);
+			}
+
+			// Class case
 			const classSymbol =
 				ts.isClassDeclaration(node) && node.name ? checker.getSymbolAtLocation(node.name) : undefined;
-			const classNode = node as ts.ClassDeclaration;
+			// Factory result assigned to variable
+			let initializer: ts.Expression | undefined;
+			const variableNode = ts.isVariableDeclaration(node) && node;
+			const variableSymbol =
+				variableNode && variableNode.name ? checker.getSymbolAtLocation(variableNode.name) : undefined;
+			if (
+				variableNode &&
+				variableSymbol &&
+				defaultExportType === checker.getTypeOfSymbolAtLocation(variableSymbol, node)
+			) {
+				initializer = variableNode.initializer;
+			}
+
+			// Direct export of factory result
+			if (ts.isExportAssignment(node) && !node.isExportEquals) {
+				initializer = node.expression;
+			}
+
+			const attributes: string[] = [];
+			const properties: string[] = [];
+			const events: string[] = [];
+
+			function parsePropertyType(prop: ts.Symbol, locationNode: ts.Node) {
+				const type = checker.getTypeOfSymbolAtLocation(prop, locationNode);
+				const name = prop.getName();
+				let types = [type];
+
+				const intersectionType = type as ts.UnionOrIntersectionType;
+
+				if (intersectionType.types && intersectionType.types.length > 0) {
+					types = intersectionType.types;
+				}
+
+				types = types.filter((type) => checker.typeToString(type) !== 'undefined');
+
+				if (types.length === 1) {
+					if (
+						name.indexOf('on') === 0 &&
+						checker.getSignaturesOfType(types[0], ts.SignatureKind.Call).length > 0
+					) {
+						events.push(name);
+					} else if (checker.typeToString(types[0]) === 'string') {
+						attributes.push(name);
+					} else {
+						properties.push(name);
+					}
+				} else {
+					if (types.some((type) => Boolean(type.flags & ts.TypeFlags.StringLike))) {
+						attributes.push(name);
+					} else {
+						properties.push(name);
+					}
+				}
+			}
 
 			if (
 				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
-				defaultExport &&
-				classSymbol &&
-				checker.getTypeOfSymbolAtLocation(defaultExport, node.getSourceFile()) ===
-					checker.getTypeOfSymbolAtLocation(classSymbol, node) &&
-				classNode.heritageClauses &&
-				classNode.heritageClauses.length > 0
+				initializer
 			) {
-				const widgetName = classNode.name!.getText();
-				const tagName = `${preparedElementPrefix}-${widgetName
-					.replace(/([a-z])([A-Z])/g, '$1-$2')
-					.toLowerCase()}`;
-
-				const [
-					{
-						types: [{ typeArguments = [] }]
+				if (initializer && ts.isCallExpression(initializer)) {
+					const call = initializer as ts.CallExpression;
+					const renderOptionsCallback = call.arguments[0];
+					let typeOfOptions: ts.Type | undefined;
+					if (
+						renderOptionsCallback &&
+						ts.isFunctionLike(renderOptionsCallback) &&
+						renderOptionsCallback.parameters[0]
+					) {
+						typeOfOptions = checker.getTypeAtLocation(renderOptionsCallback.parameters[0]);
+					} else if (renderOptionsCallback && ts.isIdentifier(renderOptionsCallback)) {
+						const functionType = checker.getTypeAtLocation(renderOptionsCallback);
+						const signatures = functionType.getCallSignatures();
+						for (const signature of signatures) {
+							if (signature.getParameters()[0]) {
+								typeOfOptions = checker.getTypeOfSymbolAtLocation(
+									signature.getParameters()[0],
+									renderOptionsCallback
+								);
+								if (typeOfOptions.getProperty('properties')) {
+									break;
+								}
+							}
+						}
 					}
-				] = classNode.heritageClauses;
 
-				const attributes: string[] = [];
-				const properties: string[] = [];
-				const events: string[] = [];
+					if (typeOfOptions && typeOfOptions.getProperty('properties')) {
+						const optionProperties = typeOfOptions.getProperty('properties');
+						const typeOfProperties =
+							optionProperties && checker.getTypeOfSymbolAtLocation(optionProperties, node);
 
-				if (typeArguments.length) {
-					const widgetPropNode = typeArguments[0];
-					const widgetPropNodeSymbol = checker.getSymbolAtLocation(widgetPropNode.getChildAt(0));
-
-					if (widgetPropNodeSymbol) {
-						const widgetPropType = checker.getDeclaredTypeOfSymbol(widgetPropNodeSymbol);
-						const widgetProps = widgetPropType.getProperties();
-
-						widgetProps.forEach((prop) => {
-							const type = checker.getTypeOfSymbolAtLocation(prop, widgetPropNode);
-							const name = prop.getName();
-
-							let types = [type];
-
-							const intersectionType = type as ts.UnionOrIntersectionType;
-
-							if (intersectionType.types && intersectionType.types.length > 0) {
-								types = intersectionType.types;
-							}
-
-							types = types.filter((type) => checker.typeToString(type) !== 'undefined');
-
-							if (types.length === 1) {
-								if (
-									name.indexOf('on') === 0 &&
-									checker.getSignaturesOfType(types[0], ts.SignatureKind.Call).length > 0
-								) {
-									events.push(name);
-								} else if (checker.typeToString(types[0]) === 'string') {
-									attributes.push(name);
-								} else {
-									properties.push(name);
-								}
-							} else {
-								if (types.some((type) => Boolean(type.flags & ts.TypeFlags.StringLike))) {
-									attributes.push(name);
-								} else {
-									properties.push(name);
+						if (typeOfProperties && typeOfProperties.getCallSignatures()) {
+							const propertyCallSignatures = typeOfProperties.getCallSignatures();
+							let propertyType;
+							for (const propertyCallSignature of propertyCallSignatures) {
+								if (!propertyCallSignature.getParameters().length) {
+									propertyType = propertyCallSignature.getReturnType();
 								}
 							}
-						});
+							if (propertyType) {
+								propertyType.getProperties().forEach((prop) => {
+									parsePropertyType(prop, node);
+								});
+								if (variableNode) {
+									const widgetName = variableNode.name!.getText();
+
+									const uniqueIdentifier = ts.createUniqueName('temp');
+									return [
+										ts.updateVariableDeclaration(
+											variableNode,
+											variableNode.name,
+											variableNode.type,
+											createCallExpression(
+												uniqueIdentifier,
+												initializer,
+												widgetName,
+												attributes,
+												properties,
+												events
+											)
+										)
+									];
+								} else {
+									let widgetName;
+									if (renderOptionsCallback && (renderOptionsCallback as any).name) {
+										widgetName = (renderOptionsCallback as any).name.getText();
+									} else {
+										const fileName =
+											node
+												.getSourceFile()
+												.fileName.split(/[\\/]/)
+												.pop() || '';
+										widgetName = fileName.split('.')[0];
+									}
+
+									if (widgetName) {
+										const uniqueIdentifier = ts.createUniqueName('temp');
+										const exportAssignment = node as ts.ExportAssignment;
+										return [
+											ts.updateExportAssignment(
+												exportAssignment,
+												exportAssignment.decorators,
+												exportAssignment.modifiers,
+												createCallExpression(
+													uniqueIdentifier,
+													initializer,
+													widgetName,
+													attributes,
+													properties,
+													events
+												)
+											)
+										];
+									}
+								}
+							}
+						}
 					}
 				}
+			} else if (
+				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
+				classSymbol &&
+				defaultExportType === checker.getTypeOfSymbolAtLocation(classSymbol, node)
+			) {
+				const classNode = node as ts.ClassDeclaration;
+				if (classNode.heritageClauses && classNode.heritageClauses.length > 0) {
+					const widgetName = classNode.name!.getText();
 
-				const customElementDeclaration = ts.createObjectLiteral([
-					ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
-					ts.createPropertyAssignment(
-						'attributes',
-						ts.createArrayLiteral(attributes.map((item) => ts.createLiteral(item)))
-					),
-					ts.createPropertyAssignment(
-						'properties',
-						ts.createArrayLiteral(properties.map((item) => ts.createLiteral(item)))
-					),
-					ts.createPropertyAssignment(
-						'events',
-						ts.createArrayLiteral(events.map((item) => ts.createLiteral(item)))
-					)
-				]);
+					const [
+						{
+							types: [{ typeArguments = [] }]
+						}
+					] = classNode.heritageClauses;
 
-				const prototypeAccess = ts.createPropertyAccess(
-					ts.createPropertyAccess(ts.createIdentifier(widgetName), ts.createIdentifier('prototype')),
-					'__customElementDescriptor'
-				);
+					if (typeArguments.length) {
+						const widgetPropNode = typeArguments[0];
+						const widgetPropNodeSymbol = checker.getSymbolAtLocation(widgetPropNode.getChildAt(0));
 
-				const existingDescriptor = ts.createBinary(
-					prototypeAccess,
-					ts.SyntaxKind.BarBarToken,
-					ts.createObjectLiteral()
-				);
+						if (widgetPropNodeSymbol) {
+							const widgetPropType = checker.getDeclaredTypeOfSymbol(widgetPropNodeSymbol);
+							const widgetProps = widgetPropType.getProperties();
 
-				return [
-					node,
-					ts.createStatement(
-						ts.createAssignment(
-							prototypeAccess,
-							ts.createObjectLiteral([
-								ts.createSpreadAssignment(customElementDeclaration),
-								ts.createSpreadAssignment(existingDescriptor)
-							])
-						)
-					)
-				];
+							widgetProps.forEach((prop) => {
+								parsePropertyType(prop, widgetPropNode);
+							});
+						}
+					}
+
+					return [
+						node,
+						createCustomElementExpression(widgetName, widgetName, attributes, properties, events)
+					];
+				}
 			}
 
 			return ts.visitEachChild(node, (child) => visit(child), context);

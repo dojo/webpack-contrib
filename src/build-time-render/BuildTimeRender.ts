@@ -319,8 +319,10 @@ ${blockCacheEntry}`
 
 	private async _createPage(browser: any) {
 		const reportError = (err: Error) => {
-			err.message = `BTR runtime ${err.message}`;
-			this._blockErrors.push(err);
+			if (err.message.indexOf('http://localhost') !== -1) {
+				err.message = `BTR runtime ${err.message}`;
+				this._blockErrors.push(err);
+			}
 		};
 		const page = await browser.newPage();
 		page.on('error', reportError);

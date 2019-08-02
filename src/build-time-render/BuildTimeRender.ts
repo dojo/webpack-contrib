@@ -27,7 +27,8 @@ export interface RenderResult {
 	styles: string;
 	script: string;
 	blockScripts: string[];
-	additionalChunks: string[];
+	additionalScripts: string[];
+	additionalCss: string[];
 }
 
 export interface BuildTimePath {
@@ -54,7 +55,8 @@ function genHash(content: string): string {
 		.substr(0, 20);
 }
 
-const ignoreAdditionalChunks = ['main.js', 'bootstrap.js', 'runtime.js'];
+const ignoreAdditionalScripts = ['bootstrap.'];
+const ignoreAdditionalCss = ['bootstrap.'];
 
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
@@ -99,7 +101,8 @@ export default class BuildTimeRender {
 		path = '',
 		styles,
 		blockScripts,
-		additionalChunks
+		additionalScripts,
+		additionalCss
 	}: RenderResult) {
 		let staticPath = false;
 		if (typeof path === 'object') {
@@ -115,7 +118,7 @@ export default class BuildTimeRender {
 		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 		html = html.replace(this._originalRoot, content);
 
-		const css = this._entries.reduce((css, entry) => {
+		let css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
 			if (cssFile) {
 				html = html.replace(`<link href="${prefix}${cssFile}" rel="stylesheet">`, '');
@@ -123,6 +126,10 @@ export default class BuildTimeRender {
 			}
 			return css;
 		}, '');
+
+		css = additionalCss.reduce((prev, url) => {
+			return `${prev}<link href="${prefix}${url}" rel="stylesheet">`;
+		}, css);
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
@@ -134,15 +141,19 @@ export default class BuildTimeRender {
 			blockScripts.forEach((blockScript, i) => {
 				html = html.replace(
 					'</body>',
-					`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
+					`<script type="text/javascript" src="${scriptPrefix}${blockScript}"></script></body>`
 				);
 			});
-			additionalChunks.forEach((additionalChunk, i) => {
-				html = html.replace(
-					'</body>',
-					`<script type="text/javascript" src="${scriptPrefix}${additionalChunk}" async="true"></script></body>`
-				);
-			});
+			additionalScripts
+				.sort((script1, script2) => {
+					return script1.startsWith('main.') && !script2.startsWith('main.') ? 1 : -1;
+				})
+				.forEach((additionalChunk: string) => {
+					html = html.replace(
+						'</body>',
+						`<script type="text/javascript" src="${scriptPrefix}${additionalChunk}"></script></body>`
+					);
+				});
 		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
@@ -190,7 +201,8 @@ export default class BuildTimeRender {
 		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
-		let additionalChunks: string[] = [];
+		let additionalScripts: string[] = [];
+		let additionalCss: string[] = [];
 
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
@@ -198,10 +210,19 @@ export default class BuildTimeRender {
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 
-			const jsCoverage = await page.coverage.stopJSCoverage();
-			additionalChunks = jsCoverage
-				.map((coverage: any) => coverage.url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => ignoreAdditionalChunks.every((rule) => !url.endsWith(rule)));
+			additionalScripts = (await page.$$eval(
+				'script',
+				(scripts: any) => scripts.map((script: any) => script.getAttribute('src')) as string[]
+			))
+				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
+				.filter((url: string) => ignoreAdditionalScripts.every((rule) => !url.startsWith(rule)));
+
+			additionalCss = (await page.$$eval(
+				'link[rel=stylesheet]',
+				(links: any) => links.map((link: any) => link.getAttribute('href')) as string[]
+			))
+				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
+				.filter((url: string) => ignoreAdditionalCss.every((rule) => !url.startsWith(rule)));
 		}
 
 		return {
@@ -210,7 +231,8 @@ export default class BuildTimeRender {
 			script,
 			path,
 			blockScripts: [],
-			additionalChunks
+			additionalScripts,
+			additionalCss
 		};
 	}
 
@@ -245,15 +267,17 @@ export default class BuildTimeRender {
 				combined.html.push(result.content);
 				combined.paths.push(result.path || '');
 				combined.blockScripts.push(...result.blockScripts);
-				combined.additionalChunks.push(...result.additionalChunks);
+				combined.additionalScripts.push(...result.additionalScripts);
+				combined.additionalCss.push(...result.additionalCss);
 				return combined;
 			},
-			{ styles: '', html: [], paths: [], blockScripts: [], additionalChunks: [] } as {
+			{ styles: '', html: [], paths: [], blockScripts: [], additionalScripts: [], additionalCss: [] } as {
 				paths: (string | BuildTimePath)[];
 				styles: string;
 				html: string[];
 				blockScripts: string[];
-				additionalChunks: string[];
+				additionalScripts: string[];
+				additionalCss: string[];
 			}
 		);
 		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
@@ -262,7 +286,8 @@ export default class BuildTimeRender {
 			content: this._originalRoot,
 			script,
 			blockScripts: combined.blockScripts,
-			additionalChunks: combined.additionalChunks
+			additionalScripts: combined.additionalScripts,
+			additionalCss: combined.additionalCss
 		};
 	}
 
@@ -363,7 +388,6 @@ ${blockCacheEntry}`
 		page.on('pageerror', reportError);
 		await setHasFlags(page);
 		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
-		await page.coverage.startJSCoverage();
 		return page;
 	}
 

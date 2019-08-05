@@ -121,16 +121,11 @@ export function getPrefix(path?: string) {
 		: '';
 }
 
-export async function getPageScripts(page: any): Promise<string[]> {
-	return page.$$eval(
-		'script',
-		(scripts: any) => scripts.map((script: any) => script.getAttribute('src')) as string[]
-	);
-}
-
 export async function getPageStyles(page: any): Promise<string[]> {
-	return page.$$eval(
+	const css = await page.$$eval(
 		'link[rel=stylesheet]',
 		(links: any) => links.map((link: any) => link.getAttribute('href')) as string[]
 	);
+
+	return css.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''));
 }

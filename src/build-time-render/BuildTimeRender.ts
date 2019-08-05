@@ -11,7 +11,6 @@ import {
 	getScriptSources,
 	getForSelector,
 	setHasFlags,
-	getPageScripts,
 	getPageStyles
 } from './helpers';
 import * as cssnano from 'cssnano';
@@ -56,9 +55,6 @@ function genHash(content: string): string {
 		.digest('hex')
 		.substr(0, 20);
 }
-
-const ignoreAdditionalScripts = ['bootstrap.'];
-const ignoreAdditionalCss = ['bootstrap.'];
 
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
@@ -206,26 +202,12 @@ export default class BuildTimeRender {
 		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
-		let additionalScripts: string[] = [];
-		let additionalCss: string[] = [];
 
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
-
-			const entryFilenames = this._entries.map((entry) => this._manifest[entry]);
-
-			additionalScripts = (await getPageScripts(page))
-				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => ignoreAdditionalScripts.every((rule) => !url.startsWith(rule)))
-				.filter((url: string) => entryFilenames.indexOf(url) === -1);
-
-			additionalCss = (await getPageStyles(page))
-				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => ignoreAdditionalCss.every((rule) => !url.startsWith(rule)))
-				.filter((url: string) => entryFilenames.indexOf(url.replace('.css', '.js')) === -1);
 		}
 
 		return {
@@ -234,8 +216,8 @@ export default class BuildTimeRender {
 			script,
 			path,
 			blockScripts: [],
-			additionalScripts,
-			additionalCss
+			additionalScripts: [],
+			additionalCss: []
 		};
 	}
 
@@ -426,6 +408,7 @@ ${blockCacheEntry}`
 				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;
 			}, this._manifestContent);
+			const originalManifest = { ...this._manifest };
 
 			const html = this._manifestContent['index.html'];
 			const root = parse(html);
@@ -459,11 +442,20 @@ ${blockCacheEntry}`
 				await wait;
 				await this._waitForBridge();
 				const scripts = await getScriptSources(page, app.port);
+				const additionalScripts = scripts.filter((script) =>
+					this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+				);
+				const additionalCss = (await getPageStyles(page)).filter((url: string) =>
+					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+				);
+
 				const blockScripts = this._writeBuildBridgeCache(scripts);
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 
 				let renderResults: RenderResult[] = [];
 				const renderResult = await this._getRenderResult(page, undefined);
+				renderResult.additionalScripts = additionalScripts;
+				renderResult.additionalCss = additionalCss;
 				renderResult.blockScripts = blockScripts;
 				renderResults.push(renderResult);
 				await page.close();
@@ -481,10 +473,18 @@ ${blockCacheEntry}`
 					await wait;
 					await this._waitForBridge();
 					const scripts = await getScriptSources(page, app.port);
+					const additionalScripts = scripts.filter((script) =>
+						this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+					);
+					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
+						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+					);
 					const blockScripts = this._writeBuildBridgeCache(scripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					result.blockScripts = blockScripts;
+					result.additionalScripts = additionalScripts;
+					result.additionalCss = additionalCss;
 					renderResults.push(result);
 
 					await page.close();

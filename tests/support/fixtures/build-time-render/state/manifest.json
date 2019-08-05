@@ -4,5 +4,6 @@
 	"main.css": "main.css",
 	"other.css": "other.css",
 	"runtime.js": "runtime.js",
-	"index.html": "index.html"
+	"index.html": "index.html",
+	"additional.js": "additional.js"
 }

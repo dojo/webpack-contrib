@@ -120,3 +120,17 @@ export function getPrefix(path?: string) {
 				.join('/')}/`
 		: '';
 }
+
+export async function getPageScripts(page: any): Promise<string[]> {
+	return page.$$eval(
+		'script',
+		(scripts: any) => scripts.map((script: any) => script.getAttribute('src')) as string[]
+	);
+}
+
+export async function getPageStyles(page: any): Promise<string[]> {
+	return page.$$eval(
+		'link[rel=stylesheet]',
+		(links: any) => links.map((link: any) => link.getAttribute('href')) as string[]
+	);
+}

@@ -10,7 +10,9 @@ import {
 	generateRouteInjectionScript,
 	getScriptSources,
 	getForSelector,
-	setHasFlags
+	setHasFlags,
+	getPageScripts,
+	getPageStyles
 } from './helpers';
 import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
@@ -212,18 +214,12 @@ export default class BuildTimeRender {
 
 			const entryFilenames = this._entries.map((entry) => this._manifest[entry]);
 
-			additionalScripts = (await page.$$eval(
-				'script',
-				(scripts: any) => scripts.map((script: any) => script.getAttribute('src')) as string[]
-			))
+			additionalScripts = (await getPageScripts(page))
 				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
 				.filter((url: string) => ignoreAdditionalScripts.every((rule) => !url.startsWith(rule)))
 				.filter((url: string) => entryFilenames.indexOf(url) === -1);
 
-			additionalCss = (await page.$$eval(
-				'link[rel=stylesheet]',
-				(links: any) => links.map((link: any) => link.getAttribute('href')) as string[]
-			))
+			additionalCss = (await getPageStyles(page))
 				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
 				.filter((url: string) => ignoreAdditionalCss.every((rule) => !url.startsWith(rule)))
 				.filter((url: string) => entryFilenames.indexOf(url.replace('.css', '.js')) === -1);

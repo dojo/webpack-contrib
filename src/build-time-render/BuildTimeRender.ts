@@ -122,7 +122,7 @@ export default class BuildTimeRender {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
 			if (cssFile) {
 				html = html.replace(`<link href="${prefix}${cssFile}" rel="stylesheet">`, '');
-				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" media="none" onload="if(media!='all')media='all'" />`;
+				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" />`;
 			}
 			return css;
 		}, '');
@@ -210,19 +210,23 @@ export default class BuildTimeRender {
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 
+			const entryFilenames = this._entries.map((entry) => this._manifest[entry]);
+
 			additionalScripts = (await page.$$eval(
 				'script',
 				(scripts: any) => scripts.map((script: any) => script.getAttribute('src')) as string[]
 			))
 				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => ignoreAdditionalScripts.every((rule) => !url.startsWith(rule)));
+				.filter((url: string) => ignoreAdditionalScripts.every((rule) => !url.startsWith(rule)))
+				.filter((url: string) => entryFilenames.indexOf(url) === -1);
 
 			additionalCss = (await page.$$eval(
 				'link[rel=stylesheet]',
 				(links: any) => links.map((link: any) => link.getAttribute('href')) as string[]
 			))
 				.map((url: string) => url.replace(/http:\/\/localhost:\d+\//g, ''))
-				.filter((url: string) => ignoreAdditionalCss.every((rule) => !url.startsWith(rule)));
+				.filter((url: string) => ignoreAdditionalCss.every((rule) => !url.startsWith(rule)))
+				.filter((url: string) => entryFilenames.indexOf(url.replace('.css', '.js')) === -1);
 		}
 
 		return {

@@ -147,7 +147,7 @@ export default class BuildTimeRender {
 
 			additionalScripts
 				.sort((script1, script2) => {
-					return script1 === mainScript && !script2 === mainScript ? 1 : -1;
+					return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
 				})
 				.forEach((additionalChunk: string) => {
 					html = html.replace(

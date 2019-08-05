@@ -146,9 +146,12 @@ export default class BuildTimeRender {
 					`<script type="text/javascript" src="${scriptPrefix}${blockScript}"></script></body>`
 				);
 			});
+
+			const mainScript = this._manifest['main.js'];
+
 			additionalScripts
 				.sort((script1, script2) => {
-					return script1.startsWith('main.') && !script2.startsWith('main.') ? 1 : -1;
+					return script1 === mainScript && !script2 === mainScript ? 1 : -1;
 				})
 				.forEach((additionalChunk: string) => {
 					html = html.replace(

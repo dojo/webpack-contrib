@@ -126,7 +126,7 @@ export default class BuildTimeRender {
 		}, '');
 
 		css = additionalCss.reduce((prev, url) => {
-			return `${prev}<link href="${prefix}${url}" rel="stylesheet">`;
+			return `${prev}<link rel="preload" href="${prefix}${url}" as="style">`;
 		}, css);
 
 		styles = await this._processCss(styles);
@@ -152,7 +152,7 @@ export default class BuildTimeRender {
 				.forEach((additionalChunk: string) => {
 					html = html.replace(
 						'</body>',
-						`<script type="text/javascript" src="${scriptPrefix}${additionalChunk}"></script></body>`
+						`<link rel="preload" href="${scriptPrefix}${additionalChunk}" as="script"></body>`
 					);
 				});
 		}
@@ -442,8 +442,8 @@ ${blockCacheEntry}`
 				await wait;
 				await this._waitForBridge();
 				const scripts = await getScriptSources(page, app.port);
-				const additionalScripts = scripts.filter((script) =>
-					this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+				const additionalScripts = scripts.filter(
+					(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
 				);
 				const additionalCss = (await getPageStyles(page)).filter((url: string) =>
 					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
@@ -473,8 +473,8 @@ ${blockCacheEntry}`
 					await wait;
 					await this._waitForBridge();
 					const scripts = await getScriptSources(page, app.port);
-					const additionalScripts = scripts.filter((script) =>
-						this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+					const additionalScripts = scripts.filter(
+						(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
 					);
 					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
 						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))

@@ -10,7 +10,8 @@ import {
 	generateRouteInjectionScript,
 	getScriptSources,
 	getForSelector,
-	setHasFlags
+	setHasFlags,
+	getPageStyles
 } from './helpers';
 import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
@@ -27,6 +28,8 @@ export interface RenderResult {
 	styles: string;
 	script: string;
 	blockScripts: string[];
+	additionalScripts: string[];
+	additionalCss: string[];
 }
 
 export interface BuildTimePath {
@@ -90,7 +93,15 @@ export default class BuildTimeRender {
 		}
 	}
 
-	private async _writeIndexHtml({ content, script, path = '', styles, blockScripts }: RenderResult) {
+	private async _writeIndexHtml({
+		content,
+		script,
+		path = '',
+		styles,
+		blockScripts,
+		additionalScripts,
+		additionalCss
+	}: RenderResult) {
 		let staticPath = false;
 		if (typeof path === 'object') {
 			if (this._useHistory) {
@@ -105,14 +116,18 @@ export default class BuildTimeRender {
 		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 		html = html.replace(this._originalRoot, content);
 
-		const css = this._entries.reduce((css, entry) => {
+		let css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
 			if (cssFile) {
 				html = html.replace(`<link href="${prefix}${cssFile}" rel="stylesheet">`, '');
-				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" media="none" onload="if(media!='all')media='all'" />`;
+				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" />`;
 			}
 			return css;
 		}, '');
+
+		css = additionalCss.reduce((prev, url) => {
+			return `${prev}<link rel="preload" href="${prefix}${url}" as="style">`;
+		}, css);
 
 		styles = await this._processCss(styles);
 		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
@@ -124,9 +139,22 @@ export default class BuildTimeRender {
 			blockScripts.forEach((blockScript, i) => {
 				html = html.replace(
 					'</body>',
-					`<script type="text/javascript" src="${scriptPrefix}${blockScript}" async="true"></script></body>`
+					`<script type="text/javascript" src="${scriptPrefix}${blockScript}"></script></body>`
 				);
 			});
+
+			const mainScript = this._manifest['main.js'];
+
+			additionalScripts
+				.sort((script1, script2) => {
+					return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
+				})
+				.forEach((additionalChunk: string) => {
+					html = html.replace(
+						'</body>',
+						`<link rel="preload" href="${scriptPrefix}${additionalChunk}" as="script"></body>`
+					);
+				});
 		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
@@ -174,13 +202,23 @@ export default class BuildTimeRender {
 		let content = await getForSelector(page, `#${this._root}`);
 		let styles = this._filterCss(classes);
 		let script = '';
+
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		if (this._useHistory) {
 			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
 			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 		}
-		return { content, styles, script, path, blockScripts: [] };
+
+		return {
+			content,
+			styles,
+			script,
+			path,
+			blockScripts: [],
+			additionalScripts: [],
+			additionalCss: []
+		};
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
@@ -214,13 +252,17 @@ export default class BuildTimeRender {
 				combined.html.push(result.content);
 				combined.paths.push(result.path || '');
 				combined.blockScripts.push(...result.blockScripts);
+				combined.additionalScripts.push(...result.additionalScripts);
+				combined.additionalCss.push(...result.additionalCss);
 				return combined;
 			},
-			{ styles: '', html: [], paths: [], blockScripts: [] } as {
+			{ styles: '', html: [], paths: [], blockScripts: [], additionalScripts: [], additionalCss: [] } as {
 				paths: (string | BuildTimePath)[];
 				styles: string;
 				html: string[];
 				blockScripts: string[];
+				additionalScripts: string[];
+				additionalCss: string[];
 			}
 		);
 		const script = generateRouteInjectionScript(combined.html, combined.paths, this._root);
@@ -228,7 +270,9 @@ export default class BuildTimeRender {
 			styles: combined.styles,
 			content: this._originalRoot,
 			script,
-			blockScripts: combined.blockScripts
+			blockScripts: combined.blockScripts,
+			additionalScripts: combined.additionalScripts,
+			additionalCss: combined.additionalCss
 		};
 	}
 
@@ -364,6 +408,7 @@ ${blockCacheEntry}`
 				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 				return obj;
 			}, this._manifestContent);
+			const originalManifest = { ...this._manifest };
 
 			const html = this._manifestContent['index.html'];
 			const root = parse(html);
@@ -397,11 +442,20 @@ ${blockCacheEntry}`
 				await wait;
 				await this._waitForBridge();
 				const scripts = await getScriptSources(page, app.port);
+				const additionalScripts = scripts.filter(
+					(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+				);
+				const additionalCss = (await getPageStyles(page)).filter((url: string) =>
+					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+				);
+
 				const blockScripts = this._writeBuildBridgeCache(scripts);
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 
 				let renderResults: RenderResult[] = [];
 				const renderResult = await this._getRenderResult(page, undefined);
+				renderResult.additionalScripts = additionalScripts;
+				renderResult.additionalCss = additionalCss;
 				renderResult.blockScripts = blockScripts;
 				renderResults.push(renderResult);
 				await page.close();
@@ -419,11 +473,20 @@ ${blockCacheEntry}`
 					await wait;
 					await this._waitForBridge();
 					const scripts = await getScriptSources(page, app.port);
+					const additionalScripts = scripts.filter(
+						(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+					);
+					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
+						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+					);
 					const blockScripts = this._writeBuildBridgeCache(scripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					result.blockScripts = blockScripts;
+					result.additionalScripts = additionalScripts;
+					result.additionalCss = additionalCss;
 					renderResults.push(result);
+
 					await page.close();
 				}
 

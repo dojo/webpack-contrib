@@ -277,7 +277,7 @@ describe('EmitAllPlugin', () => {
 			function applyCssModule(cssModule: any, pluginOptions?: EmitAllPluginOptions): Promise<any> {
 				const factory = mockModule.getModuleUnderTest().emitAllFactory;
 				const emitAll = factory({
-					basePath: 'src/',
+					basePath: `src${path.sep}`,
 					...pluginOptions
 				}).plugin;
 
@@ -295,20 +295,20 @@ describe('EmitAllPlugin', () => {
 			it('outputs individual CSS files', () => {
 				const source = '.root {}';
 				const cssModule = {
-					resource: 'src/dir/styles.css',
+					resource: `src${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'src/dir/styles.css'
+							identifier: `src${path.sep}dir${path.sep}styles.css`
 						}
 					]
 				};
 
 				return applyCssModule(cssModule).then((compilation) => {
-					const asset = compilation.assets['dir/styles.css'];
+					const asset = compilation.assets[`dir${path.sep}styles.css`];
 					assert.isObject(asset);
 					assert.strictEqual(asset.source(), source);
 					assert.strictEqual(asset.size(), Buffer.byteLength(source));
@@ -318,14 +318,14 @@ describe('EmitAllPlugin', () => {
 			it('excludes files outside the base path', () => {
 				const source = '.root {}';
 				const cssModule = {
-					resource: 'other/dir/styles.css',
+					resource: `other${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'other/dir/styles.css'
+							identifier: `other${path.sep}dir${path.sep}styles.css`
 						}
 					]
 				};
@@ -338,14 +338,14 @@ describe('EmitAllPlugin', () => {
 			it('ignores dependencies with a mismatched identifier', () => {
 				const source = '.root {}';
 				const cssModule = {
-					resource: 'src/dir/styles.css',
+					resource: `src${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'src/other/asset.css'
+							identifier: `src${path.sep}other${path.sep}asset.css`
 						}
 					]
 				};
@@ -358,22 +358,22 @@ describe('EmitAllPlugin', () => {
 			it('outputs CSS sourcemaps', () => {
 				const source = '.root {}';
 				const cssModule = {
-					resource: 'src/dir/styles.css',
+					resource: `src${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'src/dir/styles.css',
+							identifier: `src${path.sep}dir${path.sep}styles.css`,
 							sourceMap: { mappings: 'abcd' }
 						}
 					]
 				};
 
 				return applyCssModule(cssModule).then((compilation) => {
-					const asset = compilation.assets['dir/styles.css'];
-					const assetMap = compilation.assets['dir/styles.css.map'];
+					const asset = compilation.assets[`dir${path.sep}styles.css`];
+					const assetMap = compilation.assets[`dir${path.sep}styles.css.map`];
 					const assetMapSource = {
 						mappings: 'abcd',
 						sources: []
@@ -390,26 +390,26 @@ describe('EmitAllPlugin', () => {
 				const source = `module.exports = {}`;
 				const sourceMap = { mappings: 'abcd', sources: [] };
 				const cssModule = {
-					resource: 'src/dir/styles.css',
+					resource: `src${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'src/dir/styles.css',
+							identifier: `src${path.sep}dir${path.sep}styles.css`,
 							sourceMap
 						}
 					]
 				};
 
 				return applyCssModule(cssModule, { inlineSourceMaps: true }).then((compilation) => {
-					const asset = compilation.assets['dir/styles.css'];
+					const asset = compilation.assets[`dir${path.sep}styles.css`];
 					const sourceMapUrl = `\n/*# sourceMappingURL=data:application/json;base64,${Buffer.from(
 						JSON.stringify(sourceMap)
 					).toString('base64')}*/`;
 					assert.isTrue(asset.source().endsWith(sourceMapUrl));
-					assert.isUndefined(compilation.assets['dir/styles.css.map']);
+					assert.isUndefined(compilation.assets[`dir${path.sep}styles.css.map`]);
 				});
 			});
 
@@ -417,27 +417,27 @@ describe('EmitAllPlugin', () => {
 				const source = `module.exports = {}`;
 				const sourceMap = {
 					mappings: 'abcd',
-					sources: ['src/dir/styles.css']
+					sources: [`src${path.sep}dir${path.sep}styles.css`]
 				};
 				const cssModule = {
-					resource: 'src/dir/styles.css',
+					resource: `src${path.sep}dir${path.sep}styles.css`,
 					originalSource: () => ({
 						source: () => source
 					}),
 					dependencies: [
 						{
 							content: source,
-							identifier: 'src/dir/styles.css',
+							identifier: `src${path.sep}dir${path.sep}styles.css`,
 							sourceMap
 						}
 					]
 				};
 
 				return applyCssModule(cssModule).then((compilation) => {
-					const assetMap = compilation.assets['dir/styles.css.map'];
+					const assetMap = compilation.assets[`dir${path.sep}styles.css.map`];
 					const assetMapSource = {
 						mappings: 'abcd',
-						sources: [path.relative('src/', 'src/dir/styles.css')]
+						sources: [path.relative(`src${path.sep}`, `src${path.sep}dir${path.sep}styles.css`)]
 					};
 					const assetMapSourceString = JSON.stringify(assetMapSource);
 					assert.strictEqual(assetMap.source(), assetMapSourceString);

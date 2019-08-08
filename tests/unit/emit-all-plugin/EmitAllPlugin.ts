@@ -79,15 +79,13 @@ describe('EmitAllPlugin', () => {
 		});
 
 		describe('JavaScript assets', () => {
-			it('outputs individual mjs files', () => {
+			const assertAsset = (options: EmitAllPluginOptions, file: string) => {
 				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/'
-				}).plugin;
+				const emitAll = factory(options).plugin;
 				const compilation = createCompilation(compiler);
 				const source = 'module.exports = {}';
 				const jsModule = {
-					resource: 'src/dir/asset.ts',
+					resource: file,
 					originalSource: () => ({
 						source: () => source
 					})
@@ -97,35 +95,47 @@ describe('EmitAllPlugin', () => {
 				emitAll.apply(compiler);
 				compiler.hooks.emit.callAsync(compilation, () => {});
 
-				const asset = compilation.assets['dir/asset.mjs'];
+				const assetName = file
+					.replace(options.basePath || 'src/', '')
+					.replace(/\..*$/, options.legacy ? '.js' : '.mjs');
+				const asset = compilation.assets[assetName];
 				assert.isObject(asset);
 				assert.strictEqual(asset.source(), source);
 				assert.strictEqual(asset.size(), Buffer.byteLength(source));
+			};
+
+			it('outputs individual mjs files', () => {
+				assertAsset(
+					{
+						basePath: 'src/'
+					},
+					'src/dir/asset.ts'
+				);
+
+				assertAsset(
+					{
+						basePath: 'src/'
+					},
+					'src/dir/asset.tsx'
+				);
 			});
 
 			it('outputs JS files with the `.js` extension in legacy mode', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/',
-					legacy: true
-				}).plugin;
-				const compilation = createCompilation(compiler);
-				const source = 'module.exports = {}';
-				const jsModule = {
-					resource: 'src/dir/asset.ts',
-					originalSource: () => ({
-						source: () => source
-					})
-				};
+				assertAsset(
+					{
+						basePath: 'src/',
+						legacy: true
+					},
+					'src/dir/asset.ts'
+				);
 
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
-
-				const asset = compilation.assets['dir/asset.js'];
-				assert.isObject(asset);
-				assert.strictEqual(asset.source(), source);
-				assert.strictEqual(asset.size(), Buffer.byteLength(source));
+				assertAsset(
+					{
+						basePath: 'src/',
+						legacy: true
+					},
+					'src/dir/asset.tsx'
+				);
 			});
 
 			it('excludes files outside the base path', () => {

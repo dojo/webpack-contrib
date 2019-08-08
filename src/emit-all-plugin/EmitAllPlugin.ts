@@ -101,7 +101,7 @@ export default class EmitAllPlugin {
 					if ((resource || '').includes(basePath)) {
 						const extension = legacy ? '.js' : '.mjs';
 						const source = module.originalSource().source();
-						const assetName = resource.replace(basePath, '').replace(/\.ts$/, extension);
+						const assetName = resource.replace(basePath, '').replace(/\.ts(x)?$/, extension);
 
 						if (assetName.includes('.css')) {
 							await Promise.all(
@@ -156,7 +156,7 @@ export default class EmitAllPlugin {
 			? `\n/*# sourceMappingURL=data:application/json;base64,${Buffer.from(
 					JSON.stringify(fixedSourceMap)
 			  ).toString('base64')}*/`
-			: `\n/*# sourceMappingURL=${assetName.split('/').pop()}.map*/`;
+			: `\n/*# sourceMappingURL=${assetName.split(path.sep).pop()}.map*/`;
 
 		return { map: fixedSourceMap, url };
 	}

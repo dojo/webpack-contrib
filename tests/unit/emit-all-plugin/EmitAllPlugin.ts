@@ -79,14 +79,22 @@ describe('EmitAllPlugin', () => {
 		});
 
 		describe('JavaScript assets', () => {
-			const assertAsset = (options: EmitAllPluginOptions, file: string) => {
+			const applyPlugin = (
+				file: string,
+				source: string,
+				sourceMap?: { mappings: string; sources: string[] },
+				options: EmitAllPluginOptions = {}
+			) => {
+				file = file.replace(/\//g, path.sep);
+				options.basePath = options.basePath || `src${path.sep}`;
+
 				const factory = mockModule.getModuleUnderTest().emitAllFactory;
 				const emitAll = factory(options).plugin;
 				const compilation = createCompilation(compiler);
-				const source = 'module.exports = {}';
 				const jsModule = {
 					resource: file,
 					originalSource: () => ({
+						_sourceMap: sourceMap,
 						source: () => source
 					})
 				};
@@ -95,181 +103,107 @@ describe('EmitAllPlugin', () => {
 				emitAll.apply(compiler);
 				compiler.hooks.emit.callAsync(compilation, () => {});
 
-				const assetName = file
-					.replace(options.basePath || 'src/', '')
-					.replace(/\..*$/, options.legacy ? '.js' : '.mjs');
+				const assetName = file.replace(options.basePath, '').replace(/\..*$/, options.legacy ? '.js' : '.mjs');
 				const asset = compilation.assets[assetName];
+				const assetSourceMap = sourceMap && compilation.assets[`${assetName}.map`];
+
+				return { asset, compilation, assetSourceMap };
+			};
+
+			it('outputs individual mjs files for .ts files', () => {
+				const source = 'module.exports = {}';
+				const { asset } = applyPlugin('src/dir/asset.ts', source);
 				assert.isObject(asset);
 				assert.strictEqual(asset.source(), source);
 				assert.strictEqual(asset.size(), Buffer.byteLength(source));
-			};
-
-			it('outputs individual mjs files', () => {
-				assertAsset(
-					{
-						basePath: 'src/'
-					},
-					'src/dir/asset.ts'
-				);
-
-				assertAsset(
-					{
-						basePath: 'src/'
-					},
-					'src/dir/asset.tsx'
-				);
 			});
 
-			it('outputs JS files with the `.js` extension in legacy mode', () => {
-				assertAsset(
-					{
-						basePath: 'src/',
-						legacy: true
-					},
-					'src/dir/asset.ts'
-				);
+			it('outputs individual mjs files for .tsx files', () => {
+				const source = 'module.exports = {}';
+				const { asset } = applyPlugin('src/dir/asset.tsx', source);
+				assert.isObject(asset);
+				assert.strictEqual(asset.source(), source);
+				assert.strictEqual(asset.size(), Buffer.byteLength(source));
+			});
 
-				assertAsset(
-					{
-						basePath: 'src/',
-						legacy: true
-					},
-					'src/dir/asset.tsx'
-				);
+			it('compiles .ts files to a `.js` extension in legacy mode', () => {
+				const source = 'module.exports = {}';
+				const { asset } = applyPlugin('src/dir/asset.tsx', source, undefined, {
+					legacy: true
+				});
+				assert.isObject(asset);
+				assert.strictEqual(asset.source(), source);
+				assert.strictEqual(asset.size(), Buffer.byteLength(source));
+			});
+
+			it('compiles .tsx files to a `.js` extension in legacy mode', () => {
+				const source = 'module.exports = {}';
+				const { asset } = applyPlugin('src/dir/asset.tsx', source, undefined, {
+					legacy: true
+				});
+				assert.isObject(asset);
+				assert.strictEqual(asset.source(), source);
+				assert.strictEqual(asset.size(), Buffer.byteLength(source));
 			});
 
 			it('excludes files outside the base path', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/'
-				}).plugin;
-				const compilation = createCompilation(compiler);
 				const source = 'module.exports = {}';
-				const jsModule = {
-					resource: 'other/dir/asset.ts',
-					originalSource: () => ({
-						source: () => source
-					})
-				};
-
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
+				const { compilation } = applyPlugin('other/dir/asset.ts', source);
 
 				assert.deepEqual(Object.keys(compilation.assets), []);
 			});
 
 			it('ignores modules without a resource', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/'
-				}).plugin;
-				const compilation = createCompilation(compiler);
 				const source = 'module.exports = {}';
-				const jsModule = {
-					originalSource: () => ({
-						source: () => source
-					})
-				};
-
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
+				const { compilation } = applyPlugin('', source);
 
 				assert.deepEqual(Object.keys(compilation.assets), []);
 			});
 
 			it('outputs JS sourcemaps', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/'
-				}).plugin;
-				const compilation = createCompilation(compiler);
 				const source = 'module.exports = {}';
-				const jsModule = {
-					resource: 'src/dir/asset.ts',
-					originalSource: () => ({
-						_sourceMap: { mappings: 'abcd' },
-						source: () => source
-					})
-				};
-
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
-
-				const asset = compilation.assets['dir/asset.mjs'];
-				const assetMap = compilation.assets['dir/asset.mjs.map'];
-				const assetMapSource = {
+				const sourceMap = {
 					mappings: 'abcd',
 					sources: []
 				};
-				const assetMapSourceString = JSON.stringify(assetMapSource);
-				assert.isObject(assetMap);
-				assert.strictEqual(assetMap.source(), assetMapSourceString);
-				assert.strictEqual(assetMap.size(), Buffer.byteLength(assetMapSourceString));
+				const { asset, assetSourceMap } = applyPlugin('src/dir/asset.ts', source, sourceMap);
+				const assetSourceMapString = JSON.stringify(sourceMap);
+
+				assert.isObject(assetSourceMap);
+				assert.strictEqual(assetSourceMap.source(), assetSourceMapString);
+				assert.strictEqual(assetSourceMap.size(), Buffer.byteLength(assetSourceMapString));
 				assert.isTrue(asset.source().endsWith('\n/*# sourceMappingURL=asset.mjs.map*/'));
 			});
 
 			it('inlines JS sourcemaps with a flag', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/',
-					inlineSourceMaps: true
-				}).plugin;
-				const compilation = createCompilation(compiler);
 				const source = 'module.exports = {}';
 				const sourceMap = { mappings: 'abcd', sources: [] };
-				const jsModule = {
-					resource: 'src/dir/asset.ts',
-					originalSource: () => ({
-						_sourceMap: sourceMap,
-						source: () => source
-					})
-				};
+				const { asset, assetSourceMap } = applyPlugin('src/dir/asset.ts', source, sourceMap, {
+					inlineSourceMaps: true
+				});
 
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
-
-				const asset = compilation.assets['dir/asset.mjs'];
 				const sourceMapUrl = `\n/*# sourceMappingURL=data:application/json;base64,${Buffer.from(
 					JSON.stringify(sourceMap)
 				).toString('base64')}*/`;
 				assert.isTrue(asset.source().endsWith(sourceMapUrl));
-				assert.isUndefined(compilation.assets['dir/asset.mjs.map']);
+				assert.isUndefined(assetSourceMap);
 			});
 
 			it('removes the base path from the source map sources', () => {
-				const factory = mockModule.getModuleUnderTest().emitAllFactory;
-				const emitAll = factory({
-					basePath: 'src/'
-				}).plugin;
-				const compilation = createCompilation(compiler);
+				const file = 'src/dir/asset.ts';
+				const resource = file.replace(/\//g, path.sep);
 				const source = 'module.exports = {}';
 				const sourceMap = {
 					mappings: 'abcd',
-					sources: ['src/dir/asset.ts']
+					sources: [resource]
 				};
-				const jsModule = {
-					resource: 'src/dir/asset.ts',
-					originalSource: () => ({
-						_sourceMap: sourceMap,
-						source: () => source
-					})
-				};
+				const { assetSourceMap } = applyPlugin(file, source, sourceMap);
 
-				compilation.modules = [jsModule];
-				emitAll.apply(compiler);
-				compiler.hooks.emit.callAsync(compilation, () => {});
-
-				const assetMap = compilation.assets['dir/asset.mjs.map'];
-				const assetMapSource = {
+				const assetSourceMapString = JSON.stringify({
 					mappings: 'abcd',
-					sources: [path.relative('src/', 'src/dir/asset.ts')]
-				};
-				const assetMapSourceString = JSON.stringify(assetMapSource);
-				assert.strictEqual(assetMap.source(), assetMapSourceString);
+					sources: [path.relative(`src${path.sep}`, resource)]
+				});
+				assert.strictEqual(assetSourceMap.source(), assetSourceMapString);
 			});
 		});
 

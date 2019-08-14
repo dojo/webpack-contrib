@@ -65,7 +65,7 @@ export async function getClasses(page: any): Promise<String[]> {
 	});
 }
 
-export async function setupEnvitronment(page: any, base: string): Promise<void> {
+export async function setupEnvironment(page: any, base: string): Promise<void> {
 	await page.evaluateOnNewDocument((base: string) => {
 		// @ts-ignore
 		window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };

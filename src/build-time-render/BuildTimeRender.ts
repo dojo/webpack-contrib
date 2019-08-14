@@ -9,7 +9,7 @@ import {
 	generateRouteInjectionScript,
 	getScriptSources,
 	getForSelector,
-	setupEnvitronment,
+	setupEnvironment,
 	getPageStyles
 } from './helpers';
 import * as cssnano from 'cssnano';
@@ -373,7 +373,7 @@ ${blockCacheEntry}`
 		const page = await browser.newPage();
 		page.on('error', reportError);
 		page.on('pageerror', reportError);
-		await setupEnvitronment(page, this._baseUrl);
+		await setupEnvironment(page, this._baseUrl);
 		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 		return page;
 	}

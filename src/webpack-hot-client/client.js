@@ -1,5 +1,4 @@
 var global = require('@dojo/framework/shim/global').default;
-var has = require('@dojo/framework/core/has').default;
 
 var ANSI_REGEX = /(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/g;
 
@@ -29,11 +28,7 @@ function EventSourceWrapper() {
 	}, TIMEOUT / 2);
 
 	function init() {
-		if (has('public-path')) {
-			source = new global.EventSource('.' + has('public-path') + '__webpack_hmr');
-		} else {
-			source = new global.EventSource('./__webpack_hmr');
-		}
+		source = new global.EventSource('__webpack_hmr');
 		source.onopen = handleOnline;
 		source.onerror = handleDisconnect;
 		source.onmessage = handleMessage;

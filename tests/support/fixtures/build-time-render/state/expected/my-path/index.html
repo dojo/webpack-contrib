@@ -1,11 +1,11 @@
 <html>
 	<head>
-		<link rel="manifest" href="../manifest.json" />
+		<link rel="manifest" href="manifest.json" />
 	<style>.hello{background:red}span{width:100%}.another{background:red}</style></head>
 	<body>
 		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}</div></div>
 		<script>
-window.__public_path__ = window.location.pathname.replace(/my-path(\/)?/, '');
-</script><link rel="stylesheet" href="../main.css" /><script type="text/javascript" src="../runtime.js"></script><script type="text/javascript" src="../main.js"></script>
+	window.__public_path__ = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');
+</script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
 	</body>
 </html>

@@ -9,11 +9,12 @@ export interface ServeDetails {
 	port: number;
 }
 
-export async function serve(directory: string): Promise<ServeDetails> {
+export async function serve(directory: string, base: string): Promise<ServeDetails> {
 	const app = express();
 	const port = await getPort();
-	app.use(express.static(directory));
+	app.use(base, express.static(directory));
 	app.use(
+		base,
 		history({
 			rewrites: [
 				{
@@ -38,7 +39,7 @@ export async function serve(directory: string): Promise<ServeDetails> {
 			]
 		})
 	);
-	app.use(express.static(directory));
+	app.use(base, express.static(directory));
 	const promise = new Promise<ServeDetails>((resolve) => {
 		const server = app.listen(port, () => {
 			resolve({ server, port });
@@ -64,13 +65,15 @@ export async function getClasses(page: any): Promise<String[]> {
 	});
 }
 
-export async function setHasFlags(page: any): Promise<void> {
-	await page.evaluateOnNewDocument(() => {
+export async function setupEnvitronment(page: any, base: string): Promise<void> {
+	await page.evaluateOnNewDocument((base: string) => {
 		// @ts-ignore
 		window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
 		// @ts-ignore
-		window.__public_path__ = '/';
-	});
+		window.__public_path__ = base;
+		// @ts-ignore
+		window.__app_base__ = base;
+	}, base);
 }
 
 export async function getForSelector(page: any, selector: string) {
@@ -106,19 +109,10 @@ export function generateRouteInjectionScript(html: string[], paths: any[], root:
 </script>`;
 }
 
-export function generateBasePath(route = '__app_root__') {
+export function generateBasePath(route = '') {
 	return `<script>
-window.__public_path__ = window.location.pathname.replace(${new RegExp(`${route}(\/)?`)}, '');
+	window.__public_path__ = window.location.pathname.replace(${new RegExp(`(\/)?${route}(\/)?$`)}, '/');
 </script>`;
-}
-
-export function getPrefix(path?: string) {
-	return path
-		? `${path
-				.split('/')
-				.map(() => '..')
-				.join('/')}/`
-		: '';
 }
 
 export async function getPageStyles(page: any): Promise<string[]> {

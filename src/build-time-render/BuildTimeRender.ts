@@ -5,12 +5,11 @@ import { join } from 'path';
 import {
 	serve,
 	getClasses,
-	getPrefix,
 	generateBasePath,
 	generateRouteInjectionScript,
 	getScriptSources,
 	getForSelector,
-	setHasFlags,
+	setupEnvitronment,
 	getPageStyles
 } from './helpers';
 import * as cssnano from 'cssnano';
@@ -47,6 +46,7 @@ export interface BuildTimeRenderArguments {
 	static?: boolean;
 	puppeteerOptions?: any;
 	basePath: string;
+	baseUrl?: string;
 }
 
 function genHash(content: string): string {
@@ -55,6 +55,9 @@ function genHash(content: string): string {
 		.digest('hex')
 		.substr(0, 20);
 }
+
+const trailingSlash = new RegExp(/\/$/);
+const leadingSlash = new RegExp(/^\//);
 
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
@@ -70,6 +73,7 @@ export default class BuildTimeRender {
 	private _root: string;
 	private _useHistory = false;
 	private _basePath = '';
+	private _baseUrl: string;
 	private _filesToWrite = new Set();
 	private _filesToRemove = new Set();
 	private _originalRoot!: string;
@@ -78,11 +82,18 @@ export default class BuildTimeRender {
 	private _hasBuildBridgeCache = false;
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath } = args;
+		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
 		this._basePath = basePath;
+		this._baseUrl = baseUrl;
+		if (!trailingSlash.test(this._baseUrl)) {
+			this._baseUrl = `${this._baseUrl}/`;
+		}
+		if (!leadingSlash.test(this._baseUrl)) {
+			this._baseUrl = `/${this._baseUrl}`;
+		}
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = paths;
 		this._root = root;
@@ -112,21 +123,20 @@ export default class BuildTimeRender {
 			path = path;
 		}
 		let html = this._manifestContent['index.html'];
-		const prefix = getPrefix(path);
-		html = html.replace(/href="(?!(http(s)?|\/))(.*?)"/g, `href="${prefix}$3"`);
 		html = html.replace(this._originalRoot, content);
 
 		let css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
 			if (cssFile) {
-				html = html.replace(`<link href="${prefix}${cssFile}" rel="stylesheet">`, '');
-				css = `${css}<link rel="stylesheet" href="${prefix}${cssFile}" />`;
+				html = html.replace(`<link href="${cssFile}" rel="stylesheet">`, '');
+				css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
 			}
 			return css;
 		}, '');
 
 		css = additionalCss.reduce((prev, url) => {
-			return `${prev}<link rel="preload" href="${prefix}${url}" as="style">`;
+			url = url.replace(this._baseUrl.slice(1), '');
+			return `${prev}<link rel="preload" href="${url}" as="style">`;
 		}, css);
 
 		styles = await this._processCss(styles);
@@ -134,13 +144,9 @@ export default class BuildTimeRender {
 		if (this._static || staticPath) {
 			html = html.replace(this._createScripts(), '');
 		} else {
-			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(path)}`);
-			const scriptPrefix = this._useHistory ? getPrefix(path) : '';
+			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(false)}`);
 			blockScripts.forEach((blockScript, i) => {
-				html = html.replace(
-					'</body>',
-					`<script type="text/javascript" src="${scriptPrefix}${blockScript}"></script></body>`
-				);
+				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
 			});
 
 			const mainScript = this._manifest['main.js'];
@@ -150,22 +156,19 @@ export default class BuildTimeRender {
 					return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
 				})
 				.forEach((additionalChunk: string) => {
-					html = html.replace(
-						'</body>',
-						`<link rel="preload" href="${scriptPrefix}${additionalChunk}" as="script"></body>`
-					);
+					additionalChunk = additionalChunk.replace(this._baseUrl.slice(1), '');
+					html = html.replace('</body>', `<link rel="preload" href="${additionalChunk}" as="script"></body>`);
 				});
 		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 
-	private _createScripts(path = '') {
-		const prefix = this._useHistory ? getPrefix(path) : '';
-		return this._entries.reduce(
-			(script, entry) =>
-				`${script}<script type="text/javascript" src="${prefix}${this._manifest[entry]}"></script>`,
+	private _createScripts(regex = true) {
+		const scripts = this._entries.reduce(
+			(script, entry) => `${script}<script${regex ? '.*' : ''} src="${this._manifest[entry]}"></script>`,
 			''
 		);
+		return regex ? new RegExp(scripts) : scripts;
 	}
 
 	private _filterCss(classes: string[]): string {
@@ -204,9 +207,8 @@ export default class BuildTimeRender {
 		let script = '';
 
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
+		content = content.replace(new RegExp(this._baseUrl.slice(1), 'g'), '');
 		if (this._useHistory) {
-			styles = styles.replace(/url\("(?!(http(s)?|\/))(.*?)"/g, `url("${getPrefix(pathValue)}$3"`);
-			content = content.replace(/src="(?!(http(s)?|\/))(.*?)"/g, `src="${getPrefix(pathValue)}$3"`);
 			script = generateBasePath(pathValue);
 		}
 
@@ -371,7 +373,7 @@ ${blockCacheEntry}`
 		const page = await browser.newPage();
 		page.on('error', reportError);
 		page.on('pageerror', reportError);
-		await setHasFlags(page);
+		await setupEnvitronment(page, this._baseUrl);
 		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 		return page;
 	}
@@ -432,13 +434,13 @@ ${blockCacheEntry}`
 
 			clearModule.all();
 			const browser = await puppeteer.launch(this._puppeteerOptions);
-			const app = await serve(`${this._output}`);
+			const app = await serve(`${this._output}`, this._baseUrl);
 			try {
 				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
 				ensureDirSync(screenshotDirectory);
 				let page = await this._createPage(browser);
 				const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
-				await page.goto(`http://localhost:${app.port}/`);
+				await page.goto(`http://localhost:${app.port}${this._baseUrl}`);
 				await wait;
 				await this._waitForBridge();
 				const scripts = await getScriptSources(page, app.port);
@@ -464,7 +466,7 @@ ${blockCacheEntry}`
 					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
 					page = await this._createPage(browser);
 					const wait = page.waitForNavigation({ waitUntil: 'networkidle0' });
-					await page.goto(`http://localhost:${app.port}/${path}`);
+					await page.goto(`http://localhost:${app.port}${this._baseUrl}${path}`);
 					const pathDirectories = path.replace('#', '').split('/');
 					if (pathDirectories.length > 0) {
 						pathDirectories.pop();

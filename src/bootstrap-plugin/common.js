@@ -9,6 +9,8 @@ if (!has.exists('build-serve')) {
 	has.add('build-serve', false, false);
 }
 
+has.add('app-base', global.default.__app_base__ || '/', true);
+
 if (global.default.__public_path__ || global.default.__public_origin__) {
 	var publicPath = global.default.__public_origin__ || window.location.origin;
 	if (global.default.__public_path__) {

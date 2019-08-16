@@ -13,9 +13,10 @@ import {
 	getPageStyles,
 	getRenderHooks
 } from './helpers';
+
+import renderer, { Renderer } from './Renderer';
 import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
-const puppeteer = require('puppeteer');
 const webpack = require('webpack');
 const postcss = require('postcss');
 const clearModule = require('clear-module');
@@ -49,6 +50,7 @@ export interface BuildTimeRenderArguments {
 	basePath: string;
 	baseUrl?: string;
 	scope: string;
+	renderer?: Renderer;
 }
 
 function genHash(content: string): string {
@@ -82,9 +84,20 @@ export default class BuildTimeRender {
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;
 	private _scope: string;
+	private _renderer: Renderer;
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], scope, root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
+		const {
+			paths = [],
+			scope,
+			root = '',
+			entries,
+			useHistory,
+			puppeteerOptions,
+			basePath,
+			baseUrl = '/',
+			renderer = 'puppeteer'
+		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
@@ -96,6 +109,7 @@ export default class BuildTimeRender {
 		if (!leadingSlash.test(this._baseUrl)) {
 			this._baseUrl = `/${this._baseUrl}`;
 		}
+		this._renderer = renderer;
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = ['', ...paths];
 		this._root = root;
@@ -454,7 +468,7 @@ ${blockCacheEntry}`
 				.map((key) => this._manifest[key]);
 
 			clearModule.match(new RegExp(`${resolve(this._basePath, 'src')}.*`));
-			const browser = await puppeteer.launch(this._puppeteerOptions);
+			const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`, this._baseUrl);
 			try {
 				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');

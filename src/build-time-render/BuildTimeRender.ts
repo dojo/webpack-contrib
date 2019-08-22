@@ -125,17 +125,23 @@ export default class BuildTimeRender {
 		let html = this._manifestContent['index.html'];
 		html = html.replace(this._originalRoot, content);
 
+		const writtenAssets: string[] = this._entries.map((entry) => this._manifest[entry]);
+
 		let css = this._entries.reduce((css, entry) => {
 			const cssFile = this._manifest[entry.replace('.js', '.css')];
 			if (cssFile) {
 				html = html.replace(`<link href="${cssFile}" rel="stylesheet">`, '');
 				css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
+
+				writtenAssets.push(cssFile);
 			}
 			return css;
 		}, '');
 
 		css = additionalCss.reduce((prev, url) => {
 			url = url.replace(this._baseUrl.slice(1), '');
+			writtenAssets.push(url);
+
 			return `${prev}<link rel="preload" href="${url}" as="style">`;
 		}, css);
 
@@ -146,6 +152,8 @@ export default class BuildTimeRender {
 		} else {
 			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(false)}`);
 			blockScripts.forEach((blockScript, i) => {
+				writtenAssets.push(blockScript);
+
 				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
 			});
 
@@ -157,7 +165,23 @@ export default class BuildTimeRender {
 				})
 				.forEach((additionalChunk: string) => {
 					additionalChunk = additionalChunk.replace(this._baseUrl.slice(1), '');
+					writtenAssets.push(additionalChunk);
+
 					html = html.replace('</body>', `<link rel="preload" href="${additionalChunk}" as="script"></body>`);
+				});
+
+			Object.keys(this._manifest)
+				.filter((name) => name.endsWith('.js') || name.endsWith('.css'))
+				.filter((name) => !name.startsWith('runtime/'))
+				.filter((name) => !writtenAssets.some((asset) => this._manifest[name] === asset))
+				.forEach((preload) => {
+					html = html.replace(
+						'</body>',
+						`<link rel="prefetch" href="${this._manifest[preload].replace(
+							this._baseUrl.slice(1),
+							''
+						)}" /></body>`
+					);
 				});
 		}
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);

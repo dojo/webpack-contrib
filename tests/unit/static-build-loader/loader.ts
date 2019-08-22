@@ -58,7 +58,7 @@ registerSuite('static-build-loader', {
 			mockLoaderUtils.getOptions.returns({
 				features: {}
 			});
-			assert.equal(loader.call({}, code)!.replace(/\r\n/g, '\n'), code);
+			assert.equal(loader(code)!.replace(/\r\n/g, '\n'), code);
 		},
 
 		'static features'() {
@@ -220,7 +220,7 @@ registerSuite('static-build-loader', {
 				features: { foo: true }
 			});
 			assert.equal(
-				loader.call({}, code)!.replace(/\r\n/g, '\n'),
+				loader(code)!.replace(/\r\n/g, '\n'),
 				loadCode('no-import-foo-true'),
 				'Should not replace has calls, but should still support has pragma if has was not imported'
 			);
@@ -228,24 +228,9 @@ registerSuite('static-build-loader', {
 
 		'should not parse a module that does not contain has pragmas or a possible call to require has'() {
 			const code = loadCode('should-not-parse');
-			assert.equal(loader.call({}, code), code, 'Should not have modified code');
+			assert.equal(loader(code), code, 'Should not have modified code');
 			assert.isFalse(mockRecast.parse.called, 'Should not have called parse');
 			assert.isFalse(mockRecast.print.called, 'Should not have called print');
-		},
-
-		'should parse add calls in has module itself'() {
-			const code = loadCode('has');
-			mockLoaderUtils.getOptions.returns({
-				features: { foo: true }
-			});
-
-			const context = {
-				callback: sandbox.stub(),
-				resourcePath: '@dojo/framework/core/has.mjs'
-			};
-
-			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
-			assert.equal(resultCode, loadCode('has-foo-true'));
 		},
 
 		'should call callback with sourcemap in code with no pragmas or calls to has'() {

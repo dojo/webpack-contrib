@@ -3,9 +3,14 @@ import * as ts from 'typescript';
 
 require('ts-node').register();
 
+export interface CustomElementFile {
+	name?: string;
+	file: string;
+}
+
 export interface ElementTransformerOptions {
 	elementPrefix: string;
-	customElementFiles: string[];
+	customElementFiles: CustomElementFile[];
 }
 
 export default function elementTransformer<T extends ts.Node>(
@@ -14,13 +19,31 @@ export default function elementTransformer<T extends ts.Node>(
 ): ts.TransformerFactory<T> {
 	const checker = program.getTypeChecker();
 
-	const customElementFilesIncludingDefaults = customElementFiles.map((file) => {
-		try {
-			return require.resolve(path.resolve(file));
-		} catch (e) {
-			return file;
+	const customElementFilesIncludingDefaults = customElementFiles.map(
+		(file): CustomElementFile => {
+			const fileName = typeof file === 'string' ? file : file.file;
+			const name =
+				typeof file !== 'string' && file.name
+					? file.name
+							.toLowerCase()
+							.replace(/[^a-z]/g, '-')
+							.replace(/[-{2,]/g, '-')
+							.replace(/^-(.*?)-?$/, '$1')
+							.trim()
+					: undefined;
+			try {
+				return {
+					file: require.resolve(path.resolve(fileName)),
+					name
+				};
+			} catch (e) {
+				return {
+					file: fileName,
+					name
+				};
+			}
 		}
-	});
+	);
 
 	const preparedElementPrefix = elementPrefix
 		.toLowerCase()
@@ -31,7 +54,7 @@ export default function elementTransformer<T extends ts.Node>(
 
 	function createCustomElementExpression(
 		identifier: string | ts.Identifier,
-		widgetName: string,
+		tag: string,
 		attributes: string[],
 		properties: string[],
 		events: string[]
@@ -40,7 +63,7 @@ export default function elementTransformer<T extends ts.Node>(
 			typeof identifier === 'string' ? ts.createIdentifier(identifier) : identifier,
 			'__customElementDescriptor'
 		);
-		const tagName = `${preparedElementPrefix}-${widgetName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
+		const tagName = `${preparedElementPrefix}-${tag.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
 
 		const customElementDeclaration = ts.createObjectLiteral([
 			ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
@@ -71,7 +94,7 @@ export default function elementTransformer<T extends ts.Node>(
 	function createCallExpression(
 		uniqueIdentifier: ts.Identifier,
 		initializer: ts.Expression | undefined,
-		widgetName: string,
+		tag: string,
 		attributes: string[],
 		properties: string[],
 		events: string[]
@@ -88,7 +111,7 @@ export default function elementTransformer<T extends ts.Node>(
 						ts.createVariableStatement(undefined, [
 							ts.createVariableDeclaration(uniqueIdentifier, undefined, initializer)
 						]),
-						createCustomElementExpression(uniqueIdentifier, widgetName, attributes, properties, events),
+						createCustomElementExpression(uniqueIdentifier, tag, attributes, properties, events),
 						ts.createReturn(uniqueIdentifier)
 					],
 					true
@@ -171,10 +194,11 @@ export default function elementTransformer<T extends ts.Node>(
 				}
 			}
 
-			if (
-				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
-				initializer
-			) {
+			const widgetConfig = customElementFilesIncludingDefaults.find(
+				({ file }) => file.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1
+			);
+
+			if (widgetConfig && initializer) {
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
 					const renderOptionsCallback = call.arguments[0];
@@ -219,7 +243,7 @@ export default function elementTransformer<T extends ts.Node>(
 									parsePropertyType(prop, node);
 								});
 								if (variableNode) {
-									const widgetName = variableNode.name!.getText();
+									const widgetName = widgetConfig.name || variableNode.name!.getText();
 
 									const uniqueIdentifier = ts.createUniqueName('temp');
 									return [
@@ -230,7 +254,7 @@ export default function elementTransformer<T extends ts.Node>(
 											createCallExpression(
 												uniqueIdentifier,
 												initializer,
-												widgetName,
+												widgetConfig.name || widgetName,
 												attributes,
 												properties,
 												events
@@ -240,7 +264,7 @@ export default function elementTransformer<T extends ts.Node>(
 								} else {
 									let widgetName;
 									if (renderOptionsCallback && (renderOptionsCallback as any).name) {
-										widgetName = (renderOptionsCallback as any).name.getText();
+										widgetName = widgetConfig.name || (renderOptionsCallback as any).name.getText();
 									} else {
 										const fileName =
 											node
@@ -261,7 +285,7 @@ export default function elementTransformer<T extends ts.Node>(
 												createCallExpression(
 													uniqueIdentifier,
 													initializer,
-													widgetName,
+													widgetConfig.name || widgetName,
 													attributes,
 													properties,
 													events
@@ -275,7 +299,7 @@ export default function elementTransformer<T extends ts.Node>(
 					}
 				}
 			} else if (
-				customElementFilesIncludingDefaults.indexOf(path.resolve(node.getSourceFile().fileName)) !== -1 &&
+				widgetConfig &&
 				classSymbol &&
 				defaultExportType === checker.getTypeOfSymbolAtLocation(classSymbol, node)
 			) {
@@ -305,7 +329,13 @@ export default function elementTransformer<T extends ts.Node>(
 
 					return [
 						node,
-						createCustomElementExpression(widgetName, widgetName, attributes, properties, events)
+						createCustomElementExpression(
+							widgetName,
+							widgetConfig.name || widgetName,
+							attributes,
+							properties,
+							events
+						)
 					];
 				}
 			}

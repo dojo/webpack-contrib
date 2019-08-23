@@ -22,7 +22,12 @@ describe('element-transformer', () => {
 					[expectedPath]: source
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -46,7 +51,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -73,7 +83,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -145,7 +160,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -163,7 +183,12 @@ describe('element-transformer', () => {
 					[expectedPath]: source
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -191,7 +216,7 @@ describe('element-transformer', () => {
 					before: [
 						elementTransformer(program, {
 							elementPrefix: 'widget',
-							customElementFiles: [actualPath]
+							customElementFiles: [{ file: actualPath }]
 						})
 					]
 				})
@@ -221,7 +246,12 @@ describe('element-transformer', () => {
 					[expectedPath]: source
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -267,7 +297,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -362,7 +397,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -430,7 +470,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -500,7 +545,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -566,7 +616,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -616,7 +671,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -674,7 +734,12 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
@@ -728,10 +793,114 @@ describe('element-transformer', () => {
 					[expectedPath]: expected
 				},
 				(program) => ({
-					before: [elementTransformer(program, { elementPrefix: 'widget', customElementFiles: [actualPath] })]
+					before: [
+						elementTransformer(program, {
+							elementPrefix: 'widget',
+							customElementFiles: [{ file: actualPath }]
+						})
+					]
 				})
 			);
 		});
+	});
+	it('can specify custom element name for class', () => {
+		const source = `
+	class WidgetBase<T> {}
+	interface DojoInputProperties {}
+	export default class DojoInput extends WidgetBase<DojoInputProperties> {
+	}`;
+		const expected = `
+	class WidgetBase<T> {}
+	interface DojoInputProperties {}
+	export default class DojoInput extends WidgetBase<DojoInputProperties> {
+	}
+	DojoInput.__customElementDescriptor = { ...{ tagName: "widget-foo-bar", attributes: [], properties: [], events: [] }, ...DojoInput.__customElementDescriptor || {} };
+`;
+		assertCompile(
+			{
+				[actualPath]: source,
+				[expectedPath]: expected
+			},
+			(program) => ({
+				before: [
+					elementTransformer(program, {
+						elementPrefix: 'widget',
+						customElementFiles: [{ file: actualPath, name: 'foo-bar' }]
+					})
+				]
+			})
+		);
+	});
+
+	it('can specify custom element name for function', () => {
+		const source = `
+	enum StringEnum { value1 = 'value1', value2 = 'value2' };
+	enum IntEnum { value1 = 0, value 2 = 1 };
+	type stringOrNumber = string | number;
+	function create<A = any, B = {}>() {
+		return {
+			properties: <T>() =>
+				function render(callback: (options: { properties: () => B & T }) => string) {
+					return (properties: B & T) => '';
+			}
+		};
+	}
+
+	interface DojoInputProperties {
+		attribute: string;
+		property: boolean;
+		onClick: () => void;
+		onChange(value: string): void;
+		stringEnum: StringEnum;
+		intEnum?: IntEnum;
+		stringOrNumber: stringOrNumber;
+	}
+	const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+	export default render(({ properties }) => 'foo');
+	`;
+		const expected = `
+	enum StringEnum { value1 = 'value1', value2 = 'value2' };
+	enum IntEnum { value1 = 0, value 2 = 1 };
+	type stringOrNumber = string | number;
+	function create<A = any, B = {}>() {
+		return {
+			properties: <T>() =>
+				function render(callback: (options: { properties: () => B & T }) => string) {
+					return (properties: B & T) => '';
+			}
+		};
+	}
+
+	interface DojoInputProperties {
+		attribute: string;
+		property: boolean;
+		onClick: () => void;
+		onChange(value: string): void;
+		stringEnum: StringEnum;
+		intEnum?: IntEnum;
+		stringOrNumber: stringOrNumber;
+	}
+	const render = create<any, { foo: string }>().properties<DojoInputProperties>();
+	export default (() => {
+		var temp_1 = render(({ properties }) => 'foo');
+		temp_1.__customElementDescriptor = { ...{ tagName: "widget-foo-bar", attributes: ["foo", "attribute", "stringEnum", "stringOrNumber"], properties: ["property", "intEnum"], events: ["onClick", "onChange"] }, ...temp_1.__customElementDescriptor || {} };	
+		return temp_1;
+	})();
+	`;
+		assertCompile(
+			{
+				[actualPath]: source,
+				[expectedPath]: expected
+			},
+			(program) => ({
+				before: [
+					elementTransformer(program, {
+						elementPrefix: 'widget',
+						customElementFiles: [{ name: 'foo-bar', file: actualPath }]
+					})
+				]
+			})
+		);
 	});
 });
 

@@ -330,16 +330,7 @@ export default function elementTransformer<T extends ts.Node>(
 						}
 					}
 
-					return [
-						node,
-						createCustomElementExpression(
-							widgetName,
-							tag,
-							attributes,
-							properties,
-							events
-						)
-					];
+					return [node, createCustomElementExpression(widgetName, tag, attributes, properties, events)];
 				}
 			}
 

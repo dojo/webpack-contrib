@@ -13,6 +13,10 @@ export interface ElementTransformerOptions {
 	customElementFiles: CustomElementFile[];
 }
 
+function parseTagName(name: string) {
+	return name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
 export default function elementTransformer<T extends ts.Node>(
 	program: ts.Program,
 	{ customElementFiles, elementPrefix }: ElementTransformerOptions
@@ -63,7 +67,7 @@ export default function elementTransformer<T extends ts.Node>(
 			typeof identifier === 'string' ? ts.createIdentifier(identifier) : identifier,
 			'__customElementDescriptor'
 		);
-		const tagName = `${preparedElementPrefix}-${tag.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`;
+		const tagName = `${preparedElementPrefix}-${tag}`;
 
 		const customElementDeclaration = ts.createObjectLiteral([
 			ts.createPropertyAssignment('tagName', ts.createLiteral(tagName)),
@@ -244,7 +248,7 @@ export default function elementTransformer<T extends ts.Node>(
 								});
 								if (variableNode) {
 									const widgetName = variableNode.name!.getText();
-									const tag = widgetConfig.tag || widgetName;
+									const tag = widgetConfig.tag || parseTagName(widgetName);
 
 									const uniqueIdentifier = ts.createUniqueName('temp');
 									return [
@@ -274,7 +278,7 @@ export default function elementTransformer<T extends ts.Node>(
 												.pop() || '';
 										widgetName = fileName.split('.')[0];
 									}
-									const tag = widgetConfig.tag || widgetName;
+									const tag = widgetConfig.tag || parseTagName(widgetName);
 
 									if (widgetName) {
 										const uniqueIdentifier = ts.createUniqueName('temp');
@@ -308,7 +312,7 @@ export default function elementTransformer<T extends ts.Node>(
 				const classNode = node as ts.ClassDeclaration;
 				if (classNode.heritageClauses && classNode.heritageClauses.length > 0) {
 					const widgetName = classNode.name!.getText();
-					const tag = widgetConfig.tag || widgetName;
+					const tag = widgetConfig.tag || parseTagName(widgetName);
 
 					const [
 						{

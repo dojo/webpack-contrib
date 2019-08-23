@@ -4,7 +4,7 @@ import * as ts from 'typescript';
 require('ts-node').register();
 
 export interface CustomElementFile {
-	name?: string;
+	tag?: string;
 	file: string;
 }
 
@@ -22,9 +22,9 @@ export default function elementTransformer<T extends ts.Node>(
 	const customElementFilesIncludingDefaults = customElementFiles.map(
 		(file): CustomElementFile => {
 			const fileName = typeof file === 'string' ? file : file.file;
-			const name =
-				typeof file !== 'string' && file.name
-					? file.name
+			const tag =
+				typeof file !== 'string' && file.tag
+					? file.tag
 							.toLowerCase()
 							.replace(/[^a-z]/g, '-')
 							.replace(/[-{2,]/g, '-')
@@ -34,12 +34,12 @@ export default function elementTransformer<T extends ts.Node>(
 			try {
 				return {
 					file: require.resolve(path.resolve(fileName)),
-					name
+					tag
 				};
 			} catch (e) {
 				return {
 					file: fileName,
-					name
+					tag
 				};
 			}
 		}
@@ -243,7 +243,8 @@ export default function elementTransformer<T extends ts.Node>(
 									parsePropertyType(prop, node);
 								});
 								if (variableNode) {
-									const widgetName = widgetConfig.name || variableNode.name!.getText();
+									const widgetName = variableNode.name!.getText();
+									const tag = widgetConfig.tag || widgetName;
 
 									const uniqueIdentifier = ts.createUniqueName('temp');
 									return [
@@ -254,7 +255,7 @@ export default function elementTransformer<T extends ts.Node>(
 											createCallExpression(
 												uniqueIdentifier,
 												initializer,
-												widgetConfig.name || widgetName,
+												tag,
 												attributes,
 												properties,
 												events
@@ -264,7 +265,7 @@ export default function elementTransformer<T extends ts.Node>(
 								} else {
 									let widgetName;
 									if (renderOptionsCallback && (renderOptionsCallback as any).name) {
-										widgetName = widgetConfig.name || (renderOptionsCallback as any).name.getText();
+										widgetName = (renderOptionsCallback as any).name.getText();
 									} else {
 										const fileName =
 											node
@@ -273,6 +274,7 @@ export default function elementTransformer<T extends ts.Node>(
 												.pop() || '';
 										widgetName = fileName.split('.')[0];
 									}
+									const tag = widgetConfig.tag || widgetName;
 
 									if (widgetName) {
 										const uniqueIdentifier = ts.createUniqueName('temp');
@@ -285,7 +287,7 @@ export default function elementTransformer<T extends ts.Node>(
 												createCallExpression(
 													uniqueIdentifier,
 													initializer,
-													widgetConfig.name || widgetName,
+													tag,
 													attributes,
 													properties,
 													events
@@ -306,6 +308,7 @@ export default function elementTransformer<T extends ts.Node>(
 				const classNode = node as ts.ClassDeclaration;
 				if (classNode.heritageClauses && classNode.heritageClauses.length > 0) {
 					const widgetName = classNode.name!.getText();
+					const tag = widgetConfig.tag || widgetName;
 
 					const [
 						{
@@ -331,7 +334,7 @@ export default function elementTransformer<T extends ts.Node>(
 						node,
 						createCustomElementExpression(
 							widgetName,
-							widgetConfig.name || widgetName,
+							tag,
 							attributes,
 							properties,
 							events

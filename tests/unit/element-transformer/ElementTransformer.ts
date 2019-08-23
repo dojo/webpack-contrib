@@ -825,7 +825,7 @@ describe('element-transformer', () => {
 				before: [
 					elementTransformer(program, {
 						elementPrefix: 'widget',
-						customElementFiles: [{ file: actualPath, name: 'foo-bar' }]
+						customElementFiles: [{ file: actualPath, tag: 'foo-bar' }]
 					})
 				]
 			})
@@ -896,7 +896,7 @@ describe('element-transformer', () => {
 				before: [
 					elementTransformer(program, {
 						elementPrefix: 'widget',
-						customElementFiles: [{ name: 'foo-bar', file: actualPath }]
+						customElementFiles: [{ tag: 'foo-bar', file: actualPath }]
 					})
 				]
 			})

@@ -116,7 +116,7 @@ export default function loader(
 	}
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
-	const { features: featuresOption } = options;
+	const { features: featuresOption, staticOnly = [] } = options;
 	const parseOptions: any = {
 		parser: {
 			parse(source: string) {
@@ -357,7 +357,8 @@ export default function loader(
 					if (
 						namedTypes.Literal.check(feature) &&
 						typeof feature.value === 'string' &&
-						feature.value in features
+						feature.value in features &&
+						staticOnly.indexOf(feature.value) === -1
 					) {
 						path.replace(
 							builders.callExpression(callee, [args[0], builders.literal(features[feature.value])])

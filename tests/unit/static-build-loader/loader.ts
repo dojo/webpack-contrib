@@ -84,7 +84,8 @@ registerSuite('static-build-loader', {
 		'static features with es6 import'() {
 			const code = loadCode('has-es6');
 			mockLoaderUtils.getOptions.returns({
-				features: { foo: true }
+				features: { foo: true, 'do-not-touch': true },
+				staticOnly: ['do-not-touch']
 			});
 
 			const context = {

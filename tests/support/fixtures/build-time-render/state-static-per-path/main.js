@@ -44,4 +44,5 @@
 	} else {
 		renderDefault();
 	}
+	window.rendering = false;
 })();

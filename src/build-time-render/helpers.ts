@@ -96,6 +96,16 @@ export async function setupEnvironment(page: any, base: string, scope?: string):
 	}
 }
 
+export async function getRenderHooks(page: any): Promise<any> {
+	return await page.evaluate(() => {
+		const { rendering = true, blocksPending } = window as any;
+		return {
+			rendering,
+			blocksPending
+		};
+	});
+}
+
 export async function getForSelector(page: any, selector: string) {
 	return page.$eval(selector, (element: Element) => element.outerHTML);
 }

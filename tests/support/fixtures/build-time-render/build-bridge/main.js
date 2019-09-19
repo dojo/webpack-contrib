@@ -7,5 +7,6 @@
         div.innerHTML = result;
 	});
     app.appendChild(div);
+    window.rendering = false;
 })();
 //# sourceMappingURL=main.js.map

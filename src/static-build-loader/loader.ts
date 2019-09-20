@@ -22,6 +22,7 @@ const acorn = Parser.extend(dynamicImport);
 
 const HAS_MID = /\/has$/;
 const HAS_PRAGMA = /^\s*(!?)\s*has\s*\(["']([^'"]+)['"]\)\s*$/;
+const HAS_MODULE_REGEXP = /@dojo(\/|\\)framework(\/|\\)core(\/|\\)has\.(js|mjs|ts)$/;
 
 function hasCheck(hasIdentifier: string, hasNamespaceIdentifier: string | undefined, args: any, callee: any) {
 	return (
@@ -101,7 +102,12 @@ export default function loader(
 	content: string,
 	sourceMap?: webpack.RawSourceMap
 ): string | void {
-	if (content.indexOf('/has') < 0 && content.indexOf('has(') < 0 && content.indexOf('exists(') < 0) {
+	if (
+		!HAS_MODULE_REGEXP.test(this.resourcePath) &&
+		content.indexOf('/has') < 0 &&
+		content.indexOf('has(') < 0 &&
+		content.indexOf('exists(') < 0
+	) {
 		if (sourceMap) {
 			this.callback(null, content, sourceMap);
 			return;
@@ -110,7 +116,7 @@ export default function loader(
 	}
 	// copy features to a local scope, because `this` gets weird
 	const options = getOptions(this);
-	const { features: featuresOption } = options;
+	const { features: featuresOption, staticOnly = [] } = options;
 	const parseOptions: any = {
 		parser: {
 			parse(source: string) {
@@ -141,167 +147,179 @@ export default function loader(
 		features = featuresOption;
 	}
 
-	types.visit(ast, {
-		visitExpressionStatement(path) {
-			const { node, parentPath, name } = path;
-			const expressionValue = getExpressionValue(node);
-			if (expressionValue) {
-				const hasPragma = HAS_PRAGMA.exec(expressionValue);
-				if (hasPragma) {
-					const [, negate, flag] = hasPragma;
-					comment = ` ${negate}has('${flag}')`;
-					if (flag in features) {
-						elideNextImport = negate ? !!features[flag] : !features[flag];
+	if (HAS_MODULE_REGEXP.test(this.resourcePath)) {
+		addIdentifier = 'add';
+		hasIdentifier = 'has';
+	} else {
+		types.visit(ast, {
+			visitExpressionStatement(path) {
+				const { node, parentPath, name } = path;
+				const expressionValue = getExpressionValue(node);
+				if (expressionValue) {
+					const hasPragma = HAS_PRAGMA.exec(expressionValue);
+					if (hasPragma) {
+						const [, negate, flag] = hasPragma;
+						comment = ` ${negate}has('${flag}')`;
+						if (flag in features) {
+							elideNextImport = negate ? !!features[flag] : !features[flag];
+						}
 					}
 				}
-			}
 
-			if (
-				namedTypes.CallExpression.check(node.expression) &&
-				namedTypes.Identifier.check(node.expression.callee)
-			) {
 				if (
-					node.expression.callee.name === 'require' &&
-					node.expression.arguments.length === 1 &&
-					elideNextImport === true
+					namedTypes.CallExpression.check(node.expression) &&
+					namedTypes.Identifier.check(node.expression.callee)
 				) {
-					const [arg] = node.expression.arguments;
-					if (namedTypes.Literal.check(arg)) {
-						comment = ` elided: import '${arg.value}'`;
+					if (
+						node.expression.callee.name === 'require' &&
+						node.expression.arguments.length === 1 &&
+						elideNextImport === true
+					) {
+						const [arg] = node.expression.arguments;
+						if (namedTypes.Literal.check(arg)) {
+							comment = ` elided: import '${arg.value}'`;
+							elideNextImport = false;
+						}
+					}
+				}
+
+				if (comment && parentPath && typeof name !== 'undefined') {
+					setComment(node, path, comment, parentPath, name);
+					comment = undefined;
+					return false;
+				}
+
+				comment = undefined;
+				this.traverse(path);
+			},
+
+			visitDeclaration(path) {
+				const { node, parentPath, name } = path;
+				if (namedTypes.ImportDeclaration.check(path.node)) {
+					const value = path.node.source.value;
+
+					if (elideNextImport) {
+						comment = ` elided: import '${value}'`;
 						elideNextImport = false;
 					}
-				}
-			}
+					if (comment && parentPath && typeof name !== 'undefined') {
+						let replacement: any = null;
+						if (path.node.specifiers.length) {
+							replacement = builders.variableDeclaration(
+								'var',
+								path.node.specifiers.map((specifier) => {
+									return builders.variableDeclarator(
+										specifier.local,
+										builders.identifier('undefined')
+									);
+								})
+							);
+						}
 
-			if (comment && parentPath && typeof name !== 'undefined') {
-				setComment(node, path, comment, parentPath, name);
-				comment = undefined;
-				return false;
-			}
-
-			comment = undefined;
-			this.traverse(path);
-		},
-
-		visitDeclaration(path) {
-			const { node, parentPath, name } = path;
-			if (namedTypes.ImportDeclaration.check(path.node)) {
-				const value = path.node.source.value;
-
-				if (elideNextImport) {
-					comment = ` elided: import '${value}'`;
-					elideNextImport = false;
-				}
-				if (comment && parentPath && typeof name !== 'undefined') {
-					let replacement: any = null;
-					if (path.node.specifiers.length) {
-						replacement = builders.variableDeclaration(
-							'var',
-							path.node.specifiers.map((specifier) => {
-								return builders.variableDeclarator(specifier.local, builders.identifier('undefined'));
-							})
-						);
+						setComment(node, path, comment, parentPath, name, replacement);
+						comment = undefined;
+						return false;
 					}
 
-					setComment(node, path, comment, parentPath, name, replacement);
 					comment = undefined;
-					return false;
-				}
 
-				comment = undefined;
-
-				if (typeof value === 'string' && HAS_MID.test(value)) {
-					path.node.specifiers.forEach((specifier) => {
-						if (
-							specifier.type === 'ImportDefaultSpecifier' ||
-							(specifier.type === 'ImportSpecifier' && specifier.imported.name === 'default')
-						) {
-							hasIdentifier = specifier.local.name;
-						} else if (specifier.type === 'ImportNamespaceSpecifier') {
-							hasNamespaceIdentifier = specifier.local.name;
-						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
-							existsIdentifier = specifier.local.name;
-						} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'add') {
-							addIdentifier = specifier.local.name;
-						}
-					});
-				}
-			}
-			this.traverse(path);
-		},
-
-		// Look for `require('*/has');` and set the variable name to `hasNamespaceIdentifier`
-		visitVariableDeclaration(path) {
-			const {
-				name,
-				node,
-				parentPath,
-				parentPath: { node: parentNode },
-				node: { declarations }
-			} = path;
-
-			let identifier: any = undefined;
-
-			if (elideNextImport === true && declarations.length === 1) {
-				const callExpression = declarations[0];
-				if (namedTypes.VariableDeclarator.check(callExpression)) {
-					if (
-						callExpression.init &&
-						namedTypes.CallExpression.check(callExpression.init) &&
-						namedTypes.Identifier.check(callExpression.init.callee)
-					) {
-						if (
-							callExpression.init.callee.name === 'require' &&
-							callExpression.init.arguments.length === 1
-						) {
-							if (callExpression.id) {
-								identifier = callExpression.id;
+					if (typeof value === 'string' && HAS_MID.test(value)) {
+						path.node.specifiers.forEach((specifier) => {
+							if (
+								specifier.type === 'ImportDefaultSpecifier' ||
+								(specifier.type === 'ImportSpecifier' && specifier.imported.name === 'default')
+							) {
+								hasIdentifier = specifier.local.name;
+							} else if (specifier.type === 'ImportNamespaceSpecifier') {
+								hasNamespaceIdentifier = specifier.local.name;
+							} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'exists') {
+								existsIdentifier = specifier.local.name;
+							} else if (specifier.type === 'ImportSpecifier' && specifier.imported.name === 'add') {
+								addIdentifier = specifier.local.name;
 							}
-
-							const [arg] = callExpression.init.arguments;
-							if (namedTypes.Literal.check(arg)) {
-								comment = ` elided: import '${arg.value}'`;
-								elideNextImport = false;
-							}
-						}
+						});
 					}
 				}
+				this.traverse(path);
+			},
 
-				if (comment && parentPath && typeof name !== 'undefined') {
-					const replacement = builders.variableDeclaration('var', [
-						builders.variableDeclarator(identifier, builders.identifier('undefined'))
-					]);
-					setComment(node, path, comment, parentPath, name, replacement);
+			// Look for `require('*/has');` and set the variable name to `hasNamespaceIdentifier`
+			visitVariableDeclaration(path) {
+				const {
+					name,
+					node,
+					parentPath,
+					parentPath: { node: parentNode },
+					node: { declarations }
+				} = path;
 
-					comment = undefined;
-					return false;
-				}
-				comment = undefined;
-			}
+				let identifier: any = undefined;
 
-			// Get all the top level variable declarations
-			if (ast.program === parentNode && !hasNamespaceIdentifier) {
-				declarations.forEach(({ id, init }) => {
-					if (!hasNamespaceIdentifier) {
-						if (namedTypes.Identifier.check(id) && init && namedTypes.CallExpression.check(init)) {
-							const { callee, arguments: args } = init;
-							if (namedTypes.Identifier.check(callee) && callee.name === 'require' && args.length === 1) {
-								const [arg] = args;
-								if (
-									namedTypes.Literal.check(arg) &&
-									typeof arg.value === 'string' &&
-									HAS_MID.test(arg.value)
-								) {
-									hasNamespaceIdentifier = id.name;
+				if (elideNextImport === true && declarations.length === 1) {
+					const callExpression = declarations[0];
+					if (namedTypes.VariableDeclarator.check(callExpression)) {
+						if (
+							callExpression.init &&
+							namedTypes.CallExpression.check(callExpression.init) &&
+							namedTypes.Identifier.check(callExpression.init.callee)
+						) {
+							if (
+								callExpression.init.callee.name === 'require' &&
+								callExpression.init.arguments.length === 1
+							) {
+								if (callExpression.id) {
+									identifier = callExpression.id;
+								}
+
+								const [arg] = callExpression.init.arguments;
+								if (namedTypes.Literal.check(arg)) {
+									comment = ` elided: import '${arg.value}'`;
+									elideNextImport = false;
 								}
 							}
 						}
 					}
-				});
+
+					if (comment && parentPath && typeof name !== 'undefined') {
+						const replacement = builders.variableDeclaration('var', [
+							builders.variableDeclarator(identifier, builders.identifier('undefined'))
+						]);
+						setComment(node, path, comment, parentPath, name, replacement);
+
+						comment = undefined;
+						return false;
+					}
+					comment = undefined;
+				}
+
+				// Get all the top level variable declarations
+				if (ast.program === parentNode && !hasNamespaceIdentifier) {
+					declarations.forEach(({ id, init }) => {
+						if (!hasNamespaceIdentifier) {
+							if (namedTypes.Identifier.check(id) && init && namedTypes.CallExpression.check(init)) {
+								const { callee, arguments: args } = init;
+								if (
+									namedTypes.Identifier.check(callee) &&
+									callee.name === 'require' &&
+									args.length === 1
+								) {
+									const [arg] = args;
+									if (
+										namedTypes.Literal.check(arg) &&
+										typeof arg.value === 'string' &&
+										HAS_MID.test(arg.value)
+									) {
+										hasNamespaceIdentifier = id.name;
+									}
+								}
+							}
+						}
+					});
+				}
+				this.traverse(path);
 			}
-			this.traverse(path);
-		}
-	});
+		});
+	}
 
 	// Now we want to walk the AST and find an expressions where the default import or `exists` of `*/has` is
 	// called. This will be a CallExpression, where the callee is an object named the import from above
@@ -339,14 +357,14 @@ export default function loader(
 					if (
 						namedTypes.Literal.check(feature) &&
 						typeof feature.value === 'string' &&
-						feature.value in features
+						feature.value in features &&
+						staticOnly.indexOf(feature.value) === -1
 					) {
 						path.replace(
 							builders.callExpression(callee, [args[0], builders.literal(features[feature.value])])
 						);
+						return false;
 					}
-
-					return false;
 				}
 				this.traverse(path);
 			}

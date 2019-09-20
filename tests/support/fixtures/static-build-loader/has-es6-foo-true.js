@@ -36,6 +36,11 @@ add('foo', true);
 add('bar', true);
 add('bar', false, true);
 add('bar', function () { return true }, true);
+add('do-not-touch', function () { return true });
+
+if (true) {
+	doY();
+}
 
 // Should not parse
 if (checkHas.exists('foo')) {

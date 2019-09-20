@@ -106,15 +106,18 @@ work if acting on the compiled output.
 
 ### Features
 
-The loader examines code, looking for usages of `@dojo/has` or _has pragmas_ to _optimize_. It does this by parsing the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) structure of the code, and modifying it when appropriate.
+The loader examines code, looking for usages of `@dojo/has`, `@dojo/has.exists`, `@dojo/has.add`, or _has pragmas_ to _optimize_. It does this by parsing the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) structure of the code, and modifying it when appropriate.
 
-The loader takes two options:
+The loader takes three options:
 
 * `features`: A map of _static_ features or a feature or list of features that resolve to a similar static map
 based on the functionality provided by the specified targets. Each key in the map is the name of the feature
 and the value is `true` if the feature is present in that context, otherwise `false`.
 * `isRunningInNode`: An optional boolean parameter. If set to `false` this indicates that the loader will not be
 running in an environment with a Node-like require.
+* `staticOnly`: A list of feature keys that should _not_ have `has.add` calls modified. In most cases, this option
+will not be needed. It is provided for cases where a module will sometimes be parsed and have its flags resolved statically if so, but
+may also not be parsed and may require a different runtime value for the flag.
 
 For example in a webpack configuration, the map of features would look like this:
 
@@ -127,7 +130,8 @@ For example in a webpack configuration, the map of features would look like this
                 features: {
                     'foo': true,
                     'bar': false
-                }
+                },
+                staticOnly: ['bar']
             }
         }
     ]

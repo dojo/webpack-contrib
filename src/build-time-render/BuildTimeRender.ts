@@ -84,7 +84,7 @@ export default class BuildTimeRender {
 	private _scope: string | undefined;
 
 	constructor(args: BuildTimeRenderArguments) {
-		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
+		const { paths = [], scope, root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
 
@@ -99,6 +99,7 @@ export default class BuildTimeRender {
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = paths;
 		this._root = root;
+		this._scope = scope;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory || paths.length === 0) {
@@ -235,7 +236,7 @@ export default class BuildTimeRender {
 		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		content = content.replace(new RegExp(this._baseUrl.slice(1), 'g'), '');
 		if (this._useHistory) {
-			script = generateBasePath(pathValue);
+			script = generateBasePath(pathValue, this._scope);
 		}
 
 		return {

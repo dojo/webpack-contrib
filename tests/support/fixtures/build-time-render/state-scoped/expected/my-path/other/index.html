@@ -1,0 +1,13 @@
+<html>
+	<head>
+		<link rel="manifest" href="manifest.json" />
+	<style>.other.another{color:pink;background:url("relative.png");background:url("/root.png");background:url("./relative.png");background:url("../relative.png");background:url("https://example.com");background:url("http://example.com");background:url(https://example.com);background:url(http://example.com)}span{width:100%}</style></head>
+	<body>
+		<div id="app"><div class="other">Other</div></div>
+		<script>
+	if (!window['app-scope']) {
+		window['app-scope'].publicPath = window.location.pathname.replace(/(\/)?my-path\/other(\/)?$/, '/');
+	}
+</script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
+	<link rel="preload" href="my-path/additional.js" as="script"><link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
+</html>

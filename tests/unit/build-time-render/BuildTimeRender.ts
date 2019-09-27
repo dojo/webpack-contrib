@@ -25,6 +25,7 @@ const callbackStub = stub();
 const createCompilation = (
 	type:
 		| 'state'
+		| 'state-scoped'
 		| 'state-static'
 		| 'state-static-per-path'
 		| 'state-static-no-paths'
@@ -958,6 +959,141 @@ describe('build-time-render', () => {
 						)
 					);
 				});
+			});
+		});
+	});
+
+	describe('application scope', () => {
+		beforeEach(() => {
+			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-scoped');
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+		});
+
+		it('Should use application scope', () => {
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = mockModule.getModuleUnderTest().default;
+			const btr = new Btr({
+				paths: [
+					{
+						path: 'my-path'
+					},
+					'other',
+					'my-path/other'
+				],
+				entries: ['runtime', 'main'],
+				root: 'app',
+				scope: 'app-scope',
+				puppeteerOptions: { args: ['--no-sandbox'] }
+			});
+			btr.apply(compiler);
+			assert.isTrue(pluginRegistered);
+			return runBtr(createCompilation('state-scoped'), callbackStub).then(() => {
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 4);
+				assert.isTrue(
+					outputFileSync.secondCall.args[0].indexOf(
+						path.join('support', 'fixtures', 'build-time-render', 'state-scoped', 'my-path', 'index.html')
+					) > -1
+				);
+				assert.isTrue(
+					outputFileSync.thirdCall.args[0].indexOf(
+						path.join('support', 'fixtures', 'build-time-render', 'state-scoped', 'other', 'index.html')
+					) > -1
+				);
+				assert.isTrue(
+					outputFileSync
+						.getCall(3)
+						.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-scoped',
+								'my-path',
+								'other',
+								'index.html'
+							)
+						) > -1
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.secondCall.args[1]),
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-scoped',
+								'expected',
+								'my-path',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.thirdCall.args[1]),
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-scoped',
+								'expected',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(
+						readFileSync(
+							path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-scoped',
+								'expected',
+								'my-path',
+								'other',
+								'index.html'
+							),
+							'utf8'
+						)
+					)
+				);
 			});
 		});
 	});

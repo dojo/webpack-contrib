@@ -129,7 +129,7 @@ export function generateRouteInjectionScript(html: string[], paths: any[], root:
 </script>`;
 }
 
-export function generateBasePath(route = '', scope: string) {
+export function generateBasePath(route = '', scope?: string) {
 	if (scope) {
 		return `<script>
 	if (!window['${scope}']) {

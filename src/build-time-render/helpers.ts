@@ -67,19 +67,23 @@ export async function getClasses(page: any): Promise<String[]> {
 
 export async function setupEnvironment(page: any, base: string, scope?: string): Promise<void> {
 	if (scope) {
-		await page.evaluateOnNewDocument((base: string, scope: string) => {
-			// @ts-ignore
-			window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
-			// @ts-ignore
-			if (!window[scope]) {
+		await page.evaluateOnNewDocument(
+			(base: string, scope: string) => {
 				// @ts-ignore
-				window[scope] = {};
-			}
-			// @ts-ignore
-			window[scope].publicPath = base;
-			// @ts-ignore
-			window[scope].base = base;
-		}, base, scope);
+				window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
+				// @ts-ignore
+				if (!window[scope]) {
+					// @ts-ignore
+					window[scope] = {};
+				}
+				// @ts-ignore
+				window[scope].publicPath = base;
+				// @ts-ignore
+				window[scope].base = base;
+			},
+			base,
+			scope
+		);
 	} else {
 		await page.evaluateOnNewDocument((base: string) => {
 			// @ts-ignore

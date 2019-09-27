@@ -71,6 +71,11 @@ export async function setupEnvironment(page: any, base: string, scope?: string):
 			// @ts-ignore
 			window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
 			// @ts-ignore
+			if (!window[scope]) {
+				// @ts-ignore
+				window[scope] = {};
+			}
+			// @ts-ignore
 			window[scope].publicPath = base;
 			// @ts-ignore
 			window[scope].base = base;

@@ -34,6 +34,6 @@ if (!has.default('dom-pointer-events')) {
 	modules.push(import(/* webpackChunkName: "runtime/pointerEvents" */ '@dojo/framework/shim/pointerEvents'));
 }
 
-export default Promise.all(modules).then(function() {
+module.exports = Promise.all(modules).then(function() {
 	return import(/* webpackChunkName: "main" */ __MAIN_ENTRY);
 });

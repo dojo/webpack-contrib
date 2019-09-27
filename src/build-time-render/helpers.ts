@@ -129,7 +129,14 @@ export function generateRouteInjectionScript(html: string[], paths: any[], root:
 </script>`;
 }
 
-export function generateBasePath(route = '') {
+export function generateBasePath(route = '', scope: string) {
+	if (scope) {
+		return `<script>
+	if (!window['${scope}']) {
+		window['${scope}'].publicPath = window.location.pathname.replace(${new RegExp(`(\/)?${route}(\/)?$`)}, '/');
+	}
+</script>`;
+	}
 	return `<script>
 	window.__public_path__ = window.location.pathname.replace(${new RegExp(`(\/)?${route}(\/)?$`)}, '/');
 </script>`;

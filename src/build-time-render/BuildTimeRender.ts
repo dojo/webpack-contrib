@@ -47,6 +47,7 @@ export interface BuildTimeRenderArguments {
 	puppeteerOptions?: any;
 	basePath: string;
 	baseUrl?: string;
+	scope?: string;
 }
 
 function genHash(content: string): string {
@@ -80,6 +81,7 @@ export default class BuildTimeRender {
 	private _bridgePromises: Promise<any>[] = [];
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;
+	private _scope: string | undefined;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
@@ -397,7 +399,7 @@ ${blockCacheEntry}`
 		const page = await browser.newPage();
 		page.on('error', reportError);
 		page.on('pageerror', reportError);
-		await setupEnvironment(page, this._baseUrl);
+		await setupEnvironment(page, this._baseUrl, this._scope);
 		await page.exposeFunction('__dojoBuildBridge', this._buildBridge.bind(this));
 		return page;
 	}

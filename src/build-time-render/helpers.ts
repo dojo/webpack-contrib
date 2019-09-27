@@ -65,15 +65,26 @@ export async function getClasses(page: any): Promise<String[]> {
 	});
 }
 
-export async function setupEnvironment(page: any, base: string): Promise<void> {
-	await page.evaluateOnNewDocument((base: string) => {
-		// @ts-ignore
-		window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
-		// @ts-ignore
-		window.__public_path__ = base;
-		// @ts-ignore
-		window.__app_base__ = base;
-	}, base);
+export async function setupEnvironment(page: any, base: string, scope?: string): Promise<void> {
+	if (scope) {
+		await page.evaluateOnNewDocument((base: string, scope: string) => {
+			// @ts-ignore
+			window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
+			// @ts-ignore
+			window[scope].publicPath = base;
+			// @ts-ignore
+			window[scope].base = base;
+		}, base, scope);
+	} else {
+		await page.evaluateOnNewDocument((base: string) => {
+			// @ts-ignore
+			window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
+			// @ts-ignore
+			window.__public_path__ = base;
+			// @ts-ignore
+			window.__app_base__ = base;
+		}, base);
+	}
 }
 
 export async function getForSelector(page: any, selector: string) {

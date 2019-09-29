@@ -1,0 +1,13 @@
+<html>
+	<head>
+		<link rel="manifest" href="manifest.json" />
+	<style>.hello{background:red}span{width:100%}.another{background:red}</style></head>
+	<body>
+		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}<img src="https://example.com"><img src="http://example.com"><img src="/image.svg"><img src="./relative-image.svg"><img src="../other-relative-image.svg"></div></div>
+		<script>
+	if (!window['app-scope']) {
+		window['app-scope'].publicPath = window.location.pathname.replace(/(\/)?other(\/)?$/, '/');
+	}
+</script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
+	<link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
+</html>

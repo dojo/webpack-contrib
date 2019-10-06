@@ -24,6 +24,7 @@ global.EventSource = EventSource;
 global.location = {
 	reload: sinon.stub()
 };
+global.addEventListener = sinon.stub();
 
 describe('client', () => {
 	const overlayMock = {

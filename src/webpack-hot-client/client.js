@@ -32,6 +32,7 @@ function EventSourceWrapper() {
 		source.onopen = handleOnline;
 		source.onerror = handleDisconnect;
 		source.onmessage = handleMessage;
+		global.addEventListener('beforeunload', handleDisconnect);
 	}
 
 	function handleOnline() {

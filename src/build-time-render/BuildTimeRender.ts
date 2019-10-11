@@ -48,7 +48,7 @@ export interface BuildTimeRenderArguments {
 	puppeteerOptions?: any;
 	basePath: string;
 	baseUrl?: string;
-	scope?: string;
+	scope: string;
 }
 
 function genHash(content: string): string {
@@ -81,7 +81,7 @@ export default class BuildTimeRender {
 	private _originalRoot!: string;
 	private _blockErrors: Error[] = [];
 	private _hasBuildBridgeCache = false;
-	private _scope: string | undefined;
+	private _scope: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const { paths = [], scope, root = '', entries, useHistory, puppeteerOptions, basePath, baseUrl = '/' } = args;
@@ -470,9 +470,9 @@ ${blockCacheEntry}`
 						pathDirectories.pop();
 						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
 					}
-					let { rendering, blocksPending } = await getRenderHooks(page);
+					let { rendering, blocksPending } = await getRenderHooks(page, this._scope);
 					while (rendering || blocksPending) {
-						({ rendering, blocksPending } = await getRenderHooks(page));
+						({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
 					}
 					const scripts = await getScriptSources(page, app.port);
 					const additionalScripts = scripts.filter(

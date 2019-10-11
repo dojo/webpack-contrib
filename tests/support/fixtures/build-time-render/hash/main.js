@@ -11,5 +11,7 @@
 		div.innerHTML = 'Root';
 	}
 	app.appendChild(div);
-	window.rendering = false;
+	window.test = {
+		rendering: false
+	}
 })();

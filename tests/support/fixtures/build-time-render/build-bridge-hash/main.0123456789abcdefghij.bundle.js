@@ -7,6 +7,8 @@
         div.innerHTML = result;
     });
     app.appendChild(div);
-    window.rendering = false;
+	window.test = {
+		rendering: false
+	}
 })();
 //# sourceMappingURL=main.0123456789abcdefghij.bundle.js.map

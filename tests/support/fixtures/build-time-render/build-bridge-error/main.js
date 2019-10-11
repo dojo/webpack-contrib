@@ -7,7 +7,9 @@
         div.innerHTML = result;
     });
     app.appendChild(div);
-    window.rendering = false;
+	window.test = {
+		rendering: false
+	}
 	throw new Error('runtime error');
 })();
 //# sourceMappingURL=main.js.map

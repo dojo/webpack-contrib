@@ -44,5 +44,7 @@
 	} else {
 		renderDefault();
 	}
-	window.rendering = false;
+	window.test = {
+		rendering: false
+	}
 })();

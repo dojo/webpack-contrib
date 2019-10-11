@@ -5,7 +5,9 @@
 	<body>
 		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}</div></div>
 		<script>
-	window.__public_path__ = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');
+	if (!window['test']) {
+		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');
+	}
 </script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
 	<link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
 </html>

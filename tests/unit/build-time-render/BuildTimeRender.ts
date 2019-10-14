@@ -110,6 +110,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				entries: ['runtime', 'main'],
 				root: 'missing',
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -264,6 +265,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [],
 				entries: ['runtime', 'main'],
 				root: 'app',
@@ -287,6 +289,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [
 					{
 						path: '#my-path'
@@ -314,6 +317,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [],
 				entries: ['runtime', 'main'],
 				puppeteerOptions: { args: ['--no-sandbox'] }
@@ -372,6 +376,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [
 					{
 						path: 'my-path'
@@ -485,6 +490,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [
 					{
 						path: 'my-path'
@@ -627,6 +633,7 @@ describe('build-time-render', () => {
 				fs.existsSync = existsSync;
 				const Btr = mockModule.getModuleUnderTest().default;
 				const btr = new Btr({
+					basePath: '',
 					paths: [
 						{
 							path: 'my-path'
@@ -772,6 +779,7 @@ describe('build-time-render', () => {
 				fs.existsSync = existsSync;
 				const Btr = mockModule.getModuleUnderTest().default;
 				const btr = new Btr({
+					basePath: '',
 					paths: [
 						{
 							path: 'my-path',
@@ -924,6 +932,7 @@ describe('build-time-render', () => {
 				fs.existsSync = existsSync;
 				const Btr = mockModule.getModuleUnderTest().default;
 				const btr = new Btr({
+					basePath: '',
 					static: true,
 					entries: ['runtime', 'main'],
 					root: 'app',
@@ -991,6 +1000,7 @@ describe('build-time-render', () => {
 			fs.existsSync = existsSync;
 			const Btr = mockModule.getModuleUnderTest().default;
 			const btr = new Btr({
+				basePath: '',
 				paths: [
 					{
 						path: 'my-path'

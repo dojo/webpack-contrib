@@ -72,6 +72,11 @@ describe('css-module-dts-loader', () => {
 		mockUtils.getOptions = sandbox.stub();
 		mockFs = mockModule.getMock('fs');
 		mockFs.statSync = sandbox.stub().returns({ mtime: dateNow });
+		mockFs.existsSync = sandbox.stub().returns(true);
+		mockFs.readFileSync = sandbox
+			.stub()
+			.withArgs(resourcePath)
+			.returns(cssContent);
 		mockInstances = mockModule.getMock('ts-loader/dist/instances');
 		instance = getInstance();
 		mockInstances.getTypeScriptInstance = sandbox.stub().returns({ instance });

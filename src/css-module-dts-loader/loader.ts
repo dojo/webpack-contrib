@@ -1,4 +1,4 @@
-import { statSync } from 'fs';
+import { statSync, readFileSync, existsSync } from 'fs';
 import { dirname } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import * as webpack from 'webpack';
@@ -8,6 +8,7 @@ const instances = require('ts-loader/dist/instances');
 
 type DtsResult = {
 	writeFile(): Promise<void>;
+	formatted: string;
 };
 
 type DtsCreatorInstance = {
@@ -23,6 +24,7 @@ type LoaderArgs = {
 const creator: DtsCreatorInstance = new DtsCreator();
 
 const mTimeMap = new Map<string, Date>();
+const cssMap = new Map<string, string>();
 
 function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<void> {
 	return Promise.resolve().then(() => {
@@ -33,8 +35,23 @@ function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<vo
 		const lastMTime = mTimeMap.get(filePath);
 
 		if (!lastMTime || mtime > lastMTime) {
+			const newCss = existsSync(filePath) ? readFileSync(filePath, 'utf-8') : '';
+
+			const dtsFilePath = `${filePath}.d.ts`;
+			const definition = existsSync(dtsFilePath) ? readFileSync(dtsFilePath, 'utf-8') : '';
+
+			const css = cssMap.get(filePath) || '';
 			mTimeMap.set(filePath, mtime);
-			return creator.create(filePath, false, true).then((content) => content.writeFile());
+
+			if (newCss !== css) {
+				return creator.create(filePath, false, true).then((content) => {
+					cssMap.set(filePath, newCss);
+					const newDefinition = content.formatted;
+					if (newDefinition !== definition) {
+						return content.writeFile();
+					}
+				});
+			}
 		}
 	});
 }

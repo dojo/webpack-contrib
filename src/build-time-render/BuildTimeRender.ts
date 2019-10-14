@@ -1,7 +1,7 @@
 import { Compiler } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync } from 'fs-extra';
 
-import { join } from 'path';
+import { join, resolve } from 'path';
 import {
 	serve,
 	getClasses,
@@ -459,7 +459,7 @@ ${blockCacheEntry}`
 				})
 				.map((key) => this._manifest[key]);
 
-			clearModule.all();
+			clearModule.match(new RegExp(`${resolve(this._basePath, 'src')}.*`));
 			const browser = await puppeteer.launch(this._puppeteerOptions);
 			const app = await serve(`${this._output}`, this._baseUrl);
 			try {

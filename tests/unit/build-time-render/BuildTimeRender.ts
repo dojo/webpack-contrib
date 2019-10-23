@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'fs-extra';
 import * as path from 'path';
 import { stub } from 'sinon';
 import MockModule from '../../support/MockModule';
+import { BuildTimeRenderArguments } from '../../../src/build-time-render/BuildTimeRender';
 
 const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
@@ -15,6 +16,12 @@ const tapStub = (name: string, cb: Function) => {
 	pluginRegistered = true;
 	runBtr = cb;
 };
+
+function getBuildTimeRenderModule(): {
+	new (options: BuildTimeRenderArguments): any;
+} {
+	return mockModule.getModuleUnderTest().default;
+}
 
 function normalise(value: string) {
 	return value.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
@@ -108,12 +115,13 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				entries: ['runtime', 'main'],
 				root: 'missing',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -134,14 +142,15 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
 			const btr = new Btr({
 				basePath,
 				paths: [],
 				entries: ['bootstrap', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -176,14 +185,15 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
 			const btr = new Btr({
 				basePath,
 				paths: [],
 				entries: ['bootstrap', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -239,13 +249,14 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
 			const btr = new Btr({
 				basePath,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -263,13 +274,14 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				paths: [],
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -287,7 +299,7 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				paths: [
@@ -297,7 +309,8 @@ describe('build-time-render', () => {
 				],
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -315,13 +328,14 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				paths: [],
 				entries: ['runtime', 'main'],
-				puppeteerOptions: { args: ['--no-sandbox'] }
-			});
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
+			} as any);
 			btr.apply(compiler);
 			assert.isFalse(pluginRegistered);
 		});
@@ -332,12 +346,14 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
+				basePath: '',
 				paths: [],
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply({ ...compiler, options: {} });
 			assert.isTrue(pluginRegistered);
@@ -374,7 +390,7 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				paths: [
@@ -386,7 +402,8 @@ describe('build-time-render', () => {
 				],
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -488,7 +505,7 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const btr = new Btr({
 				basePath: '',
 				paths: [
@@ -501,7 +518,8 @@ describe('build-time-render', () => {
 				useHistory: true,
 				entries: ['runtime', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -631,7 +649,7 @@ describe('build-time-render', () => {
 				fs.outputFileSync = outputFileSync;
 				fs.readFileSync = readFileSync;
 				fs.existsSync = existsSync;
-				const Btr = mockModule.getModuleUnderTest().default;
+				const Btr = getBuildTimeRenderModule();
 				const btr = new Btr({
 					basePath: '',
 					paths: [
@@ -644,7 +662,8 @@ describe('build-time-render', () => {
 					static: true,
 					entries: ['runtime', 'main'],
 					root: 'app',
-					puppeteerOptions: { args: ['--no-sandbox'] }
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -777,7 +796,7 @@ describe('build-time-render', () => {
 				fs.outputFileSync = outputFileSync;
 				fs.readFileSync = readFileSync;
 				fs.existsSync = existsSync;
-				const Btr = mockModule.getModuleUnderTest().default;
+				const Btr = getBuildTimeRenderModule();
 				const btr = new Btr({
 					basePath: '',
 					paths: [
@@ -790,7 +809,8 @@ describe('build-time-render', () => {
 					],
 					entries: ['runtime', 'main'],
 					root: 'app',
-					puppeteerOptions: { args: ['--no-sandbox'] }
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -930,13 +950,14 @@ describe('build-time-render', () => {
 				fs.outputFileSync = outputFileSync;
 				fs.readFileSync = readFileSync;
 				fs.existsSync = existsSync;
-				const Btr = mockModule.getModuleUnderTest().default;
+				const Btr = getBuildTimeRenderModule();
 				const btr = new Btr({
 					basePath: '',
 					static: true,
 					entries: ['runtime', 'main'],
 					root: 'app',
-					puppeteerOptions: { args: ['--no-sandbox'] }
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -972,142 +993,6 @@ describe('build-time-render', () => {
 		});
 	});
 
-	describe('application scope', () => {
-		beforeEach(() => {
-			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-scoped');
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: outputPath
-					}
-				}
-			};
-		});
-
-		it('Should use application scope', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
-			const btr = new Btr({
-				basePath: '',
-				paths: [
-					{
-						path: 'my-path'
-					},
-					'other',
-					'my-path/other'
-				],
-				entries: ['runtime', 'main'],
-				root: 'app',
-				scope: 'app-scope',
-				puppeteerOptions: { args: ['--no-sandbox'] }
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('state-scoped'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.strictEqual(outputFileSync.callCount, 4);
-				assert.isTrue(
-					outputFileSync.secondCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state-scoped', 'my-path', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync.thirdCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state-scoped', 'other', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync
-						.getCall(3)
-						.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-scoped',
-								'my-path',
-								'other',
-								'index.html'
-							)
-						) > -1
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.secondCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-scoped',
-								'expected',
-								'my-path',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.thirdCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-scoped',
-								'expected',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.getCall(3).args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-scoped',
-								'expected',
-								'my-path',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-			});
-		});
-	});
-
 	describe('build bridge', () => {
 		it('should call node module, return result to render in html, and write to cache in bundle', () => {
 			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
@@ -1132,14 +1017,15 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
 			const btr = new Btr({
 				basePath,
 				paths: [],
 				entries: ['bootstrap', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -1218,14 +1104,15 @@ describe('build-time-render', () => {
 			fs.outputFileSync = outputFileSync;
 			fs.readFileSync = readFileSync;
 			fs.existsSync = existsSync;
-			const Btr = mockModule.getModuleUnderTest().default;
+			const Btr = getBuildTimeRenderModule();
 			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
 			const btr = new Btr({
 				basePath,
 				paths: [],
 				entries: ['bootstrap', 'main'],
 				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] }
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test'
 			});
 			btr.apply(compiler);
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];

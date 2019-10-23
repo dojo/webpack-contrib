@@ -65,35 +65,36 @@ export async function getClasses(page: any): Promise<String[]> {
 	});
 }
 
-export async function setupEnvironment(page: any, base: string, scope?: string): Promise<void> {
-	if (scope) {
-		await page.evaluateOnNewDocument(
-			(base: string, scope: string) => {
-				// @ts-ignore
-				window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
-				// @ts-ignore
-				if (!window[scope]) {
-					// @ts-ignore
-					window[scope] = {};
-				}
-				// @ts-ignore
-				window[scope].publicPath = base;
-				// @ts-ignore
-				window[scope].base = base;
-			},
-			base,
-			scope
-		);
-	} else {
-		await page.evaluateOnNewDocument((base: string) => {
+export async function setupEnvironment(page: any, base: string, scope: string): Promise<void> {
+	await page.evaluateOnNewDocument(
+		(base: string, scope: string) => {
 			// @ts-ignore
 			window.DojoHasEnvironment = { staticFeatures: { 'build-time-render': true } };
 			// @ts-ignore
-			window.__public_path__ = base;
+			if (!window[scope]) {
+				// @ts-ignore
+				window[scope] = {};
+			}
 			// @ts-ignore
-			window.__app_base__ = base;
-		}, base);
-	}
+			window[scope].publicPath = base;
+			// @ts-ignore
+			window[scope].base = base;
+		},
+		base,
+		scope
+	);
+}
+
+export async function getRenderHooks(page: any, scope: string): Promise<any> {
+	return await page.evaluate((scope: string) => {
+		const dojoGlobal = (window as any)[scope] || {};
+		const { rendering = true, blocksPending } = dojoGlobal;
+
+		return {
+			rendering,
+			blocksPending
+		};
+	}, scope);
 }
 
 export async function getForSelector(page: any, selector: string) {
@@ -129,16 +130,11 @@ export function generateRouteInjectionScript(html: string[], paths: any[], root:
 </script>`;
 }
 
-export function generateBasePath(route = '', scope?: string) {
-	if (scope) {
-		return `<script>
+export function generateBasePath(route = '', scope: string) {
+	return `<script>
 	if (!window['${scope}']) {
 		window['${scope}'].publicPath = window.location.pathname.replace(${new RegExp(`(\/)?${route}(\/)?$`)}, '/');
 	}
-</script>`;
-	}
-	return `<script>
-	window.__public_path__ = window.location.pathname.replace(${new RegExp(`(\/)?${route}(\/)?$`)}, '/');
 </script>`;
 }
 

@@ -24,4 +24,7 @@
 
 	imgFive.setAttribute('src', '../other-relative-image.svg');
 	div.appendChild(imgFive);
+	window.test = {
+		rendering: false
+	}
 })();

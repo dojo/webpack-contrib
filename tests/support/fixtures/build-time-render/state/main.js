@@ -49,4 +49,7 @@
 	} else {
 		renderDefault();
 	}
+	window.test = {
+		rendering: false
+	}
 })();

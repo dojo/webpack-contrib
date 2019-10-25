@@ -10,16 +10,12 @@ export default (renderer: Renderer = 'puppeteer') => {
 	}
 	return {
 		launch: (options: any) => {
-			let timeout: number;
-			let callback = () => {};
 			class CustomResourceLoader extends ResourceLoader {
 				fetch(url: string, options: any) {
 					if (options.element && options.element.localName === 'iframe') {
 						return null;
 					}
-					clearTimeout(timeout);
-					timeout = setTimeout(() => callback(), 500) as any;
-					return super.fetch(url, options);
+					return super.fetch(url.replace(/#.*/, ''), options);
 				}
 			}
 			return Promise.resolve({
@@ -30,12 +26,16 @@ export default (renderer: Renderer = 'puppeteer') => {
 					const beforeParseFuncs: any[] = [];
 					let window: any;
 					return {
-						evaluate: (func: () => any) => {
-							return Promise.resolve(window.eval(`(${func.toString()})()`));
+						evaluate: (func: () => any, ...args: any[]) => {
+							return new Promise((resolve) => {
+								setTimeout(() => {
+									resolve(window.eval(`(${func.toString()})('${args.join(`','`)}')`));
+								}, 0);
+							});
 						},
-						evaluateOnNewDocument: (func: () => any) => {
+						evaluateOnNewDocument: (func: () => any, ...args: any[]) => {
 							beforeParseFuncs.push((window: any) => {
-								window.eval(`(${func.toString()})()`);
+								window.eval(`(${func.toString()})('${args.join(`','`)}')`);
 							});
 							return Promise.resolve();
 						},
@@ -72,11 +72,6 @@ export default (renderer: Renderer = 'puppeteer') => {
 						exposeFunction: (name: string, func: () => any) => {
 							beforeParseFuncs.push((window: any) => {
 								window[name] = func;
-							});
-						},
-						waitForNavigation: () => {
-							return new Promise((resolve) => {
-								callback = resolve;
 							});
 						},
 						screenshot: () => {

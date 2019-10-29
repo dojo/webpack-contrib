@@ -101,6 +101,17 @@ export async function getForSelector(page: any, selector: string) {
 	return page.$eval(selector, (element: Element) => element.outerHTML);
 }
 
+export async function getPageLinks(page: any) {
+	let links: string[] = await page.$$eval('a', (links: HTMLAnchorElement[]) =>
+		links.map((link) => {
+			const href = link.getAttribute('href') || '';
+			return href.replace(/#.*/, '');
+		})
+	);
+	links = [...new Set(links.filter((link) => /^http(s)?:\/\//.test(link) === false))];
+	return links;
+}
+
 export async function getScriptSources(page: any, port: number): Promise<string[]> {
 	const scripts: string[] = await page.$$eval('script', (elements: HTMLScriptElement[]) =>
 		elements.map((element) => element.src)

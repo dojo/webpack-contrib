@@ -32,6 +32,7 @@ const callbackStub = stub();
 const createCompilation = (
 	type:
 		| 'state'
+		| 'state-auto-discovery'
 		| 'state-scoped'
 		| 'state-static'
 		| 'state-static-per-path'
@@ -625,6 +626,152 @@ describe('build-time-render', () => {
 									'fixtures',
 									'build-time-render',
 									'state',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+				});
+			});
+
+			it('should auto discover paths to build from each rendered page', () => {
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery'
+							)
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					useHistory: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery',
+								'my-path',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery',
+								'other',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
 									'expected',
 									'my-path',
 									'other',
@@ -1628,6 +1775,234 @@ describe('build-time-render', () => {
 									'state',
 									'expected',
 									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+				});
+			});
+
+			it('should auto discover paths to build from each rendered page', () => {
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery'
+							)
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					useHistory: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery',
+								'my-path',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery',
+								'other',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+				});
+			});
+
+			it('should not auto discover paths when option set to false', () => {
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery'
+							)
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					useHistory: true,
+					paths: ['other'],
+					discoverPaths: false,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 2);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery',
+								'other',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery',
+									'expected',
 									'other',
 									'index.html'
 								),

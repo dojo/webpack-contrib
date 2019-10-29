@@ -11,7 +11,8 @@ import {
 	getForSelector,
 	setupEnvironment,
 	getPageStyles,
-	getRenderHooks
+	getRenderHooks,
+	getPageLinks
 } from './helpers';
 
 import renderer, { Renderer } from './Renderer';
@@ -51,6 +52,7 @@ export interface BuildTimeRenderArguments {
 	baseUrl?: string;
 	scope: string;
 	renderer?: Renderer;
+	discoverPaths?: boolean;
 }
 
 function genHash(content: string): string {
@@ -71,7 +73,7 @@ export default class BuildTimeRender {
 	private _buildBridgeResult: any = {};
 	private _output?: string;
 	private _jsonpName?: string;
-	private _paths: any[];
+	private _paths: (BuildTimePath | string)[];
 	private _static = false;
 	private _puppeteerOptions: any;
 	private _root: string;
@@ -85,6 +87,7 @@ export default class BuildTimeRender {
 	private _hasBuildBridgeCache = false;
 	private _scope: string;
 	private _renderer: Renderer;
+	private _discoverPaths: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -96,7 +99,8 @@ export default class BuildTimeRender {
 			puppeteerOptions,
 			basePath,
 			baseUrl = '/',
-			renderer = 'puppeteer'
+			renderer = 'puppeteer',
+			discoverPaths = true
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -110,6 +114,7 @@ export default class BuildTimeRender {
 			this._baseUrl = `/${this._baseUrl}`;
 		}
 		this._renderer = renderer;
+		this._discoverPaths = discoverPaths;
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = ['', ...paths];
 		this._root = root;
@@ -474,12 +479,15 @@ ${blockCacheEntry}`
 				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
 				ensureDirSync(screenshotDirectory);
 				let renderResults: RenderResult[] = [];
+				let paths = [...this._paths];
+				let registeredPaths = paths.map((path) => (typeof path === 'object' ? path.path : path));
+				let path: BuildTimePath | string | undefined;
 
-				for (let i = 0; i < this._paths.length; i++) {
-					let path = typeof this._paths[i] === 'object' ? this._paths[i].path : this._paths[i];
+				while ((path = paths.shift()) != null) {
+					let parsedPath = typeof path === 'object' ? path.path : path;
 					let page = await this._createPage(browser);
-					await page.goto(`http://localhost:${app.port}${this._baseUrl}${path}`);
-					const pathDirectories = path.replace('#', '').split('/');
+					await page.goto(`http://localhost:${app.port}${this._baseUrl}${parsedPath}`);
+					const pathDirectories = parsedPath.replace('#', '').split('/');
 					if (pathDirectories.length > 0) {
 						pathDirectories.pop();
 						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
@@ -497,9 +505,18 @@ ${blockCacheEntry}`
 					);
 					const blockScripts = this._writeBuildBridgeCache(scripts);
 					await page.screenshot({
-						path: join(screenshotDirectory, `${path ? path.replace('#', '') : 'default'}.png`)
+						path: join(screenshotDirectory, `${parsedPath ? parsedPath.replace('#', '') : 'default'}.png`)
 					});
-					let result = await this._getRenderResult(page, this._paths[i]);
+					if (this._discoverPaths) {
+						const links = await getPageLinks(page);
+						for (let i = 0; i < links.length; i++) {
+							if (registeredPaths.indexOf(links[i]) === -1) {
+								paths.push(links[i]);
+								registeredPaths.push(links[i]);
+							}
+						}
+					}
+					let result = await this._getRenderResult(page, path);
 					result.blockScripts = blockScripts;
 					result.additionalScripts = additionalScripts;
 					result.additionalCss = additionalCss;

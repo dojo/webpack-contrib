@@ -4,7 +4,7 @@ import { stub } from 'sinon';
 import MockModule from '../../support/MockModule';
 import { BuildTimeRenderArguments } from '../../../src/build-time-render/BuildTimeRender';
 
-const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
+const { afterEach, beforeEach, describe, it, before, after } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 let mockModule: MockModule;
@@ -64,6 +64,18 @@ const createCompilation = (
 let normalModuleReplacementPluginStub: any;
 
 describe('build-time-render', () => {
+	let originalWindow: any;
+	let originalDocument: any;
+	before(() => {
+		originalWindow = (global as any).window;
+		originalDocument = (global as any).document;
+	});
+
+	after(() => {
+		(global as any).window = originalWindow;
+		(global as any).document = originalDocument;
+	});
+
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/BuildTimeRender', require);
 		mockModule.dependencies(['fs-extra', 'webpack']);
@@ -81,541 +93,8 @@ describe('build-time-render', () => {
 		runBtr = () => {};
 	});
 
-	describe('errors', () => {
-		beforeEach(() => {
-			outputPath = path.join(
-				__dirname,
-				'..',
-				'..',
-				'support',
-				'fixtures',
-				'build-time-render',
-				'build-bridge-error'
-			);
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: outputPath
-					}
-				}
-			};
-		});
-
-		it('should report an error if the root node is not in the index.html', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				entries: ['runtime', 'main'],
-				root: 'missing',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			const compilation = createCompilation('build-bridge-error');
-			return runBtr(compilation, callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 1);
-				assert.strictEqual(
-					compilation.errors[0].message,
-					'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
-				);
-			});
-		});
-
-		it('should report errors from running build bridge', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
-			const btr = new Btr({
-				basePath,
-				paths: [],
-				entries: ['bootstrap', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
-			const resource = {
-				context: `${basePath}/foo/bar`,
-				request: `something.build.js`,
-				contextInfo: {
-					issuer: 'foo'
-				}
-			};
-			callback(resource);
-			assert.equal(
-				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
-			);
-			const compilation = createCompilation('build-bridge-error');
-			return runBtr(compilation, callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 2);
-				assert.strictEqual(compilation.errors[0].message, 'Block error');
-				assert.include(
-					compilation.errors[1].message,
-					'BTR runtime Error: runtime error\n    at main (http://localhost'
-				);
-			});
-		});
-
-		it('should capture errors during build time rendering', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			outputFileSync.throws(() => new Error('Test Error'));
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
-			const btr = new Btr({
-				basePath,
-				paths: [],
-				entries: ['bootstrap', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
-			const resource = {
-				context: `${basePath}/foo/bar`,
-				request: `something.build.js`,
-				contextInfo: {
-					issuer: 'foo'
-				}
-			};
-			callback(resource);
-			assert.equal(
-				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
-			);
-			const compilation = createCompilation('build-bridge-error');
-			return runBtr(compilation, callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.lengthOf(compilation.errors, 3);
-				assert.strictEqual(compilation.errors[0].message, 'Block error');
-				assert.include(
-					compilation.errors[1].message,
-					'BTR runtime Error: runtime error\n    at main (http://localhost'
-				);
-				assert.strictEqual(compilation.errors[2].message, 'Test Error');
-			});
-		});
-	});
-
-	describe('hash history', () => {
-		beforeEach(() => {
-			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'hash');
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: outputPath
-					}
-				}
-			};
-		});
-
-		it('should inject btr using entry names', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-error');
-			const btr = new Btr({
-				basePath,
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('hash'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
-				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(normalise(actual), normalise(expected));
-			});
-		});
-
-		it('should inject btr using manifest to map', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [],
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('hash'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
-				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(normalise(actual), normalise(expected));
-			});
-		});
-
-		it('should inject btr for paths specified', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [
-					{
-						path: '#my-path'
-					}
-				],
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('hash'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
-				const actual = outputFileSync.firstCall.args[1];
-				assert.strictEqual(normalise(actual), normalise(expected));
-			});
-		});
-
-		it('should not inject btr when missing root', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [],
-				entries: ['runtime', 'main'],
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			} as any);
-			btr.apply(compiler);
-			assert.isFalse(pluginRegistered);
-		});
-
-		it('should not inject btr when no output path can be found', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [],
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply({ ...compiler, options: {} });
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('hash'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.isTrue(outputFileSync.notCalled);
-			});
-		});
-	});
-
-	describe('history api', () => {
-		beforeEach(() => {
-			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state');
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: outputPath
-					}
-				}
-			};
-		});
-
-		it('should auto detect history routing and statically build an index file for each route', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [
-					{
-						path: 'my-path'
-					},
-					'other',
-					'my-path/other'
-				],
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('state'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.strictEqual(outputFileSync.callCount, 4);
-				assert.isTrue(
-					outputFileSync.secondCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync.thirdCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync
-						.getCall(3)
-						.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'my-path',
-								'other',
-								'index.html'
-							)
-						) > -1
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.secondCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'my-path',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.thirdCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.getCall(3).args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'my-path',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-			});
-		});
-
-		it('should statically build an index file for each route', () => {
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				paths: [
-					{
-						path: 'my-path'
-					},
-					'other',
-					'my-path/other'
-				],
-				useHistory: true,
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			return runBtr(createCompilation('state'), callbackStub).then(() => {
-				assert.isTrue(callbackStub.calledOnce);
-				assert.strictEqual(outputFileSync.callCount, 4);
-				assert.isTrue(
-					outputFileSync.secondCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync.thirdCall.args[0].indexOf(
-						path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-					) > -1
-				);
-				assert.isTrue(
-					outputFileSync
-						.getCall(3)
-						.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'my-path',
-								'other',
-								'index.html'
-							)
-						) > -1
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.secondCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'my-path',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.thirdCall.args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-				assert.strictEqual(
-					normalise(outputFileSync.getCall(3).args[1]),
-					normalise(
-						readFileSync(
-							path.join(
-								__dirname,
-								'..',
-								'..',
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state',
-								'expected',
-								'my-path',
-								'other',
-								'index.html'
-							),
-							'utf8'
-						)
-					)
-				);
-			});
-		});
-
-		describe('static', () => {
+	describe('puppeteer', () => {
+		describe('errors', () => {
 			beforeEach(() => {
 				outputPath = path.join(
 					__dirname,
@@ -624,7 +103,7 @@ describe('build-time-render', () => {
 					'support',
 					'fixtures',
 					'build-time-render',
-					'state-static'
+					'build-bridge-error'
 				);
 				compiler = {
 					hooks: {
@@ -643,7 +122,291 @@ describe('build-time-render', () => {
 				};
 			});
 
-			it('should create index files for each route without js and css', () => {
+			it('should report an error if the root node is not in the index.html', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					entries: ['runtime', 'main'],
+					root: 'missing',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				const compilation = createCompilation('build-bridge-error');
+				return runBtr(compilation, callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.lengthOf(compilation.errors, 1);
+					assert.strictEqual(
+						compilation.errors[0].message,
+						'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
+					);
+				});
+			});
+
+			it('should report errors from running build bridge', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(
+					process.cwd(),
+					'tests/support/fixtures/build-time-render/build-bridge-error'
+				);
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				);
+				const compilation = createCompilation('build-bridge-error');
+				return runBtr(compilation, callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.lengthOf(compilation.errors, 2);
+					assert.strictEqual(compilation.errors[0].message, 'Block error');
+					assert.include(
+						compilation.errors[1].message,
+						'BTR runtime Error: runtime error\n    at main (http://localhost'
+					);
+				});
+			});
+
+			it('should capture errors during build time rendering', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				outputFileSync.throws(() => new Error('Test Error'));
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(
+					process.cwd(),
+					'tests/support/fixtures/build-time-render/build-bridge-error'
+				);
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				);
+				const compilation = createCompilation('build-bridge-error');
+				return runBtr(compilation, callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.lengthOf(compilation.errors, 3);
+					assert.strictEqual(compilation.errors[0].message, 'Block error');
+					assert.include(
+						compilation.errors[1].message,
+						'BTR runtime Error: runtime error\n    at main (http://localhost'
+					);
+					assert.strictEqual(compilation.errors[2].message, 'Test Error');
+				});
+			});
+		});
+
+		describe('hash history', () => {
+			beforeEach(() => {
+				outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'hash');
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath
+						}
+					}
+				};
+			});
+
+			it('should inject btr using entry names', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(
+					process.cwd(),
+					'tests/support/fixtures/build-time-render/build-bridge-error'
+				);
+				const btr = new Btr({
+					basePath,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should inject btr using manifest to map', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should inject btr for paths specified', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [
+						{
+							path: '#my-path'
+						}
+					],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should not inject btr when missing root', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [],
+					entries: ['runtime', 'main'],
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				} as any);
+				btr.apply(compiler);
+				assert.isFalse(pluginRegistered);
+			});
+
+			it('should not inject btr when no output path can be found', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply({ ...compiler, options: {} });
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.isTrue(outputFileSync.notCalled);
+				});
+			});
+		});
+
+		describe('history api', () => {
+			beforeEach(() => {
+				outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state');
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath
+						}
+					}
+				};
+			});
+
+			it('should auto detect history routing and statically build an index file for each route', () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -659,7 +422,6 @@ describe('build-time-render', () => {
 						'other',
 						'my-path/other'
 					],
-					static: true,
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
@@ -667,24 +429,17 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-static'), callbackStub).then(() => {
+				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
 					assert.strictEqual(outputFileSync.callCount, 4);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-static',
-								'my-path',
-								'index.html'
-							)
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 						) > -1
 					);
 					assert.isTrue(
 						outputFileSync.thirdCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state-static', 'other', 'index.html')
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
 						) > -1
 					);
 					assert.isTrue(
@@ -695,7 +450,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static',
+									'state',
 									'my-path',
 									'other',
 									'index.html'
@@ -713,7 +468,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static',
+									'state',
 									'expected',
 									'my-path',
 									'index.html'
@@ -733,7 +488,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static',
+									'state',
 									'expected',
 									'other',
 									'index.html'
@@ -753,7 +508,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static',
+									'state',
 									'expected',
 									'my-path',
 									'other',
@@ -766,31 +521,7 @@ describe('build-time-render', () => {
 				});
 			});
 
-			it('should create index files for specified routes without js and css', () => {
-				outputPath = path.join(
-					__dirname,
-					'..',
-					'..',
-					'support',
-					'fixtures',
-					'build-time-render',
-					'state-static-per-path'
-				);
-				compiler = {
-					hooks: {
-						afterEmit: {
-							tapAsync: tapStub
-						},
-						normalModuleFactory: {
-							tap: stub()
-						}
-					},
-					options: {
-						output: {
-							path: outputPath
-						}
-					}
-				};
+			it('should statically build an index file for each route', () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -801,12 +532,12 @@ describe('build-time-render', () => {
 					basePath: '',
 					paths: [
 						{
-							path: 'my-path',
-							static: true
+							path: 'my-path'
 						},
 						'other',
 						'my-path/other'
 					],
+					useHistory: true,
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
@@ -814,31 +545,17 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
+				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
 					assert.strictEqual(outputFileSync.callCount, 4);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-static-per-path',
-								'my-path',
-								'index.html'
-							)
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 						) > -1
 					);
 					assert.isTrue(
 						outputFileSync.thirdCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-static-per-path',
-								'other',
-								'index.html'
-							)
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
 						) > -1
 					);
 					assert.isTrue(
@@ -849,7 +566,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static-per-path',
+									'state',
 									'my-path',
 									'other',
 									'index.html'
@@ -867,7 +584,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static-per-path',
+									'state',
 									'expected',
 									'my-path',
 									'index.html'
@@ -887,7 +604,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static-per-path',
+									'state',
 									'expected',
 									'other',
 									'index.html'
@@ -907,7 +624,7 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static-per-path',
+									'state',
 									'expected',
 									'my-path',
 									'other',
@@ -920,7 +637,399 @@ describe('build-time-render', () => {
 				});
 			});
 
-			it('should create index without js and css even with no paths', () => {
+			describe('static', () => {
+				beforeEach(() => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+				});
+
+				it('should create index files for each route without js and css', () => {
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						paths: [
+							{
+								path: 'my-path'
+							},
+							'other',
+							'my-path/other'
+						],
+						static: true,
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.isTrue(
+							outputFileSync.secondCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'my-path',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync.thirdCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'other',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync
+								.getCall(3)
+								.args[0].indexOf(
+									path.join(
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'my-path',
+										'other',
+										'index.html'
+									)
+								) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.secondCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'my-path',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.thirdCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.getCall(3).args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'my-path',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
+
+				it('should create index files for specified routes without js and css', () => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static-per-path'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						paths: [
+							{
+								path: 'my-path',
+								static: true
+							},
+							'other',
+							'my-path/other'
+						],
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.isTrue(
+							outputFileSync.secondCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'my-path',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync.thirdCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync
+								.getCall(3)
+								.args[0].indexOf(
+									path.join(
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'my-path',
+										'other',
+										'index.html'
+									)
+								) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.secondCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'my-path',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.thirdCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.getCall(3).args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'my-path',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
+
+				it('should create index without js and css even with no paths', () => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static-no-paths'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						static: true,
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 1);
+						assert.isTrue(
+							outputFileSync.firstCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-no-paths',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.firstCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-no-paths',
+										'expected',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
+			});
+		});
+
+		describe('build bridge', () => {
+			it('should call node module, return result to render in html, and write to cache in bundle', () => {
 				outputPath = path.join(
 					__dirname,
 					'..',
@@ -928,8 +1037,208 @@ describe('build-time-render', () => {
 					'support',
 					'fixtures',
 					'build-time-render',
-					'state-static-no-paths'
+					'build-bridge'
 				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				);
+				return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let blocks = '';
+					let block = '';
+					calls.map((call) => {
+						const [filename, content] = call.args;
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/blocks\.js$/)) {
+							blocks = content;
+						}
+						if (filename.match(/block-.*\.js$/)) {
+							block = content;
+						}
+					});
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(blocks),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(block),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
+					);
+				});
+			});
+
+			it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'build-bridge-hash'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test'
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let blocks = '';
+					let blocksFileName = '';
+					let block = '';
+					let blockFilename;
+					let originalManifest = '';
+					let manifest = '';
+					let bootstrap = '';
+					let bootstrapFilename = '';
+					calls.forEach((call) => {
+						const [filename, content] = call.args;
+						const parsedFilename = path.parse(filename);
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/blocks\..*\.bundle\.js$/)) {
+							blocks = content;
+							blocksFileName = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/block-.*\.js$/)) {
+							block = content;
+							blockFilename = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/bootstrap\..*\.bundle\.js$/)) {
+							bootstrap = content;
+							bootstrapFilename = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/manifest\.original\.json$/)) {
+							originalManifest = content;
+						}
+						if (filename.match(/manifest\.json$/)) {
+							manifest = content;
+						}
+					});
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
+					assert.strictEqual(
+						normalise(bootstrap),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
+					);
+					assert.strictEqual(blocksFileName, 'blocks.abcdefghij0123456789.bundle.js');
+					assert.strictEqual(
+						normalise(blocks),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+					);
+					assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.9eba5eaa6f8cfe7b34e3.bundle.js');
+					assert.strictEqual(
+						normalise(block),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(originalManifest),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.original.json'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(manifest),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
+					);
+				});
+			});
+		});
+	});
+
+	describe('jsdom', () => {
+		describe('hash history', () => {
+			beforeEach(() => {
+				outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'hash');
 				compiler = {
 					hooks: {
 						afterEmit: {
@@ -945,6 +1254,38 @@ describe('build-time-render', () => {
 						}
 					}
 				};
+			});
+
+			it('should inject btr using entry names', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(
+					process.cwd(),
+					'tests/support/fixtures/build-time-render/build-bridge-error'
+				);
+				const btr = new Btr({
+					basePath,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should inject btr using manifest to map', () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -953,24 +1294,171 @@ describe('build-time-render', () => {
 				const Btr = getBuildTimeRenderModule();
 				const btr = new Btr({
 					basePath: '',
-					static: true,
+					paths: [],
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'jsdom'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 1);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should inject btr for paths specified', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [
+						{
+							path: '#my-path'
+						}
+					],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					const expected = readFileSync(path.join(outputPath, 'expected', 'indexWithPaths.html'), 'utf-8');
+					const actual = outputFileSync.firstCall.args[1];
+					assert.strictEqual(normalise(actual), normalise(expected));
+				});
+			});
+
+			it('should not inject btr when missing root', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [],
+					entries: ['runtime', 'main'],
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				} as any);
+				btr.apply(compiler);
+				assert.isFalse(pluginRegistered);
+			});
+
+			it('should not inject btr when no output path can be found', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply({ ...compiler, options: {} });
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('hash'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.isTrue(outputFileSync.notCalled);
+				});
+			});
+		});
+
+		describe('history api', () => {
+			beforeEach(() => {
+				outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state');
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath
+						}
+					}
+				};
+			});
+
+			it('should auto detect history routing and statically build an index file for each route', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [
+						{
+							path: 'my-path'
+						},
+						'other',
+						'my-path/other'
+					],
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 4);
 					assert.isTrue(
-						outputFileSync.firstCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state-static-no-paths', 'index.html')
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
 						) > -1
 					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
 					assert.strictEqual(
-						normalise(outputFileSync.firstCall.args[1]),
+						normalise(outputFileSync.secondCall.args[1]),
 						normalise(
 							readFileSync(
 								path.join(
@@ -980,8 +1468,50 @@ describe('build-time-render', () => {
 									'support',
 									'fixtures',
 									'build-time-render',
-									'state-static-no-paths',
+									'state',
 									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'expected',
+									'my-path',
+									'other',
 									'index.html'
 								),
 								'utf8'
@@ -990,203 +1520,723 @@ describe('build-time-render', () => {
 					);
 				});
 			});
-		});
-	});
 
-	describe('build bridge', () => {
-		it('should call node module, return result to render in html, and write to cache in bundle', () => {
-			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: outputPath,
-						jsonpFunction: 'foo'
-					}
-				}
-			};
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
-			const btr = new Btr({
-				basePath,
-				paths: [],
-				entries: ['bootstrap', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
-			const resource = {
-				context: `${basePath}/foo/bar`,
-				request: `something.build.js`,
-				contextInfo: {
-					issuer: 'foo'
-				}
-			};
-			callback(resource);
-			assert.equal(
-				resource.request,
-				"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
-			);
-			return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
-				const calls = outputFileSync.getCalls();
-				let html = '';
-				let blocks = '';
-				let block = '';
-				calls.map((call) => {
-					const [filename, content] = call.args;
-					if (filename.match(/index\.html$/)) {
-						html = content;
-					}
-					if (filename.match(/blocks\.js$/)) {
-						blocks = content;
-					}
-					if (filename.match(/block-.*\.js$/)) {
-						block = content;
-					}
+			it('should statically build an index file for each route', () => {
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					paths: [
+						{
+							path: 'my-path'
+						},
+						'other',
+						'my-path/other'
+					],
+					useHistory: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
 				});
-				assert.strictEqual(
-					normalise(html),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
-				);
-				assert.strictEqual(
-					normalise(blocks),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
-				);
-				assert.strictEqual(
-					normalise(block),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
-				);
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+				});
+			});
+
+			describe('static', () => {
+				beforeEach(() => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+				});
+
+				it('should create index files for each route without js and css', () => {
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						paths: [
+							{
+								path: 'my-path'
+							},
+							'other',
+							'my-path/other'
+						],
+						static: true,
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test',
+						renderer: 'jsdom'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.isTrue(
+							outputFileSync.secondCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'my-path',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync.thirdCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static',
+									'other',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync
+								.getCall(3)
+								.args[0].indexOf(
+									path.join(
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'my-path',
+										'other',
+										'index.html'
+									)
+								) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.secondCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'my-path',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.thirdCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.getCall(3).args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static',
+										'expected',
+										'my-path',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
+
+				it('should create index files for specified routes without js and css', () => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static-per-path'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						paths: [
+							{
+								path: 'my-path',
+								static: true
+							},
+							'other',
+							'my-path/other'
+						],
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test',
+						renderer: 'jsdom'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.isTrue(
+							outputFileSync.secondCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'my-path',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync.thirdCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-per-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.isTrue(
+							outputFileSync
+								.getCall(3)
+								.args[0].indexOf(
+									path.join(
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'my-path',
+										'other',
+										'index.html'
+									)
+								) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.secondCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'my-path',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.thirdCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.getCall(3).args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-per-path',
+										'expected',
+										'my-path',
+										'other',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
+
+				it('should create index without js and css even with no paths', () => {
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-static-no-paths'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+					const fs = mockModule.getMock('fs-extra');
+					const outputFileSync = stub();
+					fs.outputFileSync = outputFileSync;
+					fs.readFileSync = readFileSync;
+					fs.existsSync = existsSync;
+					const Btr = getBuildTimeRenderModule();
+					const btr = new Btr({
+						basePath: '',
+						static: true,
+						entries: ['runtime', 'main'],
+						root: 'app',
+						puppeteerOptions: { args: ['--no-sandbox'] },
+						scope: 'test',
+						renderer: 'jsdom'
+					});
+					btr.apply(compiler);
+					assert.isTrue(pluginRegistered);
+					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.strictEqual(outputFileSync.callCount, 1);
+						assert.isTrue(
+							outputFileSync.firstCall.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-static-no-paths',
+									'index.html'
+								)
+							) > -1
+						);
+						assert.strictEqual(
+							normalise(outputFileSync.firstCall.args[1]),
+							normalise(
+								readFileSync(
+									path.join(
+										__dirname,
+										'..',
+										'..',
+										'support',
+										'fixtures',
+										'build-time-render',
+										'state-static-no-paths',
+										'expected',
+										'index.html'
+									),
+									'utf8'
+								)
+							)
+						);
+					});
+				});
 			});
 		});
 
-		it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
-			outputPath = path.join(
-				__dirname,
-				'..',
-				'..',
-				'support',
-				'fixtures',
-				'build-time-render',
-				'build-bridge-hash'
-			);
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
+		describe('build bridge', () => {
+			it('should call node module, return result to render in html, and write to cache in bundle', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'build-bridge'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
 					},
-					normalModuleFactory: {
-						tap: stub()
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
 					}
-				},
-				options: {
-					output: {
-						path: outputPath,
-						jsonpFunction: 'foo'
-					}
-				}
-			};
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
-			const btr = new Btr({
-				basePath,
-				paths: [],
-				entries: ['bootstrap', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test'
-			});
-			btr.apply(compiler);
-			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
-			const resource = {
-				context: `${basePath}/foo/bar`,
-				request: `something.build.js`,
-				contextInfo: {
-					issuer: 'foo'
-				}
-			};
-			callback(resource);
-			return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
-				const calls = outputFileSync.getCalls();
-				let html = '';
-				let blocks = '';
-				let blocksFileName = '';
-				let block = '';
-				let blockFilename;
-				let originalManifest = '';
-				let manifest = '';
-				let bootstrap = '';
-				let bootstrapFilename = '';
-				calls.forEach((call) => {
-					const [filename, content] = call.args;
-					const parsedFilename = path.parse(filename);
-					if (filename.match(/index\.html$/)) {
-						html = content;
-					}
-					if (filename.match(/blocks\..*\.bundle\.js$/)) {
-						blocks = content;
-						blocksFileName = `${parsedFilename.name}${parsedFilename.ext}`;
-					}
-					if (filename.match(/block-.*\.js$/)) {
-						block = content;
-						blockFilename = `${parsedFilename.name}${parsedFilename.ext}`;
-					}
-					if (filename.match(/bootstrap\..*\.bundle\.js$/)) {
-						bootstrap = content;
-						bootstrapFilename = `${parsedFilename.name}${parsedFilename.ext}`;
-					}
-					if (filename.match(/manifest\.original\.json$/)) {
-						originalManifest = content;
-					}
-					if (filename.match(/manifest\.json$/)) {
-						manifest = content;
-					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
 				});
-				assert.strictEqual(
-					normalise(html),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 				);
-				assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
-				assert.strictEqual(
-					normalise(bootstrap),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
+				return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let blocks = '';
+					let block = '';
+					calls.map((call) => {
+						const [filename, content] = call.args;
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/blocks\.js$/)) {
+							blocks = content;
+						}
+						if (filename.match(/block-.*\.js$/)) {
+							block = content;
+						}
+					});
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(blocks),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(block),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
+					);
+				});
+			});
+
+			it('should call node module, return result to render in html, and write to cache in bundle with new hashes', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'build-bridge-hash'
 				);
-				assert.strictEqual(blocksFileName, 'blocks.abcdefghij0123456789.bundle.js');
-				assert.strictEqual(
-					normalise(blocks),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
-				);
-				assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.9eba5eaa6f8cfe7b34e3.bundle.js');
-				assert.strictEqual(
-					normalise(block),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
-				);
-				assert.strictEqual(
-					normalise(originalManifest),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.original.json'), 'utf-8'))
-				);
-				assert.strictEqual(
-					normalise(manifest),
-					normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
-				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-hash');
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom'
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				return runBtr(createCompilation('build-bridge-hash'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let blocks = '';
+					let blocksFileName = '';
+					let block = '';
+					let blockFilename;
+					let originalManifest = '';
+					let manifest = '';
+					let bootstrap = '';
+					let bootstrapFilename = '';
+					calls.forEach((call) => {
+						const [filename, content] = call.args;
+						const parsedFilename = path.parse(filename);
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/blocks\..*\.bundle\.js$/)) {
+							blocks = content;
+							blocksFileName = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/block-.*\.js$/)) {
+							block = content;
+							blockFilename = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/bootstrap\..*\.bundle\.js$/)) {
+							bootstrap = content;
+							bootstrapFilename = `${parsedFilename.name}${parsedFilename.ext}`;
+						}
+						if (filename.match(/manifest\.original\.json$/)) {
+							originalManifest = content;
+						}
+						if (filename.match(/manifest\.json$/)) {
+							manifest = content;
+						}
+					});
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
+					assert.strictEqual(
+						normalise(bootstrap),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
+					);
+					assert.strictEqual(blocksFileName, 'blocks.abcdefghij0123456789.bundle.js');
+					assert.strictEqual(
+						normalise(blocks),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+					);
+					assert.strictEqual(blockFilename, 'block-49e457933c3c36eeb77f.9eba5eaa6f8cfe7b34e3.bundle.js');
+					assert.strictEqual(
+						normalise(block),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(originalManifest),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.original.json'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(manifest),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
+					);
+				});
 			});
 		});
 	});

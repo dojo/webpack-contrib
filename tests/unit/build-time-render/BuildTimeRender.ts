@@ -4,7 +4,7 @@ import { stub } from 'sinon';
 import MockModule from '../../support/MockModule';
 import { BuildTimeRenderArguments } from '../../../src/build-time-render/BuildTimeRender';
 
-const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
+const { afterEach, beforeEach, describe, it, before, after } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 let mockModule: MockModule;
@@ -64,6 +64,18 @@ const createCompilation = (
 let normalModuleReplacementPluginStub: any;
 
 describe('build-time-render', () => {
+	let originalWindow: any;
+	let originalDocument: any;
+	before(() => {
+		originalWindow = (global as any).window;
+		originalDocument = (global as any).document;
+	});
+
+	after(() => {
+		(global as any).window = originalWindow;
+		(global as any).document = originalDocument;
+	});
+
 	beforeEach(() => {
 		mockModule = new MockModule('../../../src/build-time-render/BuildTimeRender', require);
 		mockModule.dependencies(['fs-extra', 'webpack']);

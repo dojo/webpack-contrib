@@ -105,7 +105,7 @@ export async function getPageLinks(page: any) {
 	let links: string[] = await page.$$eval('a', (links: HTMLAnchorElement[]) =>
 		links.map((link) => {
 			const href = link.getAttribute('href') || '';
-			return href.replace(/#.*/, '');
+			return href.replace(/#.*/, '').replace(/\/$/, '');
 		})
 	);
 	links = [...new Set(links.filter((link) => /^http(s)?:\/\//.test(link) === false))];

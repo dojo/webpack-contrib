@@ -59,10 +59,6 @@ export default (renderer: Renderer = 'puppeteer') => {
 								(global as any).document = win.document;
 								(global as any).window = window;
 
-								window.requestAnimationFrame = (func: () => void) => {
-									func();
-								};
-
 								beforeParseFuncs.forEach((beforeParseFunc) => {
 									beforeParseFunc(win);
 								});

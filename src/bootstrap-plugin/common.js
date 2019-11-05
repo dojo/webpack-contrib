@@ -18,7 +18,7 @@ if (!has.exists('build-serve')) {
 var appBase = scope && global.default[scope].base ? global.default[scope].base : global.default.__app_base__;
 
 var initialPublicPath =
-	scope && lobal.default[scope].publicPath ? global.default[scope].publicPath : global.default.__public_path__;
+	scope && global.default[scope].publicPath ? global.default[scope].publicPath : global.default.__public_path__;
 
 var initialPublicOrigin =
 	scope && global.default[scope].publicOrigin ? global.default[scope].publicOrigin : global.default.__public_origin__;

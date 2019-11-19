@@ -51,6 +51,7 @@ export interface BuildTimeRenderArguments {
 	basePath: string;
 	baseUrl?: string;
 	scope: string;
+	sync?: boolean;
 	renderer?: Renderer;
 	discoverPaths?: boolean;
 }
@@ -88,6 +89,7 @@ export default class BuildTimeRender {
 	private _scope: string;
 	private _renderer: Renderer;
 	private _discoverPaths: boolean;
+	private _sync: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -100,7 +102,8 @@ export default class BuildTimeRender {
 			basePath,
 			baseUrl = '/',
 			renderer = 'puppeteer',
-			discoverPaths = true
+			discoverPaths = true,
+			sync = false
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -118,6 +121,7 @@ export default class BuildTimeRender {
 		this._puppeteerOptions = puppeteerOptions;
 		this._paths = ['', ...paths];
 		this._root = root;
+		this._sync = sync;
 		this._scope = scope;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
@@ -323,6 +327,39 @@ export default class BuildTimeRender {
 		};
 	}
 
+	private _writeSyncBuildBridgeCache() {
+		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
+		Object.keys(this._buildBridgeResult).forEach((modulePath) => {
+			Object.keys(this._buildBridgeResult[modulePath]).forEach((args) => {
+				this._hasBuildBridgeCache = true;
+				const blockResult = this._buildBridgeResult[modulePath][args];
+				const blockCacheEntry = ` blockCacheEntry('${modulePath}', '${args}', ${blockResult});`;
+				if (this._manifestContent['main.js'].indexOf(blockCacheEntry) === -1) {
+					this._manifestContent['main.js'] = this._manifestContent['main.js'].replace(
+						'APPEND_BLOCK_CACHE_ENTRY **/',
+						`APPEND_BLOCK_CACHE_ENTRY **/${blockCacheEntry}`
+					);
+				}
+
+				if (mainHash) {
+					const currentMainHash = this._manifest['main.js']
+						.replace('main.js'.replace('js', ''), '')
+						.replace(/\..*/, '');
+					const newMainHash = genHash(this._manifestContent['main.js']);
+
+					const mainChunkName = `main.${newMainHash}.bundle.js`;
+					this._manifest['main.js'] = mainChunkName;
+					this._updateHTML(currentMainHash, newMainHash);
+					this._filesToRemove.add(currentMainHash);
+					this._filesToRemove.add(mainChunkName);
+				}
+				this._filesToWrite.add('main.js');
+			});
+		});
+		this._buildBridgeResult = {};
+		return [];
+	}
+
 	private _writeBuildBridgeCache(modules: string[]) {
 		const scripts: string[] = [];
 		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
@@ -503,7 +540,9 @@ ${blockCacheEntry}`
 					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
 						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
 					);
-					const blockScripts = this._writeBuildBridgeCache(scripts);
+					const blockScripts = this._sync
+						? this._writeSyncBuildBridgeCache()
+						: this._writeBuildBridgeCache(scripts);
 					await page.screenshot({
 						path: join(screenshotDirectory, `${parsedPath ? parsedPath.replace('#', '') : 'default'}.png`)
 					});

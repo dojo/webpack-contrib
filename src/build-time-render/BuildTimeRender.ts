@@ -333,11 +333,11 @@ export default class BuildTimeRender {
 			Object.keys(this._buildBridgeResult[modulePath]).forEach((args) => {
 				this._hasBuildBridgeCache = true;
 				const blockResult = this._buildBridgeResult[modulePath][args];
-				const blockCacheEntry = `blockCacheEntry('${modulePath}', '${args}', ${blockResult})`;
+				const blockCacheEntry = ` blockCacheEntry('${modulePath}', '${args}', ${blockResult});`;
 				if (this._manifestContent['main.js'].indexOf(blockCacheEntry) === -1) {
 					this._manifestContent['main.js'] = this._manifestContent['main.js'].replace(
 						'APPEND_BLOCK_CACHE_ENTRY **/',
-						`APPEND_BLOCK_CACHE_ENTRY **/ ${blockCacheEntry} `
+						`APPEND_BLOCK_CACHE_ENTRY **/${blockCacheEntry}`
 					);
 				}
 

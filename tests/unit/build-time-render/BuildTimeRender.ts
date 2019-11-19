@@ -41,6 +41,7 @@ const createCompilation = (
 		| 'build-bridge'
 		| 'build-bridge-hash'
 		| 'build-bridge-error'
+		| 'build-bridge-single-bundle'
 ) => {
 	const errors: Error[] = [];
 	const manifest = readFileSync(
@@ -2610,6 +2611,92 @@ describe('build-time-render', () => {
 					assert.strictEqual(
 						normalise(manifest),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'manifest.json'), 'utf-8'))
+					);
+				});
+			});
+		});
+
+		describe('build bridge - single bundle', () => {
+			it('should call node module, return result to render in html, and write to cache in single bundle', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'build-bridge-single-bundle'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(
+					process.cwd(),
+					'tests/support/fixtures/build-time-render/build-bridge-single-bundle'
+				);
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom',
+					sync: true
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				);
+				return runBtr(createCompilation('build-bridge-single-bundle'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let main = '';
+					calls.map((call) => {
+						const [filename, content] = call.args;
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/main\.js$/)) {
+							main = content;
+						}
+					});
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(main),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'main.js'), 'utf-8'))
 					);
 				});
 			});

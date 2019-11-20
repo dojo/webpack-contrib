@@ -1427,7 +1427,7 @@ describe('build-time-render', () => {
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
 					scope: 'test',
-					blocksOnly: true
+					writeHtml: false
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -2841,7 +2841,7 @@ describe('build-time-render', () => {
 					puppeteerOptions: { args: ['--no-sandbox'] },
 					scope: 'test',
 					renderer: 'jsdom',
-					blocksOnly: true
+					writeHtml: false
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];

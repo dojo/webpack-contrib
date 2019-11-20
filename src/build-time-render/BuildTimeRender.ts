@@ -54,7 +54,7 @@ export interface BuildTimeRenderArguments {
 	sync?: boolean;
 	renderer?: Renderer;
 	discoverPaths?: boolean;
-	blocksOnly?: boolean;
+	writeHtml?: boolean;
 }
 
 function genHash(content: string): string {
@@ -91,7 +91,7 @@ export default class BuildTimeRender {
 	private _renderer: Renderer;
 	private _discoverPaths: boolean;
 	private _sync: boolean;
-	private _blocksOnly: boolean;
+	private _writeHtml: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -106,7 +106,7 @@ export default class BuildTimeRender {
 			renderer = 'puppeteer',
 			discoverPaths = true,
 			sync = false,
-			blocksOnly = false
+			writeHtml = true
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -126,7 +126,7 @@ export default class BuildTimeRender {
 		this._root = root;
 		this._sync = sync;
 		this._scope = scope;
-		this._blocksOnly = blocksOnly;
+		this._writeHtml = writeHtml;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory || paths.length === 0) {
@@ -155,7 +155,7 @@ export default class BuildTimeRender {
 
 		let html = this._manifestContent['index.html'];
 		const writtenAssets: string[] = this._entries.map((entry) => this._manifest[entry]);
-		if (!this._blocksOnly) {
+		if (this._writeHtml) {
 			html = html.replace(this._originalRoot, content);
 			let css = this._entries.reduce((css, entry) => {
 				const cssFile = this._manifest[entry.replace('.js', '.css')];

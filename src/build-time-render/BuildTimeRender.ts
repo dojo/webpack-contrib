@@ -54,6 +54,7 @@ export interface BuildTimeRenderArguments {
 	sync?: boolean;
 	renderer?: Renderer;
 	discoverPaths?: boolean;
+	writeHtml?: boolean;
 }
 
 function genHash(content: string): string {
@@ -90,6 +91,7 @@ export default class BuildTimeRender {
 	private _renderer: Renderer;
 	private _discoverPaths: boolean;
 	private _sync: boolean;
+	private _writeHtml: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -103,7 +105,8 @@ export default class BuildTimeRender {
 			baseUrl = '/',
 			renderer = 'puppeteer',
 			discoverPaths = true,
-			sync = false
+			sync = false,
+			writeHtml = true
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -123,6 +126,7 @@ export default class BuildTimeRender {
 		this._root = root;
 		this._sync = sync;
 		this._scope = scope;
+		this._writeHtml = writeHtml;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory || paths.length === 0) {
@@ -148,68 +152,79 @@ export default class BuildTimeRender {
 		} else {
 			path = path;
 		}
+
 		let html = this._manifestContent['index.html'];
-		html = html.replace(this._originalRoot, content);
-
 		const writtenAssets: string[] = this._entries.map((entry) => this._manifest[entry]);
+		if (this._writeHtml) {
+			html = html.replace(this._originalRoot, content);
+			let css = this._entries.reduce((css, entry) => {
+				const cssFile = this._manifest[entry.replace('.js', '.css')];
+				if (cssFile) {
+					html = html.replace(`<link href="${cssFile}" rel="stylesheet">`, '');
+					css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
 
-		let css = this._entries.reduce((css, entry) => {
-			const cssFile = this._manifest[entry.replace('.js', '.css')];
-			if (cssFile) {
-				html = html.replace(`<link href="${cssFile}" rel="stylesheet">`, '');
-				css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
+					writtenAssets.push(cssFile);
+				}
+				return css;
+			}, '');
 
-				writtenAssets.push(cssFile);
+			css = additionalCss.reduce((prev, url) => {
+				url = url.replace(this._baseUrl.slice(1), '');
+				writtenAssets.push(url);
+
+				return `${prev}<link rel="preload" href="${url}" as="style">`;
+			}, css);
+
+			styles = await this._processCss(styles);
+			html = html.replace(`</head>`, `<style>${styles}</style></head>`);
+			if (this._static || staticPath) {
+				html = html.replace(this._createScripts(), '');
+			} else {
+				html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(false)}`);
+
+				const mainScript = this._manifest['main.js'];
+
+				additionalScripts
+					.sort((script1, script2) => {
+						return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
+					})
+					.forEach((additionalChunk: string) => {
+						additionalChunk = additionalChunk.replace(this._baseUrl.slice(1), '');
+						writtenAssets.push(additionalChunk);
+
+						html = html.replace(
+							'</body>',
+							`<link rel="preload" href="${additionalChunk}" as="script"></body>`
+						);
+					});
+
+				Object.keys(this._manifest)
+					.filter((name) => name.endsWith('.js') || name.endsWith('.css'))
+					.filter((name) => !name.startsWith('runtime/'))
+					.filter((name) => !writtenAssets.some((asset) => this._manifest[name] === asset))
+					.forEach((preload) => {
+						html = html.replace(
+							'</body>',
+							`<link rel="prefetch" href="${this._manifest[preload].replace(
+								this._baseUrl.slice(1),
+								''
+							)}" /></body>`
+						);
+					});
 			}
-			return css;
-		}, '');
-
-		css = additionalCss.reduce((prev, url) => {
-			url = url.replace(this._baseUrl.slice(1), '');
-			writtenAssets.push(url);
-
-			return `${prev}<link rel="preload" href="${url}" as="style">`;
-		}, css);
-
-		styles = await this._processCss(styles);
-		html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-		if (this._static || staticPath) {
-			html = html.replace(this._createScripts(), '');
 		} else {
-			html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(false)}`);
-			blockScripts.forEach((blockScript, i) => {
-				writtenAssets.push(blockScript);
-
-				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
-			});
-
-			const mainScript = this._manifest['main.js'];
-
-			additionalScripts
-				.sort((script1, script2) => {
-					return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
-				})
-				.forEach((additionalChunk: string) => {
-					additionalChunk = additionalChunk.replace(this._baseUrl.slice(1), '');
-					writtenAssets.push(additionalChunk);
-
-					html = html.replace('</body>', `<link rel="preload" href="${additionalChunk}" as="script"></body>`);
-				});
-
-			Object.keys(this._manifest)
-				.filter((name) => name.endsWith('.js') || name.endsWith('.css'))
-				.filter((name) => !name.startsWith('runtime/'))
-				.filter((name) => !writtenAssets.some((asset) => this._manifest[name] === asset))
-				.forEach((preload) => {
-					html = html.replace(
-						'</body>',
-						`<link rel="prefetch" href="${this._manifest[preload].replace(
-							this._baseUrl.slice(1),
-							''
-						)}" /></body>`
-					);
-				});
+			if (!this._sync) {
+				html = html.replace(
+					'</body>',
+					`<script type="text/javascript" src="${this._manifest['runtime/blocks.js']}"></script></body>`
+				);
+			}
 		}
+		blockScripts.forEach((blockScript, i) => {
+			writtenAssets.push(blockScript);
+
+			html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
+		});
 		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
 	}
 

@@ -96,6 +96,63 @@ describe('build-time-render', () => {
 		runBtr = () => {};
 	});
 
+	it('skip build time rendering when there are build errors ', () => {
+		outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
+		compiler = {
+			hooks: {
+				afterEmit: {
+					tapAsync: tapStub
+				},
+				normalModuleFactory: {
+					tap: stub()
+				}
+			},
+			options: {
+				output: {
+					path: outputPath,
+					jsonpFunction: 'foo'
+				}
+			}
+		};
+		const fs = mockModule.getMock('fs-extra');
+		const outputFileSync = stub();
+		fs.outputFileSync = outputFileSync;
+		fs.readFileSync = readFileSync;
+		fs.existsSync = existsSync;
+		const Btr = getBuildTimeRenderModule();
+		const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
+		const btr = new Btr({
+			basePath,
+			paths: [],
+			entries: ['bootstrap', 'main'],
+			root: 'app',
+			puppeteerOptions: { args: ['--no-sandbox'] },
+			scope: 'test',
+			renderer: 'jsdom',
+			writeHtml: false
+		});
+		btr.apply(compiler);
+		const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+		const resource = {
+			context: `${basePath}/foo/bar`,
+			request: `something.build.js`,
+			contextInfo: {
+				issuer: 'foo'
+			}
+		};
+		callback(resource);
+		assert.equal(
+			resource.request,
+			"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+		);
+		const compilations = createCompilation('build-bridge');
+		compilations.errors.push(new Error('An errors'));
+		return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
+			assert.isTrue(callbackStub.calledOnce);
+			assert.isTrue(outputFileSync.notCalled);
+		});
+	});
+
 	describe('puppeteer', () => {
 		describe('errors', () => {
 			beforeEach(() => {
@@ -149,6 +206,11 @@ describe('build-time-render', () => {
 						compilation.errors[0].message,
 						'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
 					);
+					const noErrorCompilation = createCompilation('build-bridge');
+					return runBtr(noErrorCompilation, callbackStub).then(() => {
+						assert.isTrue(callbackStub.calledOnce);
+						assert.lengthOf(compilation.errors, 0);
+					});
 				});
 			});
 

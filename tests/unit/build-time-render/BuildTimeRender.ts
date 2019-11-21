@@ -145,9 +145,9 @@ describe('build-time-render', () => {
 			resource.request,
 			"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
 		);
-		const compilations = createCompilation('build-bridge');
-		compilations.errors.push(new Error('An errors'));
-		return runBtr(createCompilation('build-bridge'), callbackStub).then(() => {
+		const compilation = createCompilation('build-bridge');
+		compilation.errors.push(new Error('An errors'));
+		return runBtr(compilation, callbackStub).then(() => {
 			assert.isTrue(callbackStub.calledOnce);
 			assert.isTrue(outputFileSync.notCalled);
 		});
@@ -206,11 +206,6 @@ describe('build-time-render', () => {
 						compilation.errors[0].message,
 						'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
 					);
-					const noErrorCompilation = createCompilation('build-bridge');
-					return runBtr(noErrorCompilation, callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.lengthOf(compilation.errors, 0);
-					});
 				});
 			});
 
@@ -256,6 +251,37 @@ describe('build-time-render', () => {
 						compilation.errors[1].message,
 						'BTR runtime Error: runtime error\n    at main (http://localhost'
 					);
+
+					const noErrorCompilation = createCompilation('build-bridge');
+					outputPath = path.join(
+						__dirname,
+						'..',
+						'..',
+						'support',
+						'fixtures',
+						'build-time-render',
+						'build-bridge'
+					);
+					compiler = {
+						hooks: {
+							afterEmit: {
+								tapAsync: tapStub
+							},
+							normalModuleFactory: {
+								tap: stub()
+							}
+						},
+						options: {
+							output: {
+								path: outputPath
+							}
+						}
+					};
+					btr.apply(compiler);
+					btr._basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
+					return runBtr(noErrorCompilation, callbackStub).then(() => {
+						assert.lengthOf(noErrorCompilation.errors, 0);
+					});
 				});
 			});
 

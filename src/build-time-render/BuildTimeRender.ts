@@ -486,12 +486,13 @@ ${blockCacheEntry}`
 
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._buildBridgeResult = {};
+			this._blockErrors = [];
 			if (compiler.options.output) {
 				this._output = compiler.options.output.path;
 				this._jsonpName = compiler.options.output.jsonpFunction;
 			}
 
-			if (!this._output) {
+			if (!this._output || compilation.errors.length > 0) {
 				return Promise.resolve().then(() => {
 					callback();
 				});

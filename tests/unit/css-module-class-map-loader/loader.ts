@@ -6,11 +6,11 @@ const { describe, it } = intern.getInterface('bdd');
 describe('css-module-class-map-loader', () => {
 	it('Should transform module locals based on the classes map', () => {
 		const content = `exports.locals = {
-			"hello": "world",
-			"foo": "bar"
+			"world": "world",
+			"bar": "bar"
 		};`;
 		classesMap.set('blah', {
-			foo: 'foo hello'
+			foo: 'bar world'
 		});
 
 		const result = loader.call({ resourcePath: 'blah' }, content);

@@ -13,11 +13,18 @@ export default function(this: webpack.loader.LoaderContext, content: string, map
 	let response = content;
 	const localsRexExp = /exports.locals = {([.\s\S]*)};/;
 	const matches = content.match(localsRexExp);
+	const key = `${packageName}/${basename(this.resourcePath, '.m.css')}`;
 
 	if (matches && matches.length > 0) {
-		const key = `${packageName}/${basename(this.resourcePath, '.m.css')}`;
 		const localExports = `{"${themeKey}": "${key}",${matches[1]}}`;
 		response = content.replace(localsRexExp, `exports.locals = ${localExports};`);
+	} else {
+		const localExports = `{"${themeKey}": "${key}"}`;
+		response = content.replace(
+			'// exports',
+			`// exports
+exports.locals = ${localExports};`
+		);
 	}
 
 	return response;

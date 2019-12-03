@@ -1,4 +1,4 @@
-import { statSync, readFileSync, existsSync } from 'fs';
+import { statSync, readFileSync, existsSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import * as webpack from 'webpack';
@@ -43,11 +43,18 @@ function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<vo
 			const css = cssMap.get(filePath) || '';
 			mTimeMap.set(filePath, mtime);
 
-			if (newCss !== css) {
+			if (newCss !== css || !definition) {
 				return creator.create(filePath, false, true).then((content) => {
 					cssMap.set(filePath, newCss);
 					const newDefinition = content.formatted;
-					if (newDefinition !== definition) {
+					if (!newDefinition) {
+						return writeFileSync(
+							dtsFilePath,
+							`declare const styles: {};
+export = styles;`,
+							'utf8'
+						);
+					} else if (newDefinition !== definition) {
 						return content.writeFile();
 					}
 				});

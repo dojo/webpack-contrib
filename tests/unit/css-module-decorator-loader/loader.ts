@@ -4,7 +4,7 @@ const { assert } = intern.getPlugin('chai');
 const { describe, it } = intern.getInterface('bdd');
 
 describe('css-module-decorator-loader', () => {
-	it('should not effect content without local exports', () => {
+	it('should not effect content without local exports or "// exports" comment', () => {
 		const content = `exports = 'abc'
 		exports.push(['a', 'b'])`;
 
@@ -45,6 +45,17 @@ describe('css-module-decorator-loader', () => {
 		assert.equal(
 			result.replace(/\n|\t/g, ''),
 			'exports.locals = {" _key": "@dojo/webpack-contrib/testFile", "hello": "world " + require("-!stuff!./base.css").locals["hello"] + "", "foo": "bar"};'
+		);
+	});
+
+	it('should add key when only "// exports" comment is found', () => {
+		const content = `// exports`;
+
+		const result = loader.bind({ resourcePath: 'testFile.m.css' } as any)(content);
+		assert.equal(
+			result,
+			`// exports
+exports.locals = {" _key": "@dojo/webpack-contrib/testFile"};`
 		);
 	});
 });

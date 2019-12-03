@@ -52,6 +52,7 @@ describe('css-module-dts-loader', () => {
 	const dateNow = new Date();
 	let instance: any;
 	const defaultScope = { async, resourcePath, resolve: loaderContextResolve };
+	let createResult: any;
 
 	function getInstance() {
 		return {
@@ -64,19 +65,26 @@ describe('css-module-dts-loader', () => {
 	beforeEach(() => {
 		sandbox = sinon.sandbox.create();
 		writeFile = sandbox.stub();
+		createResult = {
+			writeFile,
+			formatted: 'formatted css'
+		};
 		mockModule = new MockModule('../../../src/css-module-dts-loader/loader', require);
 		mockModule.dependencies(['typed-css-modules', 'ts-loader/dist/instances', 'loader-utils', 'fs']);
 		mockDTSGenerator = mockModule.getMock('typed-css-modules');
-		mockDTSGenerator.create = sandbox.stub().returns(Promise.resolve({ writeFile }));
+		mockDTSGenerator.create = sandbox.stub().returns(Promise.resolve(createResult));
 		mockUtils = mockModule.getMock('loader-utils');
 		mockUtils.getOptions = sandbox.stub();
 		mockFs = mockModule.getMock('fs');
 		mockFs.statSync = sandbox.stub().returns({ mtime: dateNow });
-		mockFs.existsSync = sandbox.stub().returns(true);
-		mockFs.readFileSync = sandbox
-			.stub()
-			.withArgs(resourcePath)
-			.returns(cssContent);
+		mockFs.existsSync = sandbox.stub();
+		mockFs.existsSync.withArgs('src/other.m.css').returns(false);
+		mockFs.existsSync.withArgs('src/other.m.css.d.ts').returns(false);
+		mockFs.existsSync.returns(true);
+		mockFs.writeFileSync = sandbox.stub();
+		mockFs.readFileSync = sandbox.stub();
+		mockFs.readFileSync.withArgs('src/other.m.css').returns();
+		mockFs.readFileSync.withArgs(resourcePath).returns(cssContent);
 		mockInstances = mockModule.getMock('ts-loader/dist/instances');
 		instance = getInstance();
 		mockInstances.getTypeScriptInstance = sandbox.stub().returns({ instance });
@@ -106,6 +114,39 @@ describe('css-module-dts-loader', () => {
 		}).then(() => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(writeFile.calledOnce);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
+		});
+	});
+
+	it('should generate a dts file when query type is css and the css file is empty', () => {
+		mockUtils.getOptions.returns({
+			type: 'css'
+		});
+
+		createResult.formatted = undefined;
+
+		return new Promise((resolve, reject) => {
+			loaderUnderTest.call(
+				{
+					async() {
+						return () => resolve();
+					},
+					resourcePath: 'src/other.m.css'
+				},
+				cssContent
+			);
+		}).then(() => {
+			assert.isTrue(mockDTSGenerator.create.calledOnce);
+			assert.isTrue(writeFile.notCalled);
+			assert.isTrue(mockFs.writeFileSync.calledOnce);
+			assert.isTrue(
+				mockFs.writeFileSync.calledWith(
+					'src/other.m.css.d.ts',
+					`declare const styles: {};
+export = styles;`,
+					'utf8'
+				)
+			);
 		});
 	});
 
@@ -130,6 +171,7 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockFs.statSync.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(writeFile.calledOnce);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -155,6 +197,7 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockFs.statSync.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.calledTwice);
 			assert.isTrue(writeFile.calledTwice);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -181,6 +224,7 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
 			assert.isTrue(writeFile.calledOnce);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -205,6 +249,7 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
 			assert.isTrue(writeFile.calledOnce);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -232,6 +277,7 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
 			assert.isTrue(mockDTSGenerator.create.secondCall.calledWith(path.resolve('src', cssFilePath2)));
 			assert.isTrue(writeFile.calledTwice);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -308,6 +354,7 @@ describe('css-module-dts-loader', () => {
 			assert.isFalse(mockInstances.getTypeScriptInstance.called);
 			assert.isFalse(mockFs.statSync.called);
 			assert.isFalse(mockDTSGenerator.create.called);
+			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
@@ -386,6 +433,7 @@ describe('css-module-dts-loader', () => {
 			.then(() => {
 				assert.isTrue(mockDTSGenerator.create.calledOnce);
 				assert.isTrue(writeFile.calledOnce);
+				assert.isTrue(mockFs.writeFileSync.notCalled);
 			});
 	});
 });

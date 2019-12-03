@@ -83,7 +83,7 @@ describe('css-module-dts-loader', () => {
 		mockFs.existsSync.returns(true);
 		mockFs.writeFileSync = sandbox.stub();
 		mockFs.readFileSync = sandbox.stub();
-		mockFs.readFileSync.withArgs('src/other.m.css').returns()
+		mockFs.readFileSync.withArgs('src/other.m.css').returns();
 		mockFs.readFileSync.withArgs(resourcePath).returns(cssContent);
 		mockInstances = mockModule.getMock('ts-loader/dist/instances');
 		instance = getInstance();
@@ -139,8 +139,14 @@ describe('css-module-dts-loader', () => {
 			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(writeFile.notCalled);
 			assert.isTrue(mockFs.writeFileSync.calledOnce);
-			assert.isTrue(mockFs.writeFileSync.calledWith('src/other.m.css.d.ts', `declare const styles: {};
-export = styles;`, 'utf8'));
+			assert.isTrue(
+				mockFs.writeFileSync.calledWith(
+					'src/other.m.css.d.ts',
+					`declare const styles: {};
+export = styles;`,
+					'utf8'
+				)
+			);
 		});
 	});
 

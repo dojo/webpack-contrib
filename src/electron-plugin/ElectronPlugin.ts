@@ -65,7 +65,7 @@ export class ElectronPlugin {
 		compiler.hooks.done.tapAsync(this.constructor.name, (stats: any, callback: any) => {
 			const packageJsonPath = path.join(basePath, 'package.json');
 			const packageJson = fs.existsSync(packageJsonPath) ? require(packageJsonPath) : {};
-			const newPackageJson = { ...packageJson, main: 'electron.js' };
+			const newPackageJson = { ...packageJson, main: 'main.electron.js' };
 			this._options.electron.packaging.app = packageJson.name || this._options.electron.packaging.app;
 			fs.writeFileSync(path.resolve(outputPath, 'package.json'), JSON.stringify(newPackageJson));
 			packager(packaging).then(() => callback());

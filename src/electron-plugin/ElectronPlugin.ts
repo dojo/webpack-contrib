@@ -1,7 +1,8 @@
-const packager = require('electron-packager');
 import * as path from 'path';
 import * as webpack from 'webpack';
 import * as fs from 'fs';
+
+const packager = require('electron-packager');
 
 interface ElectronPluginOptions {
 	electron: {

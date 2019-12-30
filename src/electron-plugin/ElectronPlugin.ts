@@ -9,6 +9,7 @@ interface ElectronPluginOptions {
 		browser: any;
 		packaging: any;
 	};
+	dist: boolean;
 	watch: boolean;
 	serve: boolean;
 	port: number;
@@ -20,6 +21,7 @@ export class ElectronPlugin {
 	private _packageJson: any = {};
 	private _options: ElectronPluginOptions;
 	private _defaultOptions: ElectronPluginOptions = {
+		dist: false,
 		watch: false,
 		serve: false,
 		port: 9999,
@@ -53,6 +55,7 @@ export class ElectronPlugin {
 	apply(compiler: webpack.Compiler) {
 		const {
 			electron: { browser, packaging },
+			dist,
 			watch,
 			serve,
 			port,
@@ -70,7 +73,11 @@ export class ElectronPlugin {
 		compiler.hooks.done.tapAsync(this.constructor.name, (stats: any, callback: any) => {
 			const newPackageJson = { ...this._packageJson, main: 'main.electron.js' };
 			fs.writeFileSync(path.resolve(outputPath, 'package.json'), JSON.stringify(newPackageJson));
-			packager({ ...packaging, app: this._packageJson.name }).then(() => callback());
+			if (dist && !watch) {
+				packager({ ...packaging, app: this._packageJson.name }).then(() => callback());
+			} else {
+				callback();
+			}
 		});
 	}
 }

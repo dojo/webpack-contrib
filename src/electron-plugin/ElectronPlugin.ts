@@ -55,6 +55,7 @@ export class ElectronPlugin {
 			basePath,
 			outputPath
 		} = this._options;
+
 		const definePlugin = new webpack.DefinePlugin({
 			ELECTRON_BROWSER_OPTIONS: JSON.stringify(browser),
 			ELECTRON_WATCH_SERVE: JSON.stringify(!!(watch && serve)),

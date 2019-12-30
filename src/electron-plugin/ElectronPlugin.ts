@@ -17,6 +17,7 @@ interface ElectronPluginOptions {
 }
 
 export class ElectronPlugin {
+	private _packageJson: any = {};
 	private _options: ElectronPluginOptions;
 	private _defaultOptions: ElectronPluginOptions = {
 		watch: false,
@@ -35,16 +36,19 @@ export class ElectronPlugin {
 		}
 	};
 
-	constructor(options: any) {
+	constructor(options: Partial<ElectronPluginOptions>) {
 		this._options = { ...this._defaultOptions, ...options };
 		this._options.electron.browser = {
 			...this._defaultOptions.electron.browser,
-			...options.electron.browser
+			...this._options.electron.browser
 		};
 		this._options.electron.packaging = {
 			...this._defaultOptions.electron.packaging,
-			...options.electron.packaging
+			...this._options.electron.packaging
 		};
+		const { basePath } = this._options;
+		const packageJsonPath = path.join(basePath, 'package.json');
+		this._packageJson = fs.existsSync(packageJsonPath) ? require(packageJsonPath) : {};
 	}
 	apply(compiler: webpack.Compiler) {
 		const {
@@ -52,25 +56,21 @@ export class ElectronPlugin {
 			watch,
 			serve,
 			port,
-			basePath,
 			outputPath
 		} = this._options;
 
 		const definePlugin = new webpack.DefinePlugin({
 			ELECTRON_BROWSER_OPTIONS: JSON.stringify(browser),
-			ELECTRON_WATCH_SERVE: JSON.stringify(!!(watch && serve)),
+			ELECTRON_WATCH_SERVE: JSON.stringify(watch && serve),
 			ELECTRON_SERVE_PORT: JSON.stringify(port)
 		});
 
 		definePlugin.apply(compiler);
 
 		compiler.hooks.done.tapAsync(this.constructor.name, (stats: any, callback: any) => {
-			const packageJsonPath = path.join(basePath, 'package.json');
-			const packageJson = fs.existsSync(packageJsonPath) ? require(packageJsonPath) : {};
-			const newPackageJson = { ...packageJson, main: 'main.electron.js' };
-			this._options.electron.packaging.app = packageJson.name || this._options.electron.packaging.app;
+			const newPackageJson = { ...this._packageJson, main: 'main.electron.js' };
 			fs.writeFileSync(path.resolve(outputPath, 'package.json'), JSON.stringify(newPackageJson));
-			packager(packaging).then(() => callback());
+			packager({ ...packaging, app: this._packageJson.name }).then(() => callback());
 		});
 	}
 }

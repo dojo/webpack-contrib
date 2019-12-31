@@ -136,10 +136,11 @@ var reporter = {
 	}
 };
 
-var buildHash = null;
+var buildHash = {};
 
 function processMessage(obj) {
 	if (obj.action === 'built' || obj.action === 'sync') {
+		var name = obj.name || 'default';
 		var applyUpdate = true;
 		if (obj.errors.length > 0) {
 			reporter.problems('errors', obj);
@@ -152,10 +153,10 @@ function processMessage(obj) {
 			reporter.cleanProblemsCache();
 		}
 		if (applyUpdate) {
-			if ( obj.action === 'built' || (buildHash && buildHash !== obj.hash)) {
+			if ( obj.action === 'built' || (buildHash[name] && buildHash[name] !== obj.hash)) {
 				global.location.reload();
 			}
 		}
-		buildHash = obj.hash;
+		buildHash[name] = obj.hash;
 	}
 }

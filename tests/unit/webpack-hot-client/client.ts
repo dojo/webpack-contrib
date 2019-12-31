@@ -43,6 +43,8 @@ describe('client', () => {
 	});
 
 	afterEach(() => {
+		global.location.reload.reset();
+		global.addEventListener.reset();
 		consoleStub.reset();
 		consoleWarnStub.reset();
 		overlayMock.clear.reset();
@@ -182,5 +184,51 @@ describe('client', () => {
 		assert.strictEqual(global.location.reload.callCount, 5);
 		assert.isTrue(overlayMock.showProblems.calledTwice);
 		assert.isTrue(overlayMock.clear.calledTwice);
+	});
+
+	it('supports multiple compilations', () => {
+		source.onmessage({
+			data: JSON.stringify({
+				name: 'main',
+				action: 'sync',
+				errors: [],
+				warnings: [],
+				hash: 'first'
+			})
+		});
+
+		source.onmessage({
+			data: JSON.stringify({
+				name: 'another',
+				action: 'sync',
+				errors: [],
+				warnings: [],
+				hash: 'another-first'
+			})
+		});
+
+		source.onmessage({
+			data: JSON.stringify({
+				name: 'main',
+				action: 'built',
+				errors: [],
+				warnings: [],
+				hash: 'hash'
+			})
+		});
+
+		assert.isTrue(global.location.reload.calledOnce);
+
+		source.onmessage({
+			data: JSON.stringify({
+				name: 'another',
+				action: 'built',
+				errors: [],
+				warnings: [],
+				hash: 'hash'
+			})
+		});
+
+		assert.isTrue(global.location.reload.calledTwice);
 	});
 });

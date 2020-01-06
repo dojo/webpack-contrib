@@ -30,6 +30,10 @@ if (has.default(__dojoframeworkshimResizeObserver) && !has.default('dom-resize-o
 	modules.push(import(/* webpackChunkName: "runtime/ResizeObserver" */ '@dojo/framework/shim/ResizeObserver'));
 }
 
+if (has.default(__dojoframeworkshimInert) && !has.default('dom-inert')) {
+	modules.push(import(/* webpackChunkName: "runtime/inert" */ '@dojo/framework/shim/inert'));
+}
+
 if (!has.default('dom-pointer-events')) {
 	modules.push(import(/* webpackChunkName: "runtime/pointerEvents" */ '@dojo/framework/shim/pointerEvents'));
 }

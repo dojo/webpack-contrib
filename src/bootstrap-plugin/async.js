@@ -18,7 +18,7 @@ if (has.default(__dojoframeworkshimIntersectionObserver) && !has.default('dom-in
 	);
 }
 
-if (has.default(__dojoframeworkshimFetch) && !has.default('fetch')) {
+if (has.default(__dojoframeworkshimfetch) && !has.default('fetch')) {
 	modules.push(import(/* webpackChunkName: "runtime/fetch" */ '@dojo/framework/shim/fetch'));
 }
 
@@ -30,7 +30,7 @@ if (has.default(__dojoframeworkshimResizeObserver) && !has.default('dom-resize-o
 	modules.push(import(/* webpackChunkName: "runtime/ResizeObserver" */ '@dojo/framework/shim/ResizeObserver'));
 }
 
-if (has.default(__dojoframeworkshimInert) && !has.default('dom-inert')) {
+if (has.default(__dojoframeworkshiminert) && !has.default('dom-inert')) {
 	modules.push(import(/* webpackChunkName: "runtime/inert" */ '@dojo/framework/shim/inert'));
 }
 

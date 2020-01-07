@@ -81,3 +81,5 @@ export class ElectronPlugin {
 		});
 	}
 }
+
+export default ElectronPlugin;

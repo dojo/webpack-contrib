@@ -357,6 +357,7 @@ export default class BuildTimeRender {
 				}
 
 				if (mainHash) {
+					const currentMainChunkName = this._manifest['main.js'];
 					const currentMainHash = this._manifest['main.js']
 						.replace('main.js'.replace('js', ''), '')
 						.replace(/\..*/, '');
@@ -365,7 +366,7 @@ export default class BuildTimeRender {
 					const mainChunkName = `main.${newMainHash}.bundle.js`;
 					this._manifest['main.js'] = mainChunkName;
 					this._updateHTML(currentMainHash, newMainHash);
-					this._filesToRemove.add(currentMainHash);
+					this._filesToRemove.add(currentMainChunkName);
 					this._filesToRemove.add(mainChunkName);
 				}
 				this._filesToWrite.add('main.js');
@@ -411,19 +412,35 @@ ${blockCacheEntry}`
 					);
 					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
 					if (mainHash) {
+						const newBlockHash = genHash(this._manifestContent[blockChunk]);
+						const currentBlockChunkName = this._manifest[blockChunk];
+						const currentBootstrapChunkName = this._manifest['bootstrap.js'];
+						const currentBlockHash = currentBlockChunkName
+							.replace(blockChunk.replace('js', ''), '')
+							.replace(/\..*/, '');
 						const blockResultChunkHash = genHash(blockResultChunk);
 						this._manifest[`${chunkName}.js`] = `${chunkName}.${blockResultChunkHash}.bundle.js`;
 						this._manifestContent['bootstrap.js'] = this._manifestContent['bootstrap.js'].replace(
 							chunkMarker,
 							`${chunkMarker}"${chunkName}":"${blockResultChunkHash}",`
 						);
+						this._manifestContent['bootstrap.js'] = this._manifestContent['bootstrap.js'].replace(
+							currentBlockHash,
+							newBlockHash
+						);
 						const currentBootstrapHash = this._manifest['bootstrap.js']
 							.replace('bootstrap.js'.replace('js', ''), '')
 							.replace(/\..*/, '');
 						const newBootstrapHash = genHash(this._manifestContent['bootstrap.js']);
 						const bootstrapChunkName = `bootstrap.${newBootstrapHash}.bundle.js`;
+						const blockChunkName = `runtime/blocks.${newBlockHash}.bundle.js`;
 						this._manifest['bootstrap.js'] = bootstrapChunkName;
+						this._manifest[blockChunk] = blockChunkName;
 						this._updateHTML(currentBootstrapHash, newBootstrapHash);
+						this._updateHTML(currentBlockHash, newBlockHash);
+						this._filesToRemove.add(currentBootstrapChunkName);
+						this._filesToRemove.add(currentBlockChunkName);
+						this._filesToRemove.add(blockChunkName);
 						this._filesToRemove.add(bootstrapChunkName);
 						this._filesToWrite.add('bootstrap.js');
 					}

@@ -376,7 +376,7 @@ export default class BuildTimeRender {
 		return [];
 	}
 
-	private _writeBuildBridgeCache(modules: string[]) {
+	private _writeBuildBridgeCache(additionalScripts: string[]) {
 		const scripts: string[] = [];
 		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
 		const chunkMarker = `main:"${mainHash}",`;
@@ -443,6 +443,10 @@ ${blockCacheEntry}`
 						this._filesToRemove.add(blockChunkName);
 						this._filesToRemove.add(bootstrapChunkName);
 						this._filesToWrite.add('bootstrap.js');
+						const additionalScriptIndex = additionalScripts.indexOf(currentBlockChunkName);
+						if (additionalScriptIndex !== -1) {
+							additionalScripts[additionalScriptIndex] = blockChunkName;
+						}
 					}
 					this._manifestContent[`${chunkName}.js`] = blockResultChunk;
 					this._filesToWrite.add(blockChunk);
@@ -575,7 +579,7 @@ ${blockCacheEntry}`
 					);
 					const blockScripts = this._sync
 						? this._writeSyncBuildBridgeCache()
-						: this._writeBuildBridgeCache(scripts);
+						: this._writeBuildBridgeCache(additionalScripts);
 					await page.screenshot({
 						path: join(screenshotDirectory, `${parsedPath ? parsedPath.replace('#', '') : 'default'}.png`)
 					});

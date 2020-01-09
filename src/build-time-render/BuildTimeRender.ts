@@ -305,7 +305,7 @@ export default class BuildTimeRender {
 		};
 	}
 
-	private _writeBuildBridgeCache(modules: string[]) {
+	private _writeBuildBridgeCache(additionalScripts: string[]) {
 		const scripts: string[] = [];
 		const [, , mainHash] = this._manifest['main.js'].match(/(main\.)(.*)(\.bundle)/) || ([] as any);
 		const chunkMarker = `main:"${mainHash}",`;
@@ -342,6 +342,16 @@ ${blockCacheEntry}`
 					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
 					if (mainHash) {
 						const blockResultChunkHash = genHash(blockResultChunk);
+						const newBlockHash = genHash(this._manifestContent[blockChunk]);
+						const currentBlockChunkName = this._manifest[blockChunk];
+						const currentBlockHash = this._manifest[blockChunk]
+							.replace(blockChunk.replace('js', ''), '')
+							.replace(/\..*/, '');
+						this._manifestContent['bootstrap.js'] = this._manifestContent['bootstrap.js'].replace(
+							currentBlockHash,
+							newBlockHash
+						);
+
 						this._manifest[`${chunkName}.js`] = `${chunkName}.${blockResultChunkHash}.bundle.js`;
 						this._manifestContent['bootstrap.js'] = this._manifestContent['bootstrap.js'].replace(
 							chunkMarker,
@@ -352,10 +362,19 @@ ${blockCacheEntry}`
 							.replace(/\..*/, '');
 						const newBootstrapHash = genHash(this._manifestContent['bootstrap.js']);
 						const bootstrapChunkName = `bootstrap.${newBootstrapHash}.bundle.js`;
+						const blockChunkName = `runtime/blocks.${newBlockHash}.bundle.js`;
+						this._filesToRemove.add(this._manifest['bootstrap.js']);
+						this._filesToRemove.add(this._manifest[blockChunk]);
 						this._manifest['bootstrap.js'] = bootstrapChunkName;
+						this._manifest[blockChunk] = blockChunkName;
 						this._updateHTML(currentBootstrapHash, newBootstrapHash);
-						this._filesToRemove.add(bootstrapChunkName);
+						this._updateHTML(currentBlockHash, newBlockHash);
 						this._filesToWrite.add('bootstrap.js');
+						this._filesToWrite.add(blockChunk);
+						const blockChunkIndex = additionalScripts.indexOf(currentBlockChunkName);
+						if (blockChunkIndex !== -1) {
+							additionalScripts[blockChunkIndex] = blockChunkName;
+						}
 					}
 					this._manifestContent[`${chunkName}.js`] = blockResultChunk;
 					this._filesToWrite.add(blockChunk);
@@ -478,7 +497,7 @@ ${blockCacheEntry}`
 					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
 				);
 
-				const blockScripts = this._writeBuildBridgeCache(scripts);
+				const blockScripts = this._writeBuildBridgeCache(additionalScripts);
 				await page.screenshot({ path: join(screenshotDirectory, 'default.png') });
 
 				let renderResults: RenderResult[] = [];
@@ -508,7 +527,7 @@ ${blockCacheEntry}`
 					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
 						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
 					);
-					const blockScripts = this._writeBuildBridgeCache(scripts);
+					const blockScripts = this._writeBuildBridgeCache(additionalScripts);
 					await page.screenshot({ path: join(screenshotDirectory, `${path.replace('#', '')}.png`) });
 					let result = await this._getRenderResult(page, this._paths[i]);
 					result.blockScripts = blockScripts;

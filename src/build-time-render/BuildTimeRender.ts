@@ -92,6 +92,7 @@ export default class BuildTimeRender {
 	private _discoverPaths: boolean;
 	private _sync: boolean;
 	private _writeHtml: boolean;
+	private _writtenHtmlFiles: string[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -225,7 +226,9 @@ export default class BuildTimeRender {
 
 			html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
 		});
-		outputFileSync(join(this._output!, ...path.split('/'), 'index.html'), html);
+		const htmlPath = join(this._output!, ...path.split('/'), 'index.html');
+		this._writtenHtmlFiles.push(htmlPath);
+		outputFileSync(htmlPath, html);
 	}
 
 	private _createScripts(regex = true) {
@@ -508,6 +511,13 @@ ${blockCacheEntry}`
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 			this._buildBridgeResult = {};
 			this._blockErrors = [];
+
+			let htmlFileToRemove = this._writtenHtmlFiles.pop();
+			while (htmlFileToRemove) {
+				removeSync(htmlFileToRemove);
+				htmlFileToRemove = this._writtenHtmlFiles.pop();
+			}
+
 			if (compiler.options.output) {
 				this._output = compiler.options.output.path;
 				this._jsonpName = compiler.options.output.jsonpFunction;

@@ -10,12 +10,23 @@ export default (renderer: Renderer = 'puppeteer') => {
 	}
 	return {
 		launch: (options: any) => {
+			let requestCount = 0;
 			class CustomResourceLoader extends ResourceLoader {
 				fetch(url: string, options: any) {
 					if (options.element && options.element.localName === 'iframe') {
 						return null;
 					}
-					return super.fetch(url.replace(/#.*/, ''), options);
+					requestCount++;
+					const response = super.fetch(url.replace(/#.*/, ''), options);
+					response.then(
+						() => {
+							requestCount--;
+						},
+						() => {
+							requestCount--;
+						}
+					);
+					return response;
 				}
 			}
 			return Promise.resolve({
@@ -25,6 +36,7 @@ export default (renderer: Renderer = 'puppeteer') => {
 				newPage: () => {
 					const beforeParseFuncs: any[] = [];
 					let window: any;
+					requestCount = 0;
 					return {
 						evaluate: (func: () => any, ...args: any[]) => {
 							return new Promise((resolve) => {
@@ -47,7 +59,7 @@ export default (renderer: Renderer = 'puppeteer') => {
 							const nodes = [...window.document.querySelectorAll(selector)];
 							return Promise.resolve(func(nodes));
 						},
-						goto: (url: string) => {
+						goto: async (url: string, options: any) => {
 							const jsdomOptions: any = {
 								runScripts: 'dangerously',
 								pretendToBeVisual: true,
@@ -63,7 +75,19 @@ export default (renderer: Renderer = 'puppeteer') => {
 									beforeParseFunc(win);
 								});
 							};
-							return JSDOM.fromURL(url, jsdomOptions);
+							let timeout = false;
+							const jsdom = JSDOM.fromURL(url, jsdomOptions);
+							setTimeout(() => {
+								timeout = true;
+							}, 30000);
+							await new Promise((resolve) => setTimeout(resolve, 10));
+							while (requestCount && !timeout) {
+								await new Promise((resolve) => setTimeout(resolve, 10));
+							}
+							if (timeout) {
+								throw new Error(`Page ${url} timed out`);
+							}
+							return jsdom;
 						},
 						exposeFunction: (name: string, func: () => any) => {
 							beforeParseFuncs.push((window: any) => {

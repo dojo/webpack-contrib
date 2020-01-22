@@ -55,7 +55,7 @@ export interface BuildTimeRenderArguments {
 	renderer?: Renderer;
 	discoverPaths?: boolean;
 	writeHtml?: boolean;
-	watch?: boolean;
+	executeBtr?: boolean;
 }
 
 function genHash(content: string): string {
@@ -127,7 +127,7 @@ export default class BuildTimeRender {
 	private _sync: boolean;
 	private _writeHtml: boolean;
 	private _writtenHtmlFiles: string[] = [];
-	private _watch: boolean;
+	private _executeBtr: boolean;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -143,7 +143,7 @@ export default class BuildTimeRender {
 			discoverPaths = true,
 			sync = false,
 			writeHtml = true,
-			watch = false
+			executeBtr = true
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -169,7 +169,7 @@ export default class BuildTimeRender {
 		if (this._useHistory || paths.length === 0) {
 			this._static = !!args.static;
 		}
-		this._watch = watch;
+		this._executeBtr = executeBtr;
 	}
 
 	private async _writeIndexHtml({
@@ -685,7 +685,7 @@ ${blockCacheEntry}`
 			this._jsonpName = compiler.options.output.jsonpFunction;
 		}
 
-		if (!this._watch) {
+		if (this._executeBtr) {
 			compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
 				return this.run(compilation, callback);
 			});

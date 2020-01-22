@@ -77,7 +77,7 @@ export default (renderer: Renderer = 'puppeteer') => {
 							};
 							let timeout = false;
 							const jsdom = JSDOM.fromURL(url, jsdomOptions);
-							setTimeout(() => {
+							const timeoutHandle = setTimeout(() => {
 								timeout = true;
 							}, 30000);
 							await new Promise((resolve) => setTimeout(resolve, 10));
@@ -87,6 +87,7 @@ export default (renderer: Renderer = 'puppeteer') => {
 							if (timeout) {
 								throw new Error(`Page ${url} timed out`);
 							}
+							clearTimeout(timeoutHandle);
 							return jsdom;
 						},
 						exposeFunction: (name: string, func: () => any) => {

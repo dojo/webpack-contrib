@@ -183,8 +183,8 @@ export default class BuildTimeRender {
 	}: RenderResult) {
 		let staticPath = this._static;
 		if (typeof path === 'object') {
-			if (this._useHistory && !staticPath) {
-				staticPath = !!path.static;
+			if (this._useHistory) {
+				staticPath = path.static === undefined ? staticPath : path.static;
 			}
 			path = path.path;
 		} else {

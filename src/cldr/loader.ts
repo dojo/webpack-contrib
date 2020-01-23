@@ -58,17 +58,17 @@ var cldrData = [weekData, ordinals, numberingSystems, parentLocales, likelySubta
 `;
 	}
 
-	const syncLocaleCldrData = locales.reduce((o, l) => {
-		o = `${o}
-${loadLocaleCldrTemplate(l)}`;
-		return o;
+	const syncLocaleCldrData = locales.reduce((template, locale) => {
+		template = `${template}
+${loadLocaleCldrTemplate(locale)}`;
+		return template;
 	}, '');
 
 	function createSupplementalCldrTemplate() {
 		if (sync) {
 			return 'true';
 		}
-		return `function {
+		return `function() {
 	var promises = [
 		Promise.resolve({ default: ${JSON.stringify(parentLocales)} }),
 		Promise.resolve({ default: ${JSON.stringify(likelySubtags)} }),

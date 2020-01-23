@@ -1,4 +1,5 @@
 var has = require('@dojo/framework/core/has');
+var cldrLoader = require('../cldr-loader/bootstrap').default;
 require('./common');
 
 var modules = [];
@@ -37,6 +38,10 @@ if (has.default(__dojoframeworkshiminert) && !has.default('dom-inert')) {
 if (!has.default('dom-pointer-events')) {
 	modules.push(import(/* webpackChunkName: "runtime/pointerEvents" */ '@dojo/framework/shim/pointerEvents'));
 }
+
+if (has.default('__i18n__')) {
+	modules.push(cldrLoader);
+} 
 
 module.exports = Promise.all(modules).then(function() {
 	return import(/* webpackChunkName: "main" */ __MAIN_ENTRY);

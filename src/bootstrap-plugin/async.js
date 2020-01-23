@@ -39,9 +39,7 @@ if (!has.default('dom-pointer-events')) {
 	modules.push(import(/* webpackChunkName: "runtime/pointerEvents" */ '@dojo/framework/shim/pointerEvents'));
 }
 
-if (has.default('__i18n__')) {
-	modules.push(cldrLoader);
-} 
+modules.push(cldrLoader); 
 
 module.exports = Promise.all(modules).then(function() {
 	return import(/* webpackChunkName: "main" */ __MAIN_ENTRY);

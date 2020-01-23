@@ -1,4 +1,4 @@
-import * as webpack from 'webpack'
+import * as webpack from 'webpack';
 const WrapperPlugin = require('wrapper-webpack-plugin');
 
 const i18nNumberRegExp = /@dojo(\/|\\)framework(\/|\\)i18n(\/|\\)number/;

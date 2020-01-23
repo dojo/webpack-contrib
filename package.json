@@ -49,6 +49,7 @@
     "acorn-walk": "6.1.1",
     "bfj": "6.1.1",
     "chalk": "2.3.0",
+    "cldr-core": "36.0.0",
     "clear-module": "3.1.0",
     "commander": "2.13.0",
     "connect-history-api-fallback": "1.6.0",

@@ -38,7 +38,6 @@ export class CldrPlugin {
 		const wrapper = new WrapperPlugin({
 			test: /(bootstrap.*(\.js$))/,
 			header: () => {
-				console.warn(this._defineConfiguration);
 				return `var i18nFeatures = ${JSON.stringify(this._defineConfiguration)};
 if (window.DojoHasEnvironment && window.DojoHasEnvironment.staticFeatures) {
 	Object.keys(window.DojoHasEnvironment.staticFeatures).forEach(function (key) {
@@ -51,3 +50,5 @@ window.DojoHasEnvironment = { staticFeatures: i18nFeatures };`;
 		wrapper.apply(compiler);
 	}
 }
+
+export default CldrPlugin;

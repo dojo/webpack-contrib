@@ -75,7 +75,7 @@ ${loadLocaleCldrTemplate(locale)}`;
 		Promise.resolve({ default: ${JSON.stringify(plurals)} })
 	];
 
-	if (has('__i18n_date_time__')) {
+	if (has('__i18n_date__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/supplemental/date-time" */ 'cldr-core/supplemental/weekData.json')
 		);
@@ -83,12 +83,12 @@ ${loadLocaleCldrTemplate(locale)}`;
 			import(/* webpackChunkName: "i18n/supplemental/date-time" */ 'cldr-core/supplemental/timeData.json')
 		);
 	}
-	if (has('__i18n_currency__')) {
+	if (has('__i18n_number__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/supplemental/currency" */ 'cldr-core/supplemental/currencyData.json')
 		);
 	}
-	if (has('__i18n_date_time__') || has('__i18n_currency__') || has('__i18n_unit__')) {
+	if (has('__i18n_date__') || has('__i18n_number__') || has('__i18n_unit__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/supplemental/common" */ 'cldr-core/supplemental/ordinals.json')
 		);
@@ -110,7 +110,7 @@ ${loadLocaleCldrTemplate(locale)}`;
 		return `function() {
 	var promises = [];
 
-	if (has('__i18n_date_time__')) {
+	if (has('__i18n_date__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/${locale}/date-time" */ 'cldr-data/main/${locale}/ca-gregorian.json')
 		);
@@ -121,12 +121,12 @@ ${loadLocaleCldrTemplate(locale)}`;
 			import(/* webpackChunkName: "i18n/${locale}/date-time" */ 'cldr-data/main/${locale}/timeZoneNames.json')
 		);
 	}
-	if (has('__i18n_currency__')) {
+	if (has('__i18n_number__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/${locale}/currency" */ 'cldr-data/main/${locale}/currencies.json')
 		);
 	}
-	if (has('__i18n_date_time__') || has('__i18n_currency__') || has('__i18n_unit__')) {
+	if (has('__i18n_date__') || has('__i18n_number__') || has('__i18n_unit__')) {
 		promises.push(
 			import(/* webpackChunkName: "i18n/${locale}/common" */ 'cldr-data/main/${locale}/numbers.json')
 		);
@@ -145,14 +145,13 @@ ${loadLocaleCldrTemplate(locale)}`;
 		})
 		.join(',');
 
-	return `
-var has = require('@dojo/framework/core/has').default;
+	const syncLoaders = `${loadSupplementalCldrTemplate()}
+${syncLocaleCldrData}
+Globalize.load(cldrData)`;
+
+	return `var has = require('@dojo/framework/core/has').default;
 var i18n = require('@dojo/framework/i18n/i18n');
-
-${sync ? loadSupplementalCldrTemplate() : ''}
-${sync ? syncLocaleCldrData : ''}
-${sync ? 'Globalize.load(cldrData)' : ''}
-
+${sync ? syncLoaders : ''}
 i18n.setCldrLoaders({ ${localeLoaders}, supplemental: ${createSupplementalCldrTemplate()} });
 i18n.setSupportedLocales(${JSON.stringify(locales)});
 i18n.setDefaultLocale('${locale}');

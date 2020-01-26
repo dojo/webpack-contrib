@@ -103,6 +103,15 @@ ${loadLocaleCldrTemplate(locale)}`;
 }`;
 	}
 
+	const fallbackLikelySubtagsCldrData = sync
+		? 'true'
+		: `function () {
+		return Promise.all([
+			import(/* webpackChunkName: "i18n/supplemental/fallback" */ 'cldr-core/supplemental/likelySubtags.json'),
+			import(/* webpackChunkName: "i18n/supplemental/fallback" */ 'cldr-core/supplemental/plurals.json')
+		]);
+	}`;
+
 	function createLocaleCldrTemplate(locale: string) {
 		if (sync) {
 			return 'true';
@@ -152,7 +161,7 @@ Globalize.load(cldrData)`;
 	return `var has = require('@dojo/framework/core/has').default;
 var i18n = require('@dojo/framework/i18n/i18n');
 ${sync ? syncLoaders : ''}
-i18n.setCldrLoaders({ ${localeLoaders}, supplemental: ${createSupplementalCldrTemplate()} });
+i18n.setCldrLoaders({ ${localeLoaders}, fallback: ${fallbackLikelySubtagsCldrData}, supplemental: ${createSupplementalCldrTemplate()} });
 i18n.setSupportedLocales(${JSON.stringify(locales)});
 i18n.setDefaultLocale('${locale}');
 export default i18n.setLocale();

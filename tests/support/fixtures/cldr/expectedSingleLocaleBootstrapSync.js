@@ -19,7 +19,7 @@ cldrData.push(require('cldr-data/main/en/numbers.json'));
 cldrData.push(require('cldr-data/main/en/units.json'));
 
 Globalize.load(cldrData)
-i18n.setCldrLoaders({ 'en': true, supplemental: true });
+i18n.setCldrLoaders({ 'en': true, fallback: true, supplemental: true });
 i18n.setSupportedLocales(["en"]);
 i18n.setDefaultLocale('en');
 export default i18n.setLocale();

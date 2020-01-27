@@ -1,2 +1,2 @@
 import './loader';
-// import './Plugin';
+import './Plugin';

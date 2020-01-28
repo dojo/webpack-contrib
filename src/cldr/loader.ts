@@ -51,9 +51,9 @@ cldrData.push(require('cldr-data/main/${locale}/units.json'));
 var weekData = require('cldr-core/supplemental/weekData.json');
 var ordinals = require('cldr-core/supplemental/ordinals.json');
 var numberingSystems = require('cldr-core/supplemental/numberingSystems.json');
-var parentLocales = ${JSON.stringify(parentLocales)};
-var likelySubtags = ${JSON.stringify(likelySubtags)};
-var plurals = ${JSON.stringify(plurals)};
+var parentLocales = require('cldr-core/supplemental/parentLocales.json');
+var likelySubtags = require('cldr-core/supplemental/likelySubtags.json');
+var plurals = require('cldr-core/supplemental/plurals.json');
 var cldrData = [weekData, ordinals, numberingSystems, parentLocales, likelySubtags, plurals];
 `;
 	}

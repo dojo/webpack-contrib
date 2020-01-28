@@ -38,4 +38,4 @@ Globalize.load(cldrData)
 i18n.setCldrLoaders({ 'en': true,'fr': true,'ja': true, fallback: true, supplemental: true });
 i18n.setSupportedLocales(["en","fr","ja"]);
 i18n.setDefaultLocale('en');
-export default i18n.setLocale();
+export default i18n.setLocale({ default: true });

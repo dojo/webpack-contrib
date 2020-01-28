@@ -164,6 +164,6 @@ ${sync ? syncLoaders : ''}
 i18n.setCldrLoaders({ ${localeLoaders}, fallback: ${fallbackLikelySubtagsCldrData}, supplemental: ${createSupplementalCldrTemplate()} });
 i18n.setSupportedLocales(${JSON.stringify(locales)});
 i18n.setDefaultLocale('${locale}');
-export default i18n.setLocale();
+export default i18n.setLocale({ default: true });
 `;
 }

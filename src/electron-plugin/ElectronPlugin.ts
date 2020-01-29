@@ -1,13 +1,8 @@
-import * as path from 'path';
 import * as webpack from 'webpack';
-import * as fs from 'fs';
-
-const packager = require('electron-packager');
 
 interface ElectronPluginOptions {
 	electron: {
 		browser: any;
-		packaging: any;
 	};
 	dist: boolean;
 	watch: boolean;
@@ -18,7 +13,6 @@ interface ElectronPluginOptions {
 }
 
 export class ElectronPlugin {
-	private _packageJson: any = {};
 	private _options: ElectronPluginOptions;
 	private _defaultOptions: ElectronPluginOptions = {
 		dist: false,
@@ -28,13 +22,7 @@ export class ElectronPlugin {
 		basePath: process.cwd(),
 		outputPath: 'output/dist',
 		electron: {
-			browser: { width: 800, height: 600 },
-			packaging: {
-				dir: 'output/dist',
-				app: 'app',
-				out: 'output/app',
-				overwrite: true
-			}
+			browser: { width: 800, height: 600 }
 		}
 	};
 
@@ -44,22 +32,13 @@ export class ElectronPlugin {
 			...this._defaultOptions.electron.browser,
 			...this._options.electron.browser
 		};
-		this._options.electron.packaging = {
-			...this._defaultOptions.electron.packaging,
-			...this._options.electron.packaging
-		};
-		const { basePath } = this._options;
-		const packageJsonPath = path.join(basePath, 'package.json');
-		this._packageJson = fs.existsSync(packageJsonPath) ? require(packageJsonPath) : {};
 	}
 	apply(compiler: webpack.Compiler) {
 		const {
-			electron: { browser, packaging },
-			dist,
+			electron: { browser },
 			watch,
 			serve,
-			port,
-			outputPath
+			port
 		} = this._options;
 
 		const definePlugin = new webpack.DefinePlugin({
@@ -69,16 +48,6 @@ export class ElectronPlugin {
 		});
 
 		definePlugin.apply(compiler);
-
-		compiler.hooks.done.tapAsync(this.constructor.name, (stats: any, callback: any) => {
-			const newPackageJson = { ...this._packageJson, main: 'main.electron.js' };
-			fs.writeFileSync(path.resolve(outputPath, 'package.json'), JSON.stringify(newPackageJson));
-			if (dist && !watch) {
-				packager({ ...packaging, app: this._packageJson.name }).then(() => callback());
-			} else {
-				callback();
-			}
-		});
 	}
 }
 

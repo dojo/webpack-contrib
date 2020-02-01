@@ -1,5 +1,5 @@
 import { statSync, readFileSync, existsSync, writeFileSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, normalize, sep } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import * as webpack from 'webpack';
 const DtsCreator = require('typed-css-modules');
@@ -18,7 +18,6 @@ type DtsCreatorInstance = {
 type LoaderArgs = {
 	type: string;
 	instanceName?: string;
-	sourceFilesPattern?: RegExp | string;
 };
 
 const creator: DtsCreatorInstance = new DtsCreator();
@@ -26,11 +25,22 @@ const creator: DtsCreatorInstance = new DtsCreator();
 const mTimeMap = new Map<string, Date>();
 const cssMap = new Map<string, string>();
 
-function generateDTSFile(filePath: string, sourceFilesRegex: RegExp): Promise<void> {
+/**
+ * Test whether a module ID is relative or absolute.
+ *
+ * @param id
+ * The module ID.
+ *
+ * @return
+ * `true` if the path is relative; `false` otherwise.
+ */
+function isRelative(id: string): boolean {
+	const first = normalize(id.charAt(0));
+	return first !== sep && first !== '@' && /^\W/.test(id);
+}
+
+function generateDTSFile(filePath: string): Promise<void> {
 	return Promise.resolve().then(() => {
-		if (!sourceFilesRegex.test(filePath)) {
-			return;
-		}
 		const { mtime } = statSync(filePath);
 		const lastMTime = mTimeMap.get(filePath);
 
@@ -66,7 +76,7 @@ export = styles;`,
 function getCssImport(node: Node, loaderContext: webpack.loader.LoaderContext): Promise<string> | void {
 	if (node.kind === SyntaxKind.StringLiteral) {
 		const importPath = node.getText().replace(/\'|\"/g, '');
-		if (/\.css$/.test(importPath)) {
+		if (/\.css$/.test(importPath) && isRelative(importPath)) {
 			const parentFileName = node.getSourceFile().fileName;
 			return new Promise((resolve, reject) => {
 				loaderContext.resolve(dirname(parentFileName), importPath, (error, path) => {
@@ -106,37 +116,32 @@ function traverseNode(
 
 export default function(this: webpack.loader.LoaderContext, content: string, sourceMap?: string) {
 	const callback = this.async() as Function;
-	const { type = 'ts', instanceName, sourceFilesPattern = /src[\\\/]/ }: LoaderArgs = getOptions(this);
-	const sourceFilesRegex =
-		typeof sourceFilesPattern === 'string' ? new RegExp(sourceFilesPattern) : sourceFilesPattern;
+	const { instanceName }: LoaderArgs = getOptions(this);
 
 	Promise.resolve()
-		.then(() => {
-			let generationPromises: Promise<void>[] = [];
-			switch (type) {
-				case 'css':
-					generationPromises.push(generateDTSFile(this.resourcePath, sourceFilesRegex));
-					break;
-				case 'ts':
-					const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
-					const cssFilePathPromises = traverseNode(sourceFile, [], this);
+		.then(
+			(): Promise<any> => {
+				const sourceFile = createSourceFile(this.resourcePath, content, ScriptTarget.Latest, true);
+				const cssFilePathPromises = traverseNode(sourceFile, [], this);
 
-					if (cssFilePathPromises.length) {
-						if (instanceName) {
-							const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
+				if (!cssFilePathPromises.length) {
+					return Promise.resolve();
+				}
 
-							if (instanceWrapper.instance) {
-								instanceWrapper.instance.files[this.resourcePath] = undefined;
-							}
-						}
+				if (instanceName) {
+					const instanceWrapper = instances.getTypeScriptInstance({ instance: instanceName });
 
-						generationPromises = cssFilePathPromises.map((cssFilePathPromise) =>
-							cssFilePathPromise.then((cssFilePath) => generateDTSFile(cssFilePath, sourceFilesRegex))
-						);
+					if (instanceWrapper.instance) {
+						instanceWrapper.instance.files[this.resourcePath] = undefined;
 					}
-					break;
+				}
+
+				return Promise.all(
+					cssFilePathPromises.map((cssFilePathPromise) =>
+						cssFilePathPromise.then((cssFilePath) => generateDTSFile(cssFilePath))
+					)
+				);
 			}
-			return Promise.all(generationPromises);
-		})
+		)
 		.then(() => callback(null, content, sourceMap), (error) => callback(error));
 }

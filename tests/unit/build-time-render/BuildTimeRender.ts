@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'fs-extra';
 import * as path from 'path';
-import { stub } from 'sinon';
+import { stub, SinonStub } from 'sinon';
 import MockModule from '../../support/MockModule';
 import { BuildTimeRenderArguments } from '../../../src/build-time-render/BuildTimeRender';
 
@@ -11,6 +11,7 @@ let mockModule: MockModule;
 let outputPath: string;
 let compiler: any;
 let pluginRegistered = false;
+let consoleWarnStub: SinonStub;
 let runBtr: Function = () => {};
 const tapStub = (name: string, cb: Function) => {
 	pluginRegistered = true;
@@ -87,12 +88,14 @@ describe('build-time-render', () => {
 			apply: stub()
 		});
 		webpack.ctor.NormalModuleReplacementPlugin = normalModuleReplacementPluginStub;
+		consoleWarnStub = stub(console, 'warn');
 	});
 
 	afterEach(() => {
 		pluginRegistered = false;
 		mockModule.destroy();
 		callbackStub.reset();
+		consoleWarnStub.restore();
 		runBtr = () => {};
 	});
 
@@ -149,6 +152,213 @@ describe('build-time-render', () => {
 		return runBtr(compilation, callbackStub).then(() => {
 			assert.isTrue(callbackStub.calledOnce);
 			assert.isTrue(outputFileSync.notCalled);
+		});
+	});
+
+	describe('on demand btr', () => {
+		beforeEach(() => {
+			outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state');
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: outputPath
+					}
+				}
+			};
+		});
+
+		it('should auto discover paths to build from each rendered page', async () => {
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery'
+						)
+					}
+				}
+			};
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = getBuildTimeRenderModule();
+			const btr = new Btr({
+				basePath: '',
+				useHistory: true,
+				entries: ['runtime', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test',
+				onDemand: true
+			});
+			btr.apply(compiler);
+			assert.isTrue(pluginRegistered);
+			await runBtr(createCompilation('state-auto-discovery'), callbackStub);
+			assert.isTrue(callbackStub.calledOnce);
+			assert.strictEqual(outputFileSync.callCount, 5);
+			assert.isTrue(
+				outputFileSync.secondCall.args[0].indexOf(
+					path.join(
+						'support',
+						'fixtures',
+						'build-time-render',
+						'state-auto-discovery',
+						'my-path',
+						'index.html'
+					)
+				) > -1
+			);
+			assert.isTrue(
+				outputFileSync.thirdCall.args[0].indexOf(
+					path.join('support', 'fixtures', 'build-time-render', 'state-auto-discovery', 'other', 'index.html')
+				) > -1
+			);
+			assert.isTrue(
+				outputFileSync
+					.getCall(3)
+					.args[0].indexOf(
+						path.join(
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery',
+							'my-path',
+							'other',
+							'index.html'
+						)
+					) > -1
+			);
+			assert.strictEqual(
+				normalise(outputFileSync.secondCall.args[1]),
+				normalise(
+					readFileSync(
+						path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery',
+							'expected',
+							'my-path',
+							'index.html'
+						),
+						'utf8'
+					)
+				)
+			);
+			assert.strictEqual(
+				normalise(outputFileSync.thirdCall.args[1]),
+				normalise(
+					readFileSync(
+						path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery',
+							'expected',
+							'other',
+							'index.html'
+						),
+						'utf8'
+					)
+				)
+			);
+			assert.strictEqual(
+				normalise(outputFileSync.getCall(3).args[1]),
+				normalise(
+					readFileSync(
+						path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery',
+							'expected',
+							'my-path',
+							'other',
+							'index.html'
+						),
+						'utf8'
+					)
+				)
+			);
+
+			assert.strictEqual(
+				outputFileSync.getCall(4).args[1],
+				JSON.stringify(['', 'my-path', 'other', 'my-path/other'], null, 4)
+			);
+			outputFileSync.resetHistory();
+			callbackStub.resetHistory();
+			await runBtr(createCompilation('state-auto-discovery'), callbackStub);
+			assert.strictEqual(outputFileSync.callCount, 0);
+			assert.isTrue(callbackStub.calledOnce);
+			outputFileSync.resetHistory();
+			callbackStub.resetHistory();
+			await btr.runPath(
+				callbackStub,
+				'other',
+				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
+				''
+			);
+			assert.isTrue(consoleWarnStub.notCalled);
+			assert.strictEqual(outputFileSync.callCount, 2);
+			assert.strictEqual(
+				normalise(outputFileSync.getCall(0).args[1]),
+				normalise(
+					readFileSync(
+						path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery',
+							'expected',
+							'other',
+							'index.html'
+						),
+						'utf8'
+					)
+				)
+			);
+			await btr.runPath(
+				callbackStub,
+				'unknown',
+				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
+				''
+			);
+			assert.isTrue(consoleWarnStub.calledOnce);
 		});
 	});
 
@@ -521,7 +731,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
@@ -637,7 +847,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
@@ -769,7 +979,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join(
@@ -927,7 +1137,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.strictEqual(outputFileSync.callCount, 5);
 						assert.isTrue(
 							outputFileSync.secondCall.args[0].indexOf(
 								path.join(
@@ -1081,7 +1291,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.strictEqual(outputFileSync.callCount, 5);
 						assert.isTrue(
 							outputFileSync.secondCall.args[0].indexOf(
 								path.join(
@@ -1228,7 +1438,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 1);
+						assert.strictEqual(outputFileSync.callCount, 2);
 						assert.isTrue(
 							outputFileSync.firstCall.args[0].indexOf(
 								path.join(
@@ -1435,7 +1645,7 @@ describe('build-time-render', () => {
 						if (filename.match(/manifest\.original\.json$/)) {
 							originalManifest = content;
 						}
-						if (filename.match(/manifest\.json$/)) {
+						if (filename.match(/(\/|\\)manifest\.json$/)) {
 							manifest = content;
 						}
 					});
@@ -1816,7 +2026,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
@@ -1933,7 +2143,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
@@ -2066,7 +2276,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 4);
+					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join(
@@ -2215,7 +2425,7 @@ describe('build-time-render', () => {
 				assert.isTrue(pluginRegistered);
 				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 2);
+					assert.strictEqual(outputFileSync.callCount, 3);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
 							path.join(
@@ -2306,7 +2516,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.strictEqual(outputFileSync.callCount, 5);
 						assert.isTrue(
 							outputFileSync.secondCall.args[0].indexOf(
 								path.join(
@@ -2461,7 +2671,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 4);
+						assert.strictEqual(outputFileSync.callCount, 5);
 						assert.isTrue(
 							outputFileSync.secondCall.args[0].indexOf(
 								path.join(
@@ -2609,7 +2819,7 @@ describe('build-time-render', () => {
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 1);
+						assert.strictEqual(outputFileSync.callCount, 2);
 						assert.isTrue(
 							outputFileSync.firstCall.args[0].indexOf(
 								path.join(
@@ -2818,7 +3028,7 @@ describe('build-time-render', () => {
 						if (filename.match(/manifest\.original\.json$/)) {
 							originalManifest = content;
 						}
-						if (filename.match(/manifest\.json$/)) {
+						if (filename.match(/(\/|\\)manifest\.json$/)) {
 							manifest = content;
 						}
 					});

@@ -1,5 +1,5 @@
-import { Compiler } from 'webpack';
-import { outputFileSync, removeSync, ensureDirSync } from 'fs-extra';
+import { Compiler, compilation } from 'webpack';
+import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync } from 'fs-extra';
 
 import { join, resolve } from 'path';
 import {
@@ -56,6 +56,7 @@ export interface BuildTimeRenderArguments {
 	renderer?: Renderer;
 	discoverPaths?: boolean;
 	writeHtml?: boolean;
+	onDemand?: boolean;
 }
 
 function genHash(content: string): string {
@@ -67,6 +68,39 @@ function genHash(content: string): string {
 
 const trailingSlash = new RegExp(/\/$/);
 const leadingSlash = new RegExp(/^\//);
+
+class MockAsset {
+	private _assetPath: string;
+	constructor(assetPath: string) {
+		this._assetPath = assetPath;
+	}
+
+	source() {
+		try {
+			return readFileSync(this._assetPath, 'utf8');
+		} catch {
+			return '';
+		}
+	}
+}
+
+class MockCompilation {
+	private _manifest: { [index: string]: string };
+	public assets: { [index: string]: MockAsset };
+	public errors: any[] = [];
+	constructor(output: string) {
+		this._manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
+		this.assets = Object.keys(this._manifest).reduce(
+			(assets, key) => {
+				const asset = new MockAsset(join(output, this._manifest[key]));
+				assets[this._manifest[key]] = asset;
+				return assets;
+			},
+			{} as { [index: string]: MockAsset }
+		);
+		this.assets['manifest.json'] = new MockAsset(join(output, 'manifest.json'));
+	}
+}
 
 export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
@@ -94,6 +128,8 @@ export default class BuildTimeRender {
 	private _sync: boolean;
 	private _writeHtml: boolean;
 	private _writtenHtmlFiles: string[] = [];
+	private _initialBtr = true;
+	private _onDemand = false;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -108,7 +144,8 @@ export default class BuildTimeRender {
 			renderer = 'puppeteer',
 			discoverPaths = true,
 			sync = false,
-			writeHtml = true
+			writeHtml = true,
+			onDemand = false
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -128,6 +165,7 @@ export default class BuildTimeRender {
 		this._root = root;
 		this._sync = sync;
 		this._scope = scope;
+		this._onDemand = onDemand;
 		this._writeHtml = writeHtml;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
@@ -505,6 +543,153 @@ ${blockCacheEntry}`
 		return page;
 	}
 
+	private async _run(compilation: compilation.Compilation | MockCompilation, callback: Function, path?: string) {
+		this._buildBridgeResult = {};
+		this._blockErrors = [];
+		if (!this._output || compilation.errors.length > 0) {
+			return Promise.resolve().then(() => {
+				callback();
+			});
+		}
+		if (this._onDemand && path) {
+			removeSync(join(this._output, ...path.split('/'), 'index.html'));
+		} else {
+			let htmlFileToRemove = this._writtenHtmlFiles.pop();
+			while (htmlFileToRemove) {
+				removeSync(htmlFileToRemove);
+				htmlFileToRemove = this._writtenHtmlFiles.pop();
+			}
+		}
+
+		const paths = path ? [path] : [...this._paths];
+		let pageManifest = paths.map((path) => (typeof path === 'object' ? path.path : path));
+		if (this._onDemand && !this._initialBtr && existsSync(join(this._output, 'btr-manifest.json'))) {
+			pageManifest = JSON.parse(readFileSync(join(this._output, 'btr-manifest.json'), 'utf8'));
+		}
+		this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
+		this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
+			obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
+			return obj;
+		}, this._manifestContent);
+		const originalManifest = { ...this._manifest };
+
+		const html = this._manifestContent['index.html'];
+		const root = parse(html);
+		const rootNode = root.querySelector(`#${this._root}`);
+		if (!rootNode) {
+			const error = new Error(
+				`Failed to run build time rendering. Could not find DOM node with id: "${this._root}" in src/index.html`
+			);
+			compilation.errors.push(error);
+			callback();
+			return;
+		}
+		this._originalRoot = `${rootNode.toString()}`;
+		this._cssFiles = Object.keys(this._manifest)
+			.filter((key) => {
+				return /\.css$/.test(key);
+			})
+			.map((key) => this._manifest[key]);
+
+		clearModule.match(new RegExp(`${resolve(this._basePath, 'src')}.*`));
+		const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
+		const app = await serve(`${this._output}`, this._baseUrl);
+		try {
+			const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
+			ensureDirSync(screenshotDirectory);
+			let renderResults: RenderResult[] = [];
+
+			let path: BuildTimePath | string | undefined;
+
+			while ((path = paths.shift()) != null) {
+				let parsedPath = typeof path === 'object' ? path.path : path;
+				let page = await this._createPage(browser);
+				await page.goto(`http://localhost:${app.port}${this._baseUrl}${parsedPath}`);
+				const pathDirectories = parsedPath.replace('#', '').split('/');
+				if (pathDirectories.length > 0) {
+					pathDirectories.pop();
+					ensureDirSync(join(screenshotDirectory, ...pathDirectories));
+				}
+				let { rendering, blocksPending } = await getRenderHooks(page, this._scope);
+				while (rendering || blocksPending) {
+					({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
+				}
+				const scripts = await getScriptSources(page, app.port);
+				const additionalScripts = scripts.filter(
+					(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+				);
+				const additionalCss = (await getPageStyles(page)).filter((url: string) =>
+					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+				);
+				const blockScripts = this._sync
+					? this._writeSyncBuildBridgeCache()
+					: this._writeBuildBridgeCache(additionalScripts);
+				await page.screenshot({
+					path: join(screenshotDirectory, `${parsedPath ? parsedPath.replace('#', '') : 'default'}.png`)
+				});
+				if (this._discoverPaths) {
+					const links = await getPageLinks(page);
+					for (let i = 0; i < links.length; i++) {
+						if (pageManifest.indexOf(links[i]) === -1) {
+							(!this._onDemand || this._initialBtr) && paths.push(links[i]);
+							pageManifest.push(links[i]);
+						}
+					}
+				}
+				let result = await this._getRenderResult(page, path);
+				result.blockScripts = blockScripts;
+				result.additionalScripts = additionalScripts;
+				result.additionalCss = additionalCss;
+				renderResults.push(result);
+
+				await page.close();
+			}
+
+			this._writeBuildTimeCacheFiles();
+
+			if (!this._useHistory && this._paths.length > 1) {
+				renderResults = [this._createCombinedRenderResult(renderResults)];
+			}
+
+			await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
+			if (this._hasBuildBridgeCache) {
+				outputFileSync(
+					join(this._output, '..', 'info', 'manifest.original.json'),
+					compilation.assets['manifest.json'].source(),
+					'utf8'
+				);
+			}
+			outputFileSync(join(this._output, 'btr-manifest.json'), JSON.stringify(pageManifest, null, 4), 'utf8');
+			if (this._blockErrors.length) {
+				compilation.errors.push(...this._blockErrors);
+			}
+		} catch (error) {
+			if (this._blockErrors.length) {
+				compilation.errors.push(...this._blockErrors);
+			}
+			compilation.errors.push(error);
+		} finally {
+			await browser.close();
+			await app.server.close();
+			this._initialBtr = false;
+			callback();
+		}
+	}
+
+	public runPath(callback: Function, path: string, output: string, jsonpName: string) {
+		this._output = output;
+		this._jsonpName = jsonpName;
+		const compilation = new MockCompilation(this._output);
+		const paths = JSON.parse(readFileSync(join(this._output, 'btr-manifest.json'), 'utf8'));
+		if (paths.indexOf(path) === -1) {
+			console.warn(
+				`On demand BTR: This path (${path}) has not been previously discovered by BTR, please make sure that it is discoverable or included in the btr paths array`
+			);
+		}
+
+		return this._run(compilation, callback, path);
+	}
+
 	public apply(compiler: Compiler) {
 		if (!this._root) {
 			return;
@@ -519,136 +704,16 @@ ${blockCacheEntry}`
 		});
 		plugin.apply(compiler);
 
+		if (compiler.options.output) {
+			this._output = compiler.options.output.path;
+			this._jsonpName = compiler.options.output.jsonpFunction;
+		}
+
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
-			this._buildBridgeResult = {};
-			this._blockErrors = [];
-
-			let htmlFileToRemove = this._writtenHtmlFiles.pop();
-			while (htmlFileToRemove) {
-				removeSync(htmlFileToRemove);
-				htmlFileToRemove = this._writtenHtmlFiles.pop();
+			if (this._onDemand && !this._initialBtr) {
+				return callback();
 			}
-
-			if (compiler.options.output) {
-				this._output = compiler.options.output.path;
-				this._jsonpName = compiler.options.output.jsonpFunction;
-			}
-
-			if (!this._output || compilation.errors.length > 0) {
-				return Promise.resolve().then(() => {
-					callback();
-				});
-			}
-
-			this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
-			this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
-				obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
-				return obj;
-			}, this._manifestContent);
-			const originalManifest = { ...this._manifest };
-
-			const html = this._manifestContent['index.html'];
-			const root = parse(html);
-			const rootNode = root.querySelector(`#${this._root}`);
-			if (!rootNode) {
-				const error = new Error(
-					`Failed to run build time rendering. Could not find DOM node with id: "${
-						this._root
-					}" in src/index.html`
-				);
-				compilation.errors.push(error);
-				callback();
-				return;
-			}
-			this._originalRoot = `${rootNode.toString()}`;
-			this._cssFiles = Object.keys(this._manifest)
-				.filter((key) => {
-					return /\.css$/.test(key);
-				})
-				.map((key) => this._manifest[key]);
-
-			clearModule.match(new RegExp(`${resolve(this._basePath, 'src')}.*`));
-			const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
-			const app = await serve(`${this._output}`, this._baseUrl);
-			try {
-				const screenshotDirectory = join(this._output, '..', 'info', 'screenshots');
-				ensureDirSync(screenshotDirectory);
-				let renderResults: RenderResult[] = [];
-				let paths = [...this._paths];
-				let registeredPaths = paths.map((path) => (typeof path === 'object' ? path.path : path));
-				let path: BuildTimePath | string | undefined;
-
-				while ((path = paths.shift()) != null) {
-					let parsedPath = typeof path === 'object' ? path.path : path;
-					let page = await this._createPage(browser);
-					await page.goto(`http://localhost:${app.port}${this._baseUrl}${parsedPath}`);
-					const pathDirectories = parsedPath.replace('#', '').split('/');
-					if (pathDirectories.length > 0) {
-						pathDirectories.pop();
-						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
-					}
-					let { rendering, blocksPending } = await getRenderHooks(page, this._scope);
-					while (rendering || blocksPending) {
-						({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
-					}
-					const scripts = await getScriptSources(page, app.port);
-					const additionalScripts = scripts.filter(
-						(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
-					);
-					const additionalCss = (await getPageStyles(page)).filter((url: string) =>
-						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
-					);
-					const blockScripts = this._sync
-						? this._writeSyncBuildBridgeCache()
-						: this._writeBuildBridgeCache(additionalScripts);
-					await page.screenshot({
-						path: join(screenshotDirectory, `${parsedPath ? parsedPath.replace('#', '') : 'default'}.png`)
-					});
-					if (this._discoverPaths) {
-						const links = await getPageLinks(page);
-						for (let i = 0; i < links.length; i++) {
-							if (registeredPaths.indexOf(links[i]) === -1) {
-								paths.push(links[i]);
-								registeredPaths.push(links[i]);
-							}
-						}
-					}
-					let result = await this._getRenderResult(page, path);
-					result.blockScripts = blockScripts;
-					result.additionalScripts = additionalScripts;
-					result.additionalCss = additionalCss;
-					renderResults.push(result);
-
-					await page.close();
-				}
-
-				this._writeBuildTimeCacheFiles();
-
-				if (!this._useHistory && this._paths.length > 1) {
-					renderResults = [this._createCombinedRenderResult(renderResults)];
-				}
-
-				await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
-				if (this._hasBuildBridgeCache) {
-					outputFileSync(
-						join(this._output, '..', 'info', 'manifest.original.json'),
-						compilation.assets['manifest.json'].source(),
-						'utf8'
-					);
-				}
-				if (this._blockErrors.length) {
-					compilation.errors.push(...this._blockErrors);
-				}
-			} catch (error) {
-				if (this._blockErrors.length) {
-					compilation.errors.push(...this._blockErrors);
-				}
-				compilation.errors.push(error);
-			} finally {
-				await browser.close();
-				await app.server.close();
-				callback();
-			}
+			return this._run(compilation, callback);
 		});
 	}
 }

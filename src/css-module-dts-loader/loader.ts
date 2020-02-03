@@ -1,5 +1,5 @@
 import { statSync, readFileSync, existsSync, writeFileSync } from 'fs';
-import { dirname, normalize, sep } from 'path';
+import { dirname, normalize } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import * as webpack from 'webpack';
 const DtsCreator = require('typed-css-modules');
@@ -36,7 +36,7 @@ const cssMap = new Map<string, string>();
  */
 function isRelative(id: string): boolean {
 	const first = normalize(id.charAt(0));
-	return first !== sep && first !== '@' && /^\W/.test(id);
+	return first !== '/' && first !== '@' && /^\W/.test(id);
 }
 
 function generateDTSFile(filePath: string): Promise<void> {

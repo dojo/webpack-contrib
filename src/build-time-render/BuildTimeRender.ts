@@ -686,7 +686,7 @@ ${blockCacheEntry}`
 				`On demand BTR: This path (${path}) has not been previously discovered by BTR, please make sure that it is discoverable or included in the btr paths array`
 			);
 		}
-
+		this._initialBtr = false;
 		return this._run(compilation, callback, path);
 	}
 

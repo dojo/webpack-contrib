@@ -1,32 +1,39 @@
 import BuildTimeRender, { BuildTimeRenderArguments } from './BuildTimeRender';
 import { Request, Response, NextFunction } from 'express';
 import * as url from 'url';
+import webpack = require('webpack');
+
+export interface OnDemandBuildTimeRender {
+	buildTimeRenderOptions: any;
+	scope: string;
+	base: string;
+	compiler: webpack.Compiler;
+	entries: string[];
+	outputPath: string;
+	jsonpName: string;
+}
 
 export class OnDemandBuildTimeRender {
 	private _pages = new Set();
 	private _btrArgs: BuildTimeRenderArguments;
 	private _output: string;
 	private _jsonpName: string;
-	private _libName: string;
+	private _scope: string;
 	private _base: string;
 	private _active = false;
-	private _entry: {};
+	private _entries: string[];
 
-	constructor(args: BuildTimeRenderArguments, config: any, libraryName: string, base: string) {
-		this._btrArgs = args;
-		this._output = (config.output && config.output.path) || process.cwd();
-		this._jsonpName = (config.output && config.output.jsonpFunction) || 'unknown';
-		this._libName = libraryName;
-		this._base = base || '/';
-		this._entry = config.entry;
-	}
-
-	public resetPages() {
-		this._pages.clear();
-	}
-
-	public start() {
-		this._active = true;
+	constructor(options: OnDemandBuildTimeRender) {
+		this._btrArgs = options.buildTimeRenderOptions;
+		this._output = options.outputPath;
+		this._jsonpName = options.jsonpName;
+		this._scope = options.scope;
+		this._base = options.base;
+		this._entries = options.entries;
+		options.compiler.hooks.invalid.tap(this.constructor.name, () => {
+			this._pages.clear();
+			this._active = true;
+		});
 	}
 
 	public middleware(req: Request, _: Response, next: NextFunction) {
@@ -41,10 +48,10 @@ export class OnDemandBuildTimeRender {
 			const path = originalPath.replace(/^\//, '').replace(/\/$/, '');
 			const btr = new BuildTimeRender({
 				...this._btrArgs,
-				scope: this._libName,
+				scope: this._scope,
 				baseUrl: this._base,
 				basePath: process.cwd(),
-				entries: Object.keys(this._entry!)
+				entries: this._entries
 			});
 
 			this._pages.add(originalPath);
@@ -54,3 +61,5 @@ export class OnDemandBuildTimeRender {
 		}
 	}
 }
+
+export default OnDemandBuildTimeRender;

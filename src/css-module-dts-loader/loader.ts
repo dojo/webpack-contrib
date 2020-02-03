@@ -20,7 +20,7 @@ type LoaderArgs = {
 	instanceName?: string;
 };
 
-const creator: DtsCreatorInstance = new DtsCreator();
+const creator: DtsCreatorInstance = new DtsCreator({ EOL: '\n' });
 
 const mTimeMap = new Map<string, Date>();
 const cssMap = new Map<string, string>();

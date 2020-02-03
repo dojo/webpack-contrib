@@ -45,7 +45,7 @@ describe('css-module-dts-loader', () => {
 	let sandbox: sinon.SinonSandbox;
 	const async = () => () => null;
 	const loaderContextResolve = (context: string, loadPath: string, callback: (error: any, path?: string) => void) => {
-		callback(null, path.resolve(context, loadPath));
+		callback(null, path.join(context, loadPath));
 	};
 	let writeFile: sinon.SinonStub;
 	const resourcePath = 'src/path';
@@ -78,13 +78,10 @@ describe('css-module-dts-loader', () => {
 		mockFs = mockModule.getMock('fs');
 		mockFs.statSync = sandbox.stub().returns({ mtime: dateNow });
 		mockFs.existsSync = sandbox.stub();
-		mockFs.existsSync.withArgs('src/other.m.css').returns(false);
-		mockFs.existsSync.withArgs('src/other.m.css.d.ts').returns(false);
 		mockFs.existsSync.returns(true);
 		mockFs.writeFileSync = sandbox.stub();
 		mockFs.readFileSync = sandbox.stub();
-		mockFs.readFileSync.withArgs('src/other.m.css').returns();
-		mockFs.readFileSync.withArgs(resourcePath).returns(cssContent);
+		mockFs.readFileSync.withArgs('src/file.css').returns(cssContent);
 		mockInstances = mockModule.getMock('ts-loader/dist/instances');
 		instance = getInstance();
 		mockInstances.getTypeScriptInstance = sandbox.stub().returns({ instance });
@@ -96,76 +93,21 @@ describe('css-module-dts-loader', () => {
 		mockModule.destroy();
 	});
 
-	it('should generate a dts file when query type is css', () => {
-		mockUtils.getOptions.returns({
-			type: 'css'
-		});
-
-		return new Promise((resolve, reject) => {
-			loaderUnderTest.call(
-				{
-					async() {
-						return () => resolve();
-					},
-					resourcePath
-				},
-				cssContent
-			);
-		}).then(() => {
-			assert.isTrue(mockDTSGenerator.create.calledOnce);
-			assert.isTrue(writeFile.calledOnce);
-			assert.isTrue(mockFs.writeFileSync.notCalled);
-		});
-	});
-
-	it('should generate a dts file when query type is css and the css file is empty', () => {
-		mockUtils.getOptions.returns({
-			type: 'css'
-		});
-
-		createResult.formatted = undefined;
-
-		return new Promise((resolve, reject) => {
-			loaderUnderTest.call(
-				{
-					async() {
-						return () => resolve();
-					},
-					resourcePath: 'src/other.m.css'
-				},
-				cssContent
-			);
-		}).then(() => {
-			assert.isTrue(mockDTSGenerator.create.calledOnce);
-			assert.isTrue(writeFile.notCalled);
-			assert.isTrue(mockFs.writeFileSync.calledOnce);
-			assert.isTrue(
-				mockFs.writeFileSync.calledWith(
-					'src/other.m.css.d.ts',
-					`declare const styles: {};
-export = styles;`,
-					'utf8'
-				)
-			);
-		});
-	});
-
 	it('should not generate a dts file when css mtime has not changed', () => {
-		mockUtils.getOptions.returns({
-			type: 'css'
-		});
+		mockUtils.getOptions.returns({});
 		mockFs.statSync.resetHistory();
 
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call(defaultScope, cssContent);
+			loaderUnderTest.call(defaultScope, tsContentWithCss);
 			loaderUnderTest.call(
 				{
 					async() {
 						return () => resolve();
 					},
-					resourcePath
+					resourcePath,
+					resolve: loaderContextResolve
 				},
-				cssContent
+				tsContentWithCss
 			);
 		}).then(() => {
 			assert.isTrue(mockFs.statSync.calledTwice);
@@ -176,22 +118,21 @@ export = styles;`,
 	});
 
 	it('should generate a dts file when css mtime has changed', () => {
-		mockUtils.getOptions.returns({
-			type: 'css'
-		});
+		mockUtils.getOptions.returns({});
 		mockFs.statSync.resetHistory();
 		mockFs.statSync.onSecondCall().returns({ mtime: new Date() });
 
 		return new Promise((resolve, reject) => {
-			loaderUnderTest.call(defaultScope, cssContent);
+			loaderUnderTest.call(defaultScope, tsContentWithCss);
 			loaderUnderTest.call(
 				{
 					async() {
 						return () => resolve();
 					},
-					resourcePath
+					resourcePath,
+					resolve: loaderContextResolve
 				},
-				cssContent
+				tsContentWithCss
 			);
 		}).then(() => {
 			assert.isTrue(mockFs.statSync.calledTwice);
@@ -202,10 +143,7 @@ export = styles;`,
 	});
 
 	it('should find css import declarations in ts files and generate dts', () => {
-		mockUtils.getOptions.returns({
-			type: 'ts'
-		});
-
+		mockUtils.getOptions.returns({});
 		const resolvePath = path.resolve;
 		return new Promise((resolve, reject) => {
 			loaderUnderTest.call(
@@ -228,36 +166,8 @@ export = styles;`,
 		});
 	});
 
-	it('should default the type to ts when it cannot be determined', () => {
+	it('should find multiple css import declarations in ts files and generate dts files for relative paths', () => {
 		mockUtils.getOptions.returns({});
-
-		const resolvePath = path.resolve;
-		return new Promise((resolve) => {
-			loaderUnderTest.call(
-				{
-					async() {
-						return () => resolve();
-					},
-					resolve(context: string, path: string, callback: (error: any, path?: string) => void) {
-						callback(null, resolvePath(context, path));
-					},
-					resourcePath
-				},
-				tsContentWithCss
-			);
-		}).then(() => {
-			assert.isTrue(mockDTSGenerator.create.calledOnce);
-			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
-			assert.isTrue(writeFile.calledOnce);
-			assert.isTrue(mockFs.writeFileSync.notCalled);
-		});
-	});
-
-	it('should find multiple css import declarations in ts files and generate multiple dts files for relative paths', () => {
-		mockUtils.getOptions.returns({
-			type: 'ts'
-		});
-
 		const resolvePath = path.resolve;
 		return new Promise((resolve, reject) => {
 			loaderUnderTest.call(
@@ -273,17 +183,15 @@ export = styles;`,
 				tsContentWithMultipleCss
 			);
 		}).then(() => {
-			assert.isTrue(mockDTSGenerator.create.calledTwice);
+			assert.isTrue(mockDTSGenerator.create.calledOnce);
 			assert.isTrue(mockDTSGenerator.create.firstCall.calledWith(path.resolve('src', cssFilePath)));
-			assert.isTrue(mockDTSGenerator.create.secondCall.calledWith(path.resolve('src', cssFilePath2)));
-			assert.isTrue(writeFile.calledTwice);
+			assert.isTrue(writeFile.calledOnce);
 			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});
 	});
 
 	it('should remove file from ts-loader cache if instance name is passed', () => {
 		mockUtils.getOptions.returns({
-			type: 'ts',
 			instanceName: 'src'
 		});
 
@@ -308,7 +216,6 @@ export = styles;`,
 	it('should handle the case that no instance is found', () => {
 		mockInstances.getTypeScriptInstance.returns({});
 		mockUtils.getOptions.returns({
-			type: 'ts',
 			instanceName: 'src'
 		});
 
@@ -332,7 +239,6 @@ export = styles;`,
 
 	it('should not generate dts files if no css imports are found', () => {
 		mockUtils.getOptions.returns({
-			type: 'ts',
 			instanceName: 'src'
 		});
 
@@ -359,10 +265,7 @@ export = styles;`,
 	});
 
 	it('should report an error if there is an error resolving a path', () => {
-		mockUtils.getOptions.returns({
-			type: 'ts'
-		});
-
+		mockUtils.getOptions.returns({});
 		return Promise.all([
 			new Promise((resolve) => {
 				loaderUnderTest.call(
@@ -396,44 +299,5 @@ export = styles;`,
 			assert.equal(errors[0], 'error');
 			assert.equal(errors[1].message, 'Unable to resolve path to css file');
 		});
-	});
-
-	it('should generate a dts file for files matching the options RegExp', () => {
-		mockUtils.getOptions.returns({
-			type: 'css',
-			sourceFilesPattern: 'target'
-		});
-
-		return new Promise((resolve) => {
-			loaderUnderTest.call(
-				{
-					async() {
-						return () => resolve();
-					},
-					resourcePath
-				},
-				cssContent
-			);
-		})
-			.then(() => {
-				assert.isFalse(mockDTSGenerator.create.called);
-				assert.isFalse(writeFile.called);
-				return new Promise((resolve) => {
-					loaderUnderTest.call(
-						{
-							async() {
-								return () => resolve();
-							},
-							resourcePath: 'target/path'
-						},
-						cssContent
-					);
-				});
-			})
-			.then(() => {
-				assert.isTrue(mockDTSGenerator.create.calledOnce);
-				assert.isTrue(writeFile.calledOnce);
-				assert.isTrue(mockFs.writeFileSync.notCalled);
-			});
 	});
 });

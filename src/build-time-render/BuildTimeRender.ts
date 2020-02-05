@@ -221,11 +221,12 @@ export default class BuildTimeRender {
 				);
 			}
 		}
-		blockScripts.forEach((blockScript, i) => {
-			writtenAssets.push(blockScript);
-
-			html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
-		});
+		if (!this._static && !staticPath) {
+			blockScripts.forEach((blockScript, i) => {
+				writtenAssets.push(blockScript);
+				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
+			});
+		}
 		const htmlPath = join(this._output!, ...path.split('/'), 'index.html');
 		if (path) {
 			this._writtenHtmlFiles.push(htmlPath);

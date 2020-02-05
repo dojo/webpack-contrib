@@ -227,7 +227,9 @@ export default class BuildTimeRender {
 			html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
 		});
 		const htmlPath = join(this._output!, ...path.split('/'), 'index.html');
-		this._writtenHtmlFiles.push(htmlPath);
+		if (path) {
+			this._writtenHtmlFiles.push(htmlPath);
+		}
 		outputFileSync(htmlPath, html);
 	}
 

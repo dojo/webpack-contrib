@@ -4,23 +4,17 @@ interface ElectronPluginOptions {
 	electron: {
 		browser: any;
 	};
-	dist: boolean;
 	watch: boolean;
 	serve: boolean;
 	port: number;
-	basePath: string;
-	outputPath: string;
 }
 
 export class ElectronPlugin {
 	private _options: ElectronPluginOptions;
 	private _defaultOptions: ElectronPluginOptions = {
-		dist: false,
 		watch: false,
 		serve: false,
 		port: 9999,
-		basePath: process.cwd(),
-		outputPath: 'output/dist',
 		electron: {
 			browser: { width: 800, height: 600 }
 		}

@@ -1,5 +1,6 @@
 var has = require('@dojo/framework/core/has').default;
 var i18n = require('@dojo/framework/i18n/i18n');
+var Globalize = require('globalize/dist/globalize/message');
 
 var weekData = require('cldr-core/supplemental/weekData.json');
 var ordinals = require('cldr-core/supplemental/ordinals.json');

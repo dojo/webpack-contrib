@@ -6,7 +6,7 @@ import * as webpack from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
 
 export interface EmitAllPluginOptions {
-	additionalAssets?: Set<string>;
+	additionalAssets?: string[];
 	assetFilter?: (key: string, asset: any) => boolean;
 	basePath?: string;
 	inlineSourceMaps?: boolean;
@@ -27,13 +27,13 @@ const createSource = (content: string) => ({
  * any declaration files imported by the project must be manually injected into the build pipeline to avoid downstream
  * type errors.
  */
-function createTransformer<T extends ts.Node>(basePath: string, sharedDeclarationFiles: Set<string>) {
+function createTransformer<T extends ts.Node>(basePath: string, sharedDeclarationFiles: string[]) {
 	return (context: ts.TransformationContext) => {
 		const visit: any = (node: any) => {
 			if (node.resolvedModules) {
 				node.resolvedModules.forEach((value: any) => {
 					if (value && value.extension === '.d.ts' && value.resolvedFileName.startsWith(basePath)) {
-						sharedDeclarationFiles.add(value.resolvedFileName);
+						sharedDeclarationFiles.push(value.resolvedFileName);
 					}
 				});
 			}
@@ -49,9 +49,9 @@ function createTransformer<T extends ts.Node>(basePath: string, sharedDeclaratio
  *
  * @param options The plugin options
  */
-export function emitAllFactory(options?: EmitAllPluginOptions) {
-	const basePath = (options && options.basePath) || path.join(process.cwd(), 'src');
-	const sharedDeclarationFiles = new Set<string>();
+export function emitAllFactory(options: EmitAllPluginOptions = {}) {
+	const basePath = options.basePath || path.join(process.cwd(), 'src');
+	const sharedDeclarationFiles = options.additionalAssets ? [...options.additionalAssets] : [];
 
 	return {
 		plugin: new EmitAllPlugin({
@@ -64,14 +64,14 @@ export function emitAllFactory(options?: EmitAllPluginOptions) {
 }
 
 export default class EmitAllPlugin {
-	private additionalAssets: Set<string>;
+	private additionalAssets: string[];
 	private assetFilter: (key: string, asset: any) => boolean;
 	private basePath: string;
 	private inlineSourceMaps: boolean;
 	private legacy: boolean;
 
 	constructor(options: EmitAllPluginOptions = {}) {
-		this.additionalAssets = options.additionalAssets || new Set<string>();
+		this.additionalAssets = options.additionalAssets || [];
 		this.assetFilter = options.assetFilter || (() => true);
 		this.basePath = options.basePath || path.join(process.cwd(), 'src');
 		this.inlineSourceMaps = Boolean(options.inlineSourceMaps);
@@ -81,7 +81,7 @@ export default class EmitAllPlugin {
 	apply(compiler: webpack.Compiler) {
 		const { basePath, inlineSourceMaps, legacy } = this;
 		compiler.hooks.emit.tapAsync(this.constructor.name, async (compilation, callback) => {
-			this.additionalAssets.forEach((file) => {
+			new Set(this.additionalAssets).forEach((file) => {
 				if (fs.existsSync(file)) {
 					const assetName = file.replace(this.basePath, '').replace(/^(\/|\\)/, '');
 					const source = fs.readFileSync(file, 'utf-8').toString();

@@ -154,7 +154,8 @@ ${loadLocaleCldrTemplate(locale)}`;
 		})
 		.join(',');
 
-	const syncLoaders = `${loadSupplementalCldrTemplate()}
+	const syncLoaders = `var Globalize = require('globalize/dist/globalize/message');
+${loadSupplementalCldrTemplate()}
 ${syncLocaleCldrData}
 Globalize.load(cldrData)`;
 

@@ -1,5 +1,6 @@
 var has = require('@dojo/framework/core/has');
 require('./common');
+require('../cldr/bootstrapSync');
 
 if (has.default('build-serve')) {
 	`has('dojo-debug')`;

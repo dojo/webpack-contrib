@@ -78,6 +78,25 @@ describe('EmitAllPlugin', () => {
 			assert.deepEqual(compilation.assets, assets);
 		});
 
+		it('emits additional assets', () => {
+			const factory = mockModule.getModuleUnderTest().emitAllFactory;
+			const emitAll = factory({ additionalAssets: new Set(['additional.js']) }).plugin;
+			const compilation = createCompilation(compiler);
+			const assets = {
+				foo: {},
+				bar: {},
+				baz: {}
+			};
+			mockModule.getMock('fs').existsSync = stub().callsFake((file: string) => {
+				return file === 'additional.js';
+			});
+
+			compilation.assets = { ...assets };
+			emitAll.apply(compiler);
+			compiler.hooks.emit.callAsync(compilation, () => {});
+			assert.deepEqual(Object.keys(compilation.assets), ['foo', 'bar', 'baz', 'additional.js']);
+		});
+
 		describe('JavaScript assets', () => {
 			const applyPlugin = (
 				file: string,

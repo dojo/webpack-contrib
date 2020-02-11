@@ -49,9 +49,9 @@ function createTransformer<T extends ts.Node>(basePath: string, sharedDeclaratio
  *
  * @param options The plugin options
  */
-export function emitAllFactory(options?: EmitAllPluginOptions) {
-	const basePath = (options && options.basePath) || path.join(process.cwd(), 'src');
-	const sharedDeclarationFiles = new Set<string>();
+export function emitAllFactory(options: EmitAllPluginOptions = {}) {
+	const basePath = options.basePath || path.join(process.cwd(), 'src');
+	const sharedDeclarationFiles = options.additionalAssets || new Set<string>();
 
 	return {
 		plugin: new EmitAllPlugin({

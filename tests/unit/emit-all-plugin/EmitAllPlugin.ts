@@ -80,7 +80,7 @@ describe('EmitAllPlugin', () => {
 
 		it('emits additional assets', () => {
 			const factory = mockModule.getModuleUnderTest().emitAllFactory;
-			const emitAll = factory({ additionalAssets: new Set(['additional.js']) }).plugin;
+			const emitAll = factory({ additionalAssets: ['additional.js'] }).plugin;
 			const compilation = createCompilation(compiler);
 			const assets = {
 				foo: {},

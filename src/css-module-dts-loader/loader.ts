@@ -76,7 +76,7 @@ export = styles;`,
 function getCssImport(node: Node, loaderContext: webpack.loader.LoaderContext): Promise<string> | void {
 	if (node.kind === SyntaxKind.StringLiteral) {
 		const importPath = node.getText().replace(/\'|\"/g, '');
-		if (/\.css$/.test(importPath) && isRelative(importPath)) {
+		if (/\.m\.css$/.test(importPath) && isRelative(importPath)) {
 			const parentFileName = node.getSourceFile().fileName;
 			return new Promise((resolve, reject) => {
 				loaderContext.resolve(dirname(parentFileName), importPath, (error, path) => {

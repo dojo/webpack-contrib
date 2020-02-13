@@ -6,9 +6,9 @@ import '../../../src/css-module-dts-loader/loader';
 const { assert } = intern.getPlugin('chai');
 const { afterEach, beforeEach, describe, it } = intern.getInterface('bdd');
 
-const cssFilePath = './file.css';
-const cssFilePath2 = 'path/to/file2.css';
-const cssFilePath3 = '/path/to/file3.css';
+const cssFilePath = './file.m.css';
+const cssFilePath2 = 'path/to/file2.m.css';
+const cssFilePath3 = '/path/to/file3.m.css';
 
 const cssContent = `
 	.foo: {

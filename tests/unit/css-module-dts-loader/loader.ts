@@ -137,6 +137,8 @@ describe('css-module-dts-loader', () => {
 		}).then(() => {
 			assert.isTrue(mockFs.statSync.calledTwice);
 			assert.isTrue(mockDTSGenerator.create.calledTwice);
+			assert.isTrue(mockDTSGenerator.ctor.calledOnce);
+			assert.isTrue(mockDTSGenerator.ctor.firstCall.calledWith({ EOL: '\n' }));
 			assert.isTrue(writeFile.calledTwice);
 			assert.isTrue(mockFs.writeFileSync.notCalled);
 		});

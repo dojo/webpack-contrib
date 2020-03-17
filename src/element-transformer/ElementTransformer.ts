@@ -137,15 +137,13 @@ export default function elementTransformer<T extends ts.Node>(
 
 				if (parameters.length) {
 					const callback = checker.getTypeOfSymbolAtLocation(parameters[0], factoryIdentifier) as
-						| ts.ObjectType
+						| ts.TypeReference
 						| undefined;
-					if (callback) {
-						if (callback.objectFlags & ts.ObjectFlags.Reference) {
-							const typeArguments = (callback as ts.TypeReference).typeArguments;
+					if (callback && callback.objectFlags & ts.ObjectFlags.Reference) {
+						const typeArguments = callback.typeArguments;
 
-							if (typeArguments) {
-								return typeArguments[0];
-							}
+						if (typeArguments) {
+							return typeArguments[0];
 						}
 					}
 				}

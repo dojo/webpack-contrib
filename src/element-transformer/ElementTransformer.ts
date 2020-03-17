@@ -126,6 +126,35 @@ export default function elementTransformer<T extends ts.Node>(
 		);
 	}
 
+	function getPropertiesOfFactory(factory: ts.CallExpression) {
+		const factoryIdentifier = factory.getChildAt(0);
+		const symbol = checker.getSymbolAtLocation(factoryIdentifier);
+		if (symbol) {
+			const type = checker.getTypeOfSymbolAtLocation(symbol, factoryIdentifier);
+			const callSignatures = type.getCallSignatures();
+			if (callSignatures.length > 0) {
+				const parameters = callSignatures[0].getParameters();
+
+				if (parameters.length) {
+					const callback = checker.getTypeOfSymbolAtLocation(parameters[0], factoryIdentifier) as
+						| ts.ObjectType
+						| undefined;
+					if (callback) {
+						if (callback.objectFlags & ts.ObjectFlags.Reference) {
+							const typeArguments = (callback as ts.TypeReference).typeArguments;
+
+							if (typeArguments) {
+								return typeArguments[0];
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
 	return (context) => {
 		const visit: any = (node: ts.Node) => {
 			const moduleSymbol = checker.getSymbolAtLocation(node.getSourceFile());
@@ -206,100 +235,65 @@ export default function elementTransformer<T extends ts.Node>(
 				if (initializer && ts.isCallExpression(initializer)) {
 					const call = initializer as ts.CallExpression;
 					const renderOptionsCallback = call.arguments[0];
-					let typeOfOptions: ts.Type | undefined;
-					if (
-						renderOptionsCallback &&
-						ts.isFunctionLike(renderOptionsCallback) &&
-						renderOptionsCallback.parameters[0]
-					) {
-						typeOfOptions = checker.getTypeAtLocation(renderOptionsCallback.parameters[0]);
-					} else if (renderOptionsCallback && ts.isIdentifier(renderOptionsCallback)) {
-						const functionType = checker.getTypeAtLocation(renderOptionsCallback);
-						const signatures = functionType.getCallSignatures();
-						for (const signature of signatures) {
-							if (signature.getParameters()[0]) {
-								typeOfOptions = checker.getTypeOfSymbolAtLocation(
-									signature.getParameters()[0],
-									renderOptionsCallback
-								);
-								if (typeOfOptions.getProperty('properties')) {
-									break;
-								}
+
+					const propertyType = getPropertiesOfFactory(call);
+
+					if (propertyType) {
+						propertyType.getProperties().forEach((prop) => {
+							parsePropertyType(prop, node);
+						});
+						if (variableNode) {
+							const widgetName = variableNode.name!.getText();
+							const tag = widgetConfig.tag || parseTagName(widgetName);
+
+							const uniqueIdentifier = ts.createUniqueName('temp');
+							return [
+								ts.updateVariableDeclaration(
+									variableNode,
+									variableNode.name,
+									variableNode.type,
+									createCallExpression(
+										uniqueIdentifier,
+										initializer,
+										tag,
+										attributes,
+										properties,
+										events
+									)
+								)
+							];
+						} else {
+							let widgetName;
+							if (renderOptionsCallback && (renderOptionsCallback as any).name) {
+								widgetName = (renderOptionsCallback as any).name.getText();
+							} else {
+								const fileName =
+									node
+										.getSourceFile()
+										.fileName.split(/[\\/]/)
+										.pop() || '';
+								widgetName = fileName.split('.')[0];
 							}
-						}
-					}
+							const tag = widgetConfig.tag || parseTagName(widgetName);
 
-					if (typeOfOptions && typeOfOptions.getProperty('properties')) {
-						const optionProperties = typeOfOptions.getProperty('properties');
-						const typeOfProperties =
-							optionProperties && checker.getTypeOfSymbolAtLocation(optionProperties, node);
-
-						if (typeOfProperties && typeOfProperties.getCallSignatures()) {
-							const propertyCallSignatures = typeOfProperties.getCallSignatures();
-							let propertyType;
-							for (const propertyCallSignature of propertyCallSignatures) {
-								if (!propertyCallSignature.getParameters().length) {
-									propertyType = propertyCallSignature.getReturnType();
-								}
-							}
-							if (propertyType) {
-								propertyType.getProperties().forEach((prop) => {
-									parsePropertyType(prop, node);
-								});
-								if (variableNode) {
-									const widgetName = variableNode.name!.getText();
-									const tag = widgetConfig.tag || parseTagName(widgetName);
-
-									const uniqueIdentifier = ts.createUniqueName('temp');
-									return [
-										ts.updateVariableDeclaration(
-											variableNode,
-											variableNode.name,
-											variableNode.type,
-											createCallExpression(
-												uniqueIdentifier,
-												initializer,
-												tag,
-												attributes,
-												properties,
-												events
-											)
+							if (widgetName) {
+								const uniqueIdentifier = ts.createUniqueName('temp');
+								const exportAssignment = node as ts.ExportAssignment;
+								return [
+									ts.updateExportAssignment(
+										exportAssignment,
+										exportAssignment.decorators,
+										exportAssignment.modifiers,
+										createCallExpression(
+											uniqueIdentifier,
+											initializer,
+											tag,
+											attributes,
+											properties,
+											events
 										)
-									];
-								} else {
-									let widgetName;
-									if (renderOptionsCallback && (renderOptionsCallback as any).name) {
-										widgetName = (renderOptionsCallback as any).name.getText();
-									} else {
-										const fileName =
-											node
-												.getSourceFile()
-												.fileName.split(/[\\/]/)
-												.pop() || '';
-										widgetName = fileName.split('.')[0];
-									}
-									const tag = widgetConfig.tag || parseTagName(widgetName);
-
-									if (widgetName) {
-										const uniqueIdentifier = ts.createUniqueName('temp');
-										const exportAssignment = node as ts.ExportAssignment;
-										return [
-											ts.updateExportAssignment(
-												exportAssignment,
-												exportAssignment.decorators,
-												exportAssignment.modifiers,
-												createCallExpression(
-													uniqueIdentifier,
-													initializer,
-													tag,
-													attributes,
-													properties,
-													events
-												)
-											)
-										];
-									}
-								}
+									)
+								];
 							}
 						}
 					}

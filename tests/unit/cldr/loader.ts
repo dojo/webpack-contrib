@@ -39,6 +39,15 @@ describe('cldr loader', () => {
 			const expected = fs.readFileSync(path.join(basePath, 'expectedMultipleLocaleBootstrap.js'), 'utf8');
 			assert.strictEqual(cldrLoaderOutput, expected);
 		});
+
+		it('should generate loaders for locales that do not have specific cldr data', () => {
+			mockLoaderUtils.getOptions.returns({
+				locale: 'zh-CN'
+			});
+			const cldrLoaderOutput = mockModule.getModuleUnderTest().default();
+			const expected = fs.readFileSync(path.join(basePath, 'expectedSingleUnknownLocaleBootstrap.js'), 'utf8');
+			assert.strictEqual(cldrLoaderOutput, expected);
+		});
 	});
 
 	describe('sync', () => {
@@ -51,7 +60,6 @@ describe('cldr loader', () => {
 			const expected = fs.readFileSync(path.join(basePath, 'expectedSingleLocaleBootstrapSync.js'), 'utf8');
 			assert.strictEqual(cldrLoaderOutput, expected);
 		});
-
 		it('should generate loaders for the all supported locales', () => {
 			mockLoaderUtils.getOptions.returns({
 				locale: 'en',

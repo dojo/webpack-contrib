@@ -107,6 +107,7 @@
     "chai": "4.1.2",
     "chai-subset": "1.6.0",
     "classnames": "2.2.5",
+    "cldr-data": "36.0.0",
     "codecov": "~3.0.4",
     "cpx": "~1.5.0",
     "css-loader": "1.0.1",

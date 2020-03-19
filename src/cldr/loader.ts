@@ -24,6 +24,16 @@ function generateCldr(cldrData: any, locales: string[], includeInverse = false) 
 	);
 }
 
+function getValidCldrDataLocale(locale: string): string {
+	const cldr = new Cldr(locale);
+	try {
+		require('cldr-data/main/${locale}/ca-gregorian.json');
+	} catch {
+		locale = cldr.attributes.minLanguageId;
+	}
+	return locale;
+}
+
 export default function(this: webpack.loader.LoaderContext) {
 	const { locale, supportedLocales = [], sync } = getOptions(this);
 	const locales = [locale, ...supportedLocales];
@@ -36,6 +46,7 @@ export default function(this: webpack.loader.LoaderContext) {
 	);
 
 	function loadLocaleCldrTemplate(locale: string) {
+		locale = getValidCldrDataLocale(locale);
 		return `
 cldrData.push(require('cldr-data/main/${locale}/ca-gregorian.json'));
 cldrData.push(require('cldr-data/main/${locale}/dateFields.json'));
@@ -113,6 +124,7 @@ ${loadLocaleCldrTemplate(locale)}`;
 	}`;
 
 	function createLocaleCldrTemplate(locale: string) {
+		locale = getValidCldrDataLocale(locale);
 		if (sync) {
 			return 'true';
 		}

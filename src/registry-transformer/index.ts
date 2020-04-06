@@ -7,9 +7,12 @@ const dImportPath = '@dojo/framework/core/vdom';
 const wPragma = 'w';
 const fakeComponentName = 'Loadable__';
 const routeImportPath = '@dojo/framework/routing/Route';
+const outletImportPath = '@dojo/framework/routing/Outlet';
 const routeRendererName = 'renderer';
 const routeIdName = 'id';
-const routeName = 'Route';
+const routeName = 'Route'
+// const outletIdName = 'id';;
+const outletName = 'Outlet';
 
 interface VisitorOptions {
 	context: ts.TransformationContext;
@@ -35,7 +38,8 @@ class Visitor {
 	private basePath: string;
 	private bundlePaths: string[];
 	private wPragma: undefined | string;
-	private routeName: undefined | string;
+    private routeName: undefined | string;
+    private outletName: undefined | string;
 	private modulesMap = new Map<string, string>();
 	private ctorCountMap = new Map<string, number>();
 	private needsLoadable = false;
@@ -62,7 +66,9 @@ class Visitor {
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
 			} else if (routeImportPath === importPath) {
-				this.setRouteName(node);
+                this.setRouteName(node);
+            } else if (outletImportPath === importPath) {
+                this.setOutletName(node);
 			}
 		}
 
@@ -163,6 +169,28 @@ class Visitor {
 						(element.propertyName && element.propertyName.escapedText === routeName)
 					) {
 						this.routeName = text;
+						return true;
+					}
+					return false;
+				});
+			}
+		}
+    }
+
+	private setOutletName(node: ts.ImportDeclaration) {
+		if (node.importClause) {
+			const importClause = node.importClause;
+			if (importClause && importClause.name && importClause.name.text) {
+				this.outletName = importClause.name.text;
+			} else if (importClause.namedBindings) {
+				const namedBindings = importClause.namedBindings as ts.NamedImports;
+				namedBindings.elements.some((element: ts.ImportSpecifier) => {
+					const text = element.name.getText();
+					if (
+						text === outletName ||
+						(element.propertyName && element.propertyName.escapedText === outletName)
+					) {
+						this.outletName = text;
 						return true;
 					}
 					return false;
@@ -285,7 +313,10 @@ class Visitor {
 			.resolve(this.contextPath, importPath)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 
-		const routeName = this.routeName ? this.getRouteName(node) : undefined;
+        let routeName = this.routeName ? this.getRouteName(node) : undefined;
+        if (!routeName && this.outletName) {
+            routeName = this.getOutletName(node);
+        }
 		this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) + 1);
 		this.log(text, targetPath);
 		if (
@@ -388,6 +419,18 @@ class Visitor {
 			parent = parent.parent;
 		}
 		return undefined;
+    }
+
+	private getOutletName(node: ts.Node): string | undefined {
+        let parent = node.parent;
+        let text: string | undefined;
+        while (parent) {
+            if (ts.isPropertyAssignment(parent)) {
+                text = parent.name.getText().replace(/^'/, '').replace(/'$/, '');
+            }
+            parent = parent.parent;
+        }
+        return text;
 	}
 }
 

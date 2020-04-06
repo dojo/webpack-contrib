@@ -484,6 +484,104 @@ export default HelloWorld;
 				__autoRegistryItem_Something: { routeName: ['my-foo-route'], path: 'Something' }
 			}
 		});
+    });
+
+	it('can distinguish widgets in outlet children', () => {
+		const source = `
+		import { v, w } from '@dojo/framework/core/vdom';
+		import WidgetBase from '@dojo/framework/core/WidgetBase';
+		import { Outlet } from '@dojo/framework/routing/Outlet';
+		import Bar from './widgets/Bar';
+		import Baz from './Baz';
+		import Quz from './Quz';
+		import Blah from './Qux';
+		import Something from './Something';
+
+		export class Foo extends WidgetBase {
+			protected render() {
+				return v('div' [
+					v('div', ['Foo']),
+                    w(Blah, {}),
+                    w(Outlet, { id: 'main' }, [{
+                        'my-foo-route':  w(Something, {}),
+                        'my-blah-route': () => w(Blah, {})
+
+                    }]),
+					w(Bar, {}),
+					w(Baz, {})
+				]);
+			}
+		}
+
+		export class Another extends WidgetBase {
+			protected render() {
+				return v('div' [
+					w(Bar, {}),
+					w(Baz, {}),
+					w(Quz, {})
+				]);
+			}
+		}
+		export default HelloWorld;
+		`;
+		const transformer = registryTransformer(process.cwd(), ['widgets/Bar', 'Quz'], false, [
+			'my-foo-route',
+			'my-blah-route'
+		]);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const expected = `import { v, w } from '@dojo/framework/core/vdom';
+import WidgetBase from '@dojo/framework/core/WidgetBase';
+import { Outlet } from '@dojo/framework/routing/Outlet';
+import Baz from './Baz';
+import Blah from './Qux';
+var __autoRegistryItems = { Something: () => import("./Something"), Blah: () => import("./Qux"), Bar: () => import("./widgets/Bar"), Quz: () => import("./Quz") };
+export class Foo extends WidgetBase {
+    render() {
+        return v('div'[v('div', ['Foo']),
+            w(Blah, {}),
+            w(Outlet, { id: 'main' }, [{
+                    'my-foo-route': w({ label: "__autoRegistryItem_Something", registryItem: __autoRegistryItems.Something }, {}),
+                    'my-blah-route': () => w({ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }, {})
+                }]),
+            w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w(Baz, {})]);
+    }
+}
+export class Another extends WidgetBase {
+    render() {
+        return v('div'[w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
+            w(Baz, {}),
+            w({ label: "__autoRegistryItem_Quz", registryItem: __autoRegistryItems.Quz }, {})]);
+    }
+}
+export default HelloWorld;
+`;
+		assert.equal(nl(result.outputText), expected);
+		assert.deepEqual(shared, {
+			all: {
+				Bar: 'widgets/Bar',
+				Baz: 'Baz',
+				Blah: 'Qux',
+				Quz: 'Quz',
+				Something: 'Something'
+			},
+			modules: {
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: [] },
+				__autoRegistryItem_Blah: { path: 'Qux', routeName: ['my-blah-route'] },
+				__autoRegistryItem_Quz: { path: 'Quz', routeName: [] },
+				__autoRegistryItem_Something: { routeName: ['my-foo-route'], path: 'Something' }
+			}
+		});
 	});
 
 	it('can distinguish widgets in an route renderer tsx', () => {

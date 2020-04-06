@@ -424,13 +424,21 @@ class Visitor {
 	private getOutletName(node: ts.Node): string | undefined {
         let parent = node.parent;
         let text: string | undefined;
+        let isOutletChild = false;
         while (parent) {
-            if (ts.isPropertyAssignment(parent)) {
+            if (ts.isPropertyAssignment(parent) && !text) {
                 text = parent.name.getText().replace(/^'/, '').replace(/'$/, '');
+            }
+            if (ts.isCallExpression(parent) && parent.expression.getText() === this.wPragma && !isOutletChild) {
+                if (ts.isIdentifier(parent.arguments[0]) && parent.arguments[0].getText() === this.outletName) {
+                    isOutletChild = true;
+                } else {
+                    return undefined;
+                }
             }
             parent = parent.parent;
         }
-        return text;
+        return isOutletChild ? text : undefined;
 	}
 }
 

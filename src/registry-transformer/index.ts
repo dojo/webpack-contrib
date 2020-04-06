@@ -11,7 +11,6 @@ const outletImportPath = '@dojo/framework/routing/Outlet';
 const routeRendererName = 'renderer';
 const routeIdName = 'id';
 const routeName = 'Route';
-// const outletIdName = 'id';;
 const outletName = 'Outlet';
 
 interface VisitorOptions {
@@ -233,7 +232,7 @@ class Visitor {
 			this.log(text, targetPath);
 			let routeName = this.routeName ? this.getRouteName(node) : undefined;
 			if (!routeName && this.outletName) {
-				routeName = this.getOutletName(node);
+				routeName = this.getOutletRouteName(node);
 			}
 			if (
 				this.all ||
@@ -318,7 +317,7 @@ class Visitor {
 
 		let routeName = this.routeName ? this.getRouteName(node) : undefined;
 		if (!routeName && this.outletName) {
-			routeName = this.getOutletName(node);
+			routeName = this.getOutletRouteName(node);
 		}
 		this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) + 1);
 		this.log(text, targetPath);
@@ -424,7 +423,7 @@ class Visitor {
 		return undefined;
 	}
 
-	private getOutletName(node: ts.Node): string | undefined {
+	private getOutletRouteName(node: ts.Node): string | undefined {
 		let parent = node.parent;
 		let text: string | undefined;
 		while (parent) {

@@ -484,7 +484,7 @@ export default HelloWorld;
 				__autoRegistryItem_Something: { routeName: ['my-foo-route'], path: 'Something' }
 			}
 		});
-    });
+	});
 
 	it('can distinguish widgets in outlet children', () => {
 		const source = `
@@ -581,8 +581,8 @@ export default HelloWorld;
 				Baz: 'Baz',
 				Blah: 'Qux',
 				Quz: 'Quz',
-                Something: 'Something',
-                WithChildren: 'WithChildren'
+				Something: 'Something',
+				WithChildren: 'WithChildren'
 			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: [] },
@@ -650,6 +650,86 @@ export class Foo extends WidgetBase {
 					</Baz>
 					<Route id="my-bar-route" renderer={() => (<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>)}/>
 					<Route id="my-blah-route" renderer={() => (<Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }}/>)}/>
+				</div>
+			</div>);
+    }
+}
+`;
+		assert.equal(nl(result.outputText), expected);
+		assert.deepEqual(shared, {
+			all: {
+				Bar: 'widgets/Bar',
+				Baz: 'Baz',
+				Blah: 'Qux'
+			},
+			modules: {
+				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: ['my-bar-route'] },
+				__autoRegistryItem_Blah: { path: 'Qux', routeName: ['my-blah-route'] }
+			}
+		});
+	});
+
+	it('can distinguish widgets in outlet children tsx', () => {
+		const source = `
+import WidgetBase from '@dojo/framework/core/WidgetBase';
+import Bar from './widgets/Bar';
+import Baz from './Baz';
+import Blah from './Qux';
+import Outlet from '@dojo/framework/routing/Outlet';
+
+export class Foo extends WidgetBase {
+	protected render() {
+		return (
+			<div>
+				<div>
+					<Blah />
+					<div>Foo</div>
+					<Baz>
+						<div>child</div>
+                    </Baz>
+                    <Outlet id="main">{{
+                        'my-bar-route': <Bar />,
+                        'my-blah-route': () => <Blah />
+                    }}</Outlet>
+				</div>
+			</div>
+		);
+	}
+}
+`;
+		const transformer = registryTransformer(process.cwd(), [], false, ['my-bar-route', 'my-blah-route']);
+		const result = ts.transpileModule(source, {
+			compilerOptions: {
+				importHelpers: true,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext,
+				jsx: ts.JsxEmit.Preserve,
+				jsxFactory: 'tsx'
+			},
+			transformers: {
+				before: [transformer]
+			}
+		});
+
+		const expected = `import WidgetBase from '@dojo/framework/core/WidgetBase';
+import Baz from './Baz';
+import Blah from './Qux';
+import Outlet from '@dojo/framework/routing/Outlet';
+var Loadable__ = { type: "registry" };
+var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Blah: () => import("./Qux") };
+export class Foo extends WidgetBase {
+    render() {
+        return (<div>
+				<div>
+					<Blah />
+					<div>Foo</div>
+					<Baz>
+						<div>child</div>
+                    </Baz>
+                    <Outlet id="main">{{
+            'my-bar-route': <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>,
+            'my-blah-route': () => <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }}/>
+        }}</Outlet>
 				</div>
 			</div>);
     }

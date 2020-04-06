@@ -675,6 +675,7 @@ import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Bar from './widgets/Bar';
 import Baz from './Baz';
 import Blah from './Qux';
+import Something from './Something';
 import Outlet from '@dojo/framework/routing/Outlet';
 
 export class Foo extends WidgetBase {
@@ -687,6 +688,9 @@ export class Foo extends WidgetBase {
 					<Baz>
 						<div>child</div>
                     </Baz>
+                    <Something>{{
+                        'my-bar-route': <Baz />,
+                    }}</Something>
                     <Outlet id="main">{{
                         'my-bar-route': <Bar />,
                         'my-blah-route': () => <Blah />
@@ -714,6 +718,7 @@ export class Foo extends WidgetBase {
 		const expected = `import WidgetBase from '@dojo/framework/core/WidgetBase';
 import Baz from './Baz';
 import Blah from './Qux';
+import Something from './Something';
 import Outlet from '@dojo/framework/routing/Outlet';
 var Loadable__ = { type: "registry" };
 var __autoRegistryItems = { Bar: () => import("./widgets/Bar"), Blah: () => import("./Qux") };
@@ -726,6 +731,9 @@ export class Foo extends WidgetBase {
 					<Baz>
 						<div>child</div>
                     </Baz>
+                    <Something>{{
+            'my-bar-route': <Baz />,
+        }}</Something>
                     <Outlet id="main">{{
             'my-bar-route': <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>,
             'my-blah-route': () => <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }}/>
@@ -740,7 +748,8 @@ export class Foo extends WidgetBase {
 			all: {
 				Bar: 'widgets/Bar',
 				Baz: 'Baz',
-				Blah: 'Qux'
+                Blah: 'Qux',
+                Something: 'Something'
 			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: ['my-bar-route'] },

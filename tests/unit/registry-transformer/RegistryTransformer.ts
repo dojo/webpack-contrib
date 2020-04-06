@@ -689,8 +689,11 @@ export class Foo extends WidgetBase {
 						<div>child</div>
                     </Baz>
                     <Something>{{
-                        'my-bar-route': <Baz />,
+                        'my-bar-route': <Baz />
                     }}</Something>
+                    <Outlet id="main">{{
+                        'other': <Something>{{ 'my-bar-route': <Baz /> }}</Something>
+                    }}</Outlet>
                     <Outlet id="main">{{
                         'my-bar-route': <Bar />,
                         'my-blah-route': () => <Blah />
@@ -732,8 +735,11 @@ export class Foo extends WidgetBase {
 						<div>child</div>
                     </Baz>
                     <Something>{{
-            'my-bar-route': <Baz />,
+            'my-bar-route': <Baz />
         }}</Something>
+                    <Outlet id="main">{{
+            'other': <Something>{{ 'my-bar-route': <Baz /> }}</Something>
+        }}</Outlet>
                     <Outlet id="main">{{
             'my-bar-route': <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }}/>,
             'my-blah-route': () => <Loadable__ __autoRegistryItem={{ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }}/>

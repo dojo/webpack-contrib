@@ -6,10 +6,10 @@ const shared = require('./shared');
 const dImportPath = '@dojo/framework/core/vdom';
 const wPragma = 'w';
 const fakeComponentName = 'Loadable__';
-const outletImportPath = '@dojo/framework/routing/Outlet';
-const outletRendererName = 'renderer';
-const outletIdName = 'id';
-const outletName = 'Outlet';
+const routeImportPath = '@dojo/framework/routing/Route';
+const routeRendererName = 'renderer';
+const routeIdName = 'id';
+const routeName = 'Route';
 
 interface VisitorOptions {
 	context: ts.TransformationContext;
@@ -19,7 +19,7 @@ interface VisitorOptions {
 	bundlePaths: string[];
 	legacyModule: boolean;
 	all: boolean;
-	outlets: string[];
+	routes: string[];
 	sync: boolean;
 }
 
@@ -35,12 +35,12 @@ class Visitor {
 	private basePath: string;
 	private bundlePaths: string[];
 	private wPragma: undefined | string;
-	private outletName: undefined | string;
+	private routeName: undefined | string;
 	private modulesMap = new Map<string, string>();
 	private ctorCountMap = new Map<string, number>();
 	private needsLoadable = false;
 	private all = false;
-	private outlets: string[] = [];
+	private routes: string[] = [];
 	private registryItems: any = {};
 	private sync = false;
 
@@ -50,7 +50,7 @@ class Visitor {
 		this.bundlePaths = options.bundlePaths;
 		this.basePath = options.basePath;
 		this.all = options.all;
-		this.outlets = options.outlets;
+		this.routes = options.routes;
 		this.sync = options.sync;
 	}
 
@@ -61,8 +61,8 @@ class Visitor {
 				this.setLazyImport(node);
 			} else if (dImportPath === importPath) {
 				this.setWPragma(node);
-			} else if (outletImportPath === importPath) {
-				this.setOutletName(node);
+			} else if (routeImportPath === importPath) {
+				this.setRouteName(node);
 			}
 		}
 
@@ -149,20 +149,20 @@ class Visitor {
 		}
 	}
 
-	private setOutletName(node: ts.ImportDeclaration) {
+	private setRouteName(node: ts.ImportDeclaration) {
 		if (node.importClause) {
 			const importClause = node.importClause;
 			if (importClause && importClause.name && importClause.name.text) {
-				this.outletName = importClause.name.text;
+				this.routeName = importClause.name.text;
 			} else if (importClause.namedBindings) {
 				const namedBindings = importClause.namedBindings as ts.NamedImports;
 				namedBindings.elements.some((element: ts.ImportSpecifier) => {
 					const text = element.name.getText();
 					if (
-						text === outletName ||
-						(element.propertyName && element.propertyName.escapedText === outletName)
+						text === routeName ||
+						(element.propertyName && element.propertyName.escapedText === routeName)
 					) {
-						this.outletName = text;
+						this.routeName = text;
 						return true;
 					}
 					return false;
@@ -203,12 +203,12 @@ class Visitor {
 				.replace(`${this.basePath}${path.posix.sep}`, '');
 
 			this.log(text, targetPath);
-			const outletName = this.outletName ? this.getOutletName(node) : undefined;
+			const routeName = this.routeName ? this.getRouteName(node) : undefined;
 			if (
 				this.all ||
 				this.bundlePaths.indexOf(targetPath) !== -1 ||
 				this.bundlePaths.some((bundlePattern) => minimatch(targetPath, bundlePattern)) ||
-				(outletName && this.outlets.indexOf(outletName) !== -1)
+				(routeName && this.routes.indexOf(routeName) !== -1)
 			) {
 				this.registryItems[text] = this.modulesMap.get(text) as string;
 				const registryItem = ts.createPropertyAccess(
@@ -228,7 +228,7 @@ class Visitor {
 				);
 				this.setSharedModules(`__autoRegistryItem_${text}`, {
 					path: this.registryItems[text],
-					outletName
+					routeName
 				});
 				const attrs = ts.updateJsxAttributes(node.attributes, [
 					...node.attributes.properties,
@@ -262,14 +262,14 @@ class Visitor {
 		return inputNode;
 	}
 
-	private setSharedModules(registryItemName: string, meta: { path: string; outletName: string | undefined }) {
+	private setSharedModules(registryItemName: string, meta: { path: string; routeName: string | undefined }) {
 		const targetPath = path.posix
 			.resolve(this.contextPath, meta.path)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 		shared.modules = shared.modules || {};
-		shared.modules[registryItemName] = shared.modules[registryItemName] || { path: targetPath, outletName: [] };
-		if (meta.outletName) {
-			shared.modules[registryItemName].outletName.push(meta.outletName);
+		shared.modules[registryItemName] = shared.modules[registryItemName] || { path: targetPath, routeName: [] };
+		if (meta.routeName) {
+			shared.modules[registryItemName].routeName.push(meta.routeName);
 		}
 	}
 
@@ -285,14 +285,14 @@ class Visitor {
 			.resolve(this.contextPath, importPath)
 			.replace(`${this.basePath}${path.posix.sep}`, '');
 
-		const outletName = this.outletName ? this.getOutletName(node) : undefined;
+		const routeName = this.routeName ? this.getRouteName(node) : undefined;
 		this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) + 1);
 		this.log(text, targetPath);
 		if (
 			this.all ||
 			this.bundlePaths.indexOf(targetPath) !== -1 ||
 			this.bundlePaths.some((bundlePattern) => minimatch(targetPath, bundlePattern)) ||
-			(outletName && this.outlets.indexOf(outletName) !== -1)
+			(routeName && this.routes.indexOf(routeName) !== -1)
 		) {
 			this.ctorCountMap.set(text, (this.ctorCountMap.get(text) || 0) - 1);
 			this.registryItems[text] = this.modulesMap.get(text) as string;
@@ -307,7 +307,7 @@ class Visitor {
 				),
 				ts.createPropertyAssignment(ts.createIdentifier('registryItem'), registryItem)
 			]);
-			this.setSharedModules(`__autoRegistryItem_${text}`, { path: this.registryItems[text], outletName });
+			this.setSharedModules(`__autoRegistryItem_${text}`, { path: this.registryItems[text], routeName });
 			return ts.updateCall(node, node.expression, node.typeArguments, [registryExpr, ...node.arguments.slice(1)]);
 		}
 		return node;
@@ -342,19 +342,19 @@ class Visitor {
 		);
 	}
 
-	private getOutletName(node: ts.Node): string | undefined {
+	private getRouteName(node: ts.Node): string | undefined {
 		let parent = node.parent;
 		while (parent) {
 			if (
 				(ts.isMethodDeclaration(parent) || ts.isPropertyAssignment(parent)) &&
-				parent.name.getText() === outletRendererName
+				parent.name.getText() === routeRendererName
 			) {
 				const w = parent.parent!.parent as ts.Node;
 				if (
 					ts.isCallExpression(w) &&
 					w.expression.getText() === this.wPragma &&
 					ts.isIdentifier(w.arguments[0]) &&
-					w.arguments[0].getText() === this.outletName &&
+					w.arguments[0].getText() === this.routeName &&
 					ts.isObjectLiteralExpression(w.arguments[1])
 				) {
 					const objectLiteral = w.arguments[1] as ts.ObjectLiteralExpression;
@@ -362,21 +362,21 @@ class Visitor {
 						const property = objectLiteral.properties[i];
 						if (
 							ts.isPropertyAssignment(property) &&
-							property.name.getText() === outletIdName &&
+							property.name.getText() === routeIdName &&
 							ts.isStringLiteral(property.initializer)
 						) {
 							return property.initializer.text;
 						}
 					}
 				}
-			} else if (ts.isJsxAttribute(parent) && parent.name.getText() === outletRendererName) {
+			} else if (ts.isJsxAttribute(parent) && parent.name.getText() === routeRendererName) {
 				const tsx = parent.parent!.parent as ts.JsxOpeningLikeElement;
-				if (ts.isJsxOpeningLikeElement(tsx) && tsx.tagName.getText() === this.outletName) {
+				if (ts.isJsxOpeningLikeElement(tsx) && tsx.tagName.getText() === this.routeName) {
 					const properties = tsx.attributes.properties;
 					for (let i = 0; i < properties.length; i++) {
 						const attribute = properties[i] as ts.JsxAttribute;
 						if (
-							attribute.name.getText() === outletIdName &&
+							attribute.name.getText() === routeIdName &&
 							attribute.initializer &&
 							ts.isStringLiteral(attribute.initializer)
 						) {
@@ -392,13 +392,13 @@ class Visitor {
 }
 
 const registryTransformer = function(
-	this: { basePath: string; bundlePaths: string[]; all: boolean; outlets: string[]; sync: boolean },
+	this: { basePath: string; bundlePaths: string[]; all: boolean; routes: string[]; sync: boolean },
 	context: ts.TransformationContext
 ) {
 	const basePath = this.basePath;
 	const bundlePaths = this.bundlePaths;
 	const all = this.all;
-	const outlets = this.outlets;
+	const routes = this.routes;
 	const opts = context.getCompilerOptions();
 	const sync = this.sync;
 	const { module } = opts;
@@ -415,7 +415,7 @@ const registryTransformer = function(
 			legacyModule,
 			root,
 			all,
-			outlets,
+			routes,
 			sync
 		});
 		let result = ts.visitNode(node, visitor.visit.bind(visitor));
@@ -427,6 +427,6 @@ export default (
 	basePath: string,
 	bundlePaths: string[],
 	all: boolean = false,
-	outlets: string[] = [],
+	routes: string[] = [],
 	sync: boolean = false
-) => registryTransformer.bind({ bundlePaths, basePath, all, outlets, sync });
+) => registryTransformer.bind({ bundlePaths, basePath, all, routes, sync });

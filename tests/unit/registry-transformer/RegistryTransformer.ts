@@ -494,7 +494,8 @@ export default HelloWorld;
 		import Bar from './widgets/Bar';
 		import Baz from './Baz';
 		import Quz from './Quz';
-		import Blah from './Qux';
+        import Blah from './Qux';
+        import WithChildren from './WithChildren';
 		import Something from './Something';
 
 		export class Foo extends WidgetBase {
@@ -506,6 +507,9 @@ export default HelloWorld;
                         'my-foo-route':  w(Something, {}),
                         'my-blah-route': () => w(Blah, {})
 
+                    }]),
+                    w(WithChildren, {}, [{
+                        'my-foo-route': w(Baz, {})
                     }]),
 					w(Bar, {}),
 					w(Baz, {})
@@ -544,6 +548,7 @@ import WidgetBase from '@dojo/framework/core/WidgetBase';
 import { Outlet } from '@dojo/framework/routing/Outlet';
 import Baz from './Baz';
 import Blah from './Qux';
+import WithChildren from './WithChildren';
 var __autoRegistryItems = { Something: () => import("./Something"), Blah: () => import("./Qux"), Bar: () => import("./widgets/Bar"), Quz: () => import("./Quz") };
 export class Foo extends WidgetBase {
     render() {
@@ -552,6 +557,9 @@ export class Foo extends WidgetBase {
             w(Outlet, { id: 'main' }, [{
                     'my-foo-route': w({ label: "__autoRegistryItem_Something", registryItem: __autoRegistryItems.Something }, {}),
                     'my-blah-route': () => w({ label: "__autoRegistryItem_Blah", registryItem: __autoRegistryItems.Blah }, {})
+                }]),
+            w(WithChildren, {}, [{
+                    'my-foo-route': w(Baz, {})
                 }]),
             w({ label: "__autoRegistryItem_Bar", registryItem: __autoRegistryItems.Bar }, {}),
             w(Baz, {})]);
@@ -573,7 +581,8 @@ export default HelloWorld;
 				Baz: 'Baz',
 				Blah: 'Qux',
 				Quz: 'Quz',
-				Something: 'Something'
+                Something: 'Something',
+                WithChildren: 'WithChildren'
 			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: [] },

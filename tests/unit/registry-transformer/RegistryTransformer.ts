@@ -754,8 +754,8 @@ export class Foo extends WidgetBase {
 			all: {
 				Bar: 'widgets/Bar',
 				Baz: 'Baz',
-                Blah: 'Qux',
-                Something: 'Something'
+				Blah: 'Qux',
+				Something: 'Something'
 			},
 			modules: {
 				__autoRegistryItem_Bar: { path: 'widgets/Bar', routeName: ['my-bar-route'] },

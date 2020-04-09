@@ -26,6 +26,7 @@ import { parse } from 'node-html-parser';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
+	title: string;
 	content: string;
 	styles: string;
 	script: string;
@@ -137,6 +138,7 @@ export default class BuildTimeRender {
 
 	private async _writeIndexHtml({
 		content,
+		title,
 		script,
 		path = '',
 		styles,
@@ -178,6 +180,9 @@ export default class BuildTimeRender {
 
 			styles = await this._processCss(styles);
 			html = html.replace(`</head>`, `<style>${styles}</style></head>`);
+			if (title) {
+				html = html.replace(/<title>.*<\/title>/, title);
+			}
 			if (this._static || staticPath) {
 				html = html.replace(this._createScripts(), '');
 			} else {
@@ -274,6 +279,7 @@ export default class BuildTimeRender {
 		const classes: any[] = await getClasses(page);
 		let pathValue = typeof path === 'object' ? path.path : path;
 		let content = await getForSelector(page, `#${this._root}`);
+		let title = await getForSelector(page, 'title');
 		let styles = this._filterCss(classes);
 		let script = '';
 
@@ -288,6 +294,7 @@ export default class BuildTimeRender {
 			styles,
 			script,
 			path,
+			title,
 			blockScripts: [],
 			additionalScripts: [],
 			additionalCss: []
@@ -342,6 +349,7 @@ export default class BuildTimeRender {
 			styles: combined.styles,
 			content: this._originalRoot,
 			script,
+			title: '',
 			blockScripts: combined.blockScripts,
 			additionalScripts: combined.additionalScripts,
 			additionalCss: combined.additionalCss

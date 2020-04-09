@@ -98,7 +98,11 @@ export async function getRenderHooks(page: any, scope: string): Promise<any> {
 }
 
 export async function getForSelector(page: any, selector: string) {
-	return page.$eval(selector, (element: Element) => element.outerHTML);
+	try {
+		return await page.$eval(selector, (element: Element) => element.outerHTML);
+	} catch {
+		return '';
+	}
 }
 
 export async function getPageLinks(page: any) {

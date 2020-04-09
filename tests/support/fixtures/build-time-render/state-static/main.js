@@ -30,18 +30,22 @@
 	}
 
 	if (route === '/') {
+		document.title = "Hello home";
 		renderDefault();
 	} else if (route === '/my-path') {
+		document.title = "Hello my-path";
 		div = document.createElement('div');
 		div.classList.add('hello', 'another');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 		app.appendChild(div);
 	} else if (route === '/my-path/other') {
+		document.title = "Hello my-path/other";
 		div = document.createElement('div');
 		div.classList.add('other');
 		div.innerHTML = 'Other';
 		app.appendChild(div);
 	} else {
+		document.title = "Hello home";
 		renderDefault();
 	}
 	window.test = {

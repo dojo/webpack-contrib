@@ -1,5 +1,5 @@
 import { Compiler, compilation } from 'webpack';
-import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync } from 'fs-extra';
+import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
 
 import { join, resolve } from 'path';
 import {
@@ -714,7 +714,7 @@ ${blockCacheEntry}`
 			if (!this._output) {
 				return callback();
 			}
-			outputFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
+			writeFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
 			if (this._onDemand && !this._initialBtr) {
 				return callback();
 			}

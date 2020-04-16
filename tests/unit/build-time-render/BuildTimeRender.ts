@@ -122,6 +122,7 @@ describe('build-time-render', () => {
 		fs.outputFileSync = outputFileSync;
 		fs.readFileSync = readFileSync;
 		fs.existsSync = existsSync;
+		fs.writeFileSync = stub();
 		const Btr = getBuildTimeRenderModule();
 		const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge');
 		const btr = new Btr({
@@ -2513,6 +2514,7 @@ describe('build-time-render', () => {
 						renderer: 'jsdom'
 					});
 					btr.apply(compiler);
+
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
@@ -2668,6 +2670,7 @@ describe('build-time-render', () => {
 						renderer: 'jsdom'
 					});
 					btr.apply(compiler);
+
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);
@@ -2816,6 +2819,7 @@ describe('build-time-render', () => {
 						renderer: 'jsdom'
 					});
 					btr.apply(compiler);
+
 					assert.isTrue(pluginRegistered);
 					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
 						assert.isTrue(callbackStub.calledOnce);

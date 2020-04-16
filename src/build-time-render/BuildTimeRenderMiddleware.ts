@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as url from 'url';
 import webpack = require('webpack');
 
-export interface OnDemandBuildTimeRender {
+export interface OnDemandBuildTimeRenderOptions {
 	buildTimeRenderOptions: any;
 	scope: string;
 	base: string;
@@ -23,7 +23,7 @@ export class OnDemandBuildTimeRender {
 	private _active = false;
 	private _entries: string[];
 
-	constructor(options: OnDemandBuildTimeRender) {
+	constructor(options: OnDemandBuildTimeRenderOptions) {
 		this._btrArgs = options.buildTimeRenderOptions;
 		this._output = options.outputPath;
 		this._jsonpName = options.jsonpName;
@@ -51,7 +51,8 @@ export class OnDemandBuildTimeRender {
 				scope: this._scope,
 				baseUrl: this._base,
 				basePath: process.cwd(),
-				entries: this._entries
+				entries: this._entries,
+				onDemand: true
 			});
 
 			this._pages.add(originalPath);

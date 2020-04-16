@@ -99,6 +99,7 @@ class MockCompilation {
 			{} as { [index: string]: MockAsset }
 		);
 		this.assets['manifest.json'] = new MockAsset(join(output, 'manifest.json'));
+		this.assets['index.html'] = new MockAsset(join(output, 'btr-index.html'));
 	}
 }
 
@@ -710,6 +711,10 @@ ${blockCacheEntry}`
 		}
 
 		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
+			if (!this._output) {
+				return callback();
+			}
+			outputFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
 			if (this._onDemand && !this._initialBtr) {
 				return callback();
 			}

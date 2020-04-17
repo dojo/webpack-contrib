@@ -109,6 +109,7 @@ export default class BuildTimeRender {
 	private _manifest: any;
 	private _manifestContent: any = {};
 	private _buildBridgeResult: any = {};
+	private _blockEntries: string[] = [];
 	private _output?: string;
 	private _jsonpName?: string;
 	private _paths: (BuildTimePath | string)[];
@@ -457,12 +458,15 @@ __webpack_require__.r(__webpack_exports__);
 					scripts.push(`${chunkName}.js`);
 				}
 
-				if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
-					this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
-						'APPEND_BLOCK_CACHE_ENTRY **/',
-						`APPEND_BLOCK_CACHE_ENTRY **/
+				if (this._blockEntries.indexOf(blockCacheEntry) === -1) {
+					this._blockEntries.push(blockCacheEntry);
+					if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
+						this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
+							'APPEND_BLOCK_CACHE_ENTRY **/',
+							`APPEND_BLOCK_CACHE_ENTRY **/
 ${blockCacheEntry}`
-					);
+						);
+					}
 					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
 					if (mainHash) {
 						const newBlockHash = genHash(this._manifestContent[blockChunk]);
@@ -546,6 +550,7 @@ ${blockCacheEntry}`
 
 	private async _run(compilation: compilation.Compilation | MockCompilation, callback: Function, path?: string) {
 		this._buildBridgeResult = {};
+		this._blockEntries = [];
 		this._blockErrors = [];
 		if (!this._output || compilation.errors.length > 0) {
 			return Promise.resolve().then(() => {

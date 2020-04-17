@@ -1,1 +1,2 @@
 import './BuildTimeRender';
+import './BuildTimeRenderMiddleware';

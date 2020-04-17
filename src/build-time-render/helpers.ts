@@ -12,6 +12,12 @@ export interface ServeDetails {
 export async function serve(directory: string, base: string): Promise<ServeDetails> {
 	const app = express();
 	const port = await getPort();
+	app.use(
+		base,
+		history({
+			index: '/btr-index.html'
+		})
+	);
 	app.use(base, express.static(directory));
 	app.use(
 		base,

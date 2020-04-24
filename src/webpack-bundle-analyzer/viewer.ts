@@ -18,7 +18,7 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 		excludeBundleRegex = new RegExp(excludeBundle);
 	}
 
-	const chartData: any[] = analyzer.getViewerData(bundleStats, bundleDir);
+	const chartData = analyzer.getViewerData(bundleStats, bundleDir);
 	let reportFilePath = reportFilename;
 
 	if (!path.isAbsolute(reportFilePath)) {
@@ -62,5 +62,17 @@ export function generateReportData(bundleStats: any, opts: Partial<ReportDataOpt
 	fs.writeFileSync(
 		path.join(path.dirname(reportFilePath), 'analyzer', bundleContentFileName),
 		`window.__bundleList = ${JSON.stringify(bundlesList)}`
+	);
+
+	return chartData.reduce(
+		(chunkMap, bundleData: any) => {
+			bundleData.chunks &&
+				bundleData.chunks.forEach((chunk: string) => {
+					chunkMap[chunk] = bundleData;
+				});
+
+			return chunkMap;
+		},
+		{} as { [index: string]: any }
 	);
 }

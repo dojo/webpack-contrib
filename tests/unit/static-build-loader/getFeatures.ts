@@ -31,6 +31,7 @@ registerSuite('getFeatures', {
 			'es6-symbol': true,
 			'es6-weakmap': true,
 			'es7-array': true,
+			'es2019-array': true,
 			fetch: true,
 			filereader: true,
 			float32array: true,

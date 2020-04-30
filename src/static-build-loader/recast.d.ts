@@ -24,7 +24,8 @@ declare module 'recast/main' {
 		SourceLocation,
 		SimpleCallExpression,
 		Super,
-		SpreadElement
+		SpreadElement,
+		ObjectExpression
 	} from 'estree';
 
 	namespace recast {
@@ -70,9 +71,10 @@ declare module 'recast/main' {
 				identifier(id: string): Identifier;
 				commentLine(comment: string, trailing?: boolean, leading?: boolean): Comment;
 				literal(value: boolean | string | number | null | RegExp): Literal;
-				variableDeclarator(id: Identifier, value: Literal | Identifier): VariableDeclarator;
+				variableDeclarator(id: Identifier, value: ObjectExpression | Literal | Identifier): VariableDeclarator;
 				variableDeclaration(value: string, declarators: VariableDeclarator[]): VariableDeclaration;
 				callExpression(callee: Expression | Super, args: Array<Expression | SpreadElement>): CallExpression;
+				objectExpression(properties: any[]): ObjectExpression;
 			};
 			export function visit(
 				ast: AST,

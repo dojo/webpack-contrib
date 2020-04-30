@@ -282,7 +282,7 @@ export default function loader(
 
 					if (comment && parentPath && typeof name !== 'undefined') {
 						const replacement = builders.variableDeclaration('var', [
-							builders.variableDeclarator(identifier, builders.identifier('undefined'))
+							builders.variableDeclarator(identifier, builders.objectExpression([]))
 						]);
 						setComment(node, path, comment, parentPath, name, replacement);
 

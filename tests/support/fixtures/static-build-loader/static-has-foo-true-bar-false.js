@@ -22,7 +22,7 @@ require(foo);
 require('foo');
 // !has('baz')
 require("qat");
-var importedValue = undefined;
+var importedValue = {};
 var another = undefined, namedExport = undefined;
 
 // has('bar')

@@ -14,6 +14,7 @@ registerSuite('getFeatures', {
 			arraybuffer: true,
 			blob: true,
 			'dom-mutationobserver': true,
+			'dom-css-variables': true,
 			'es-observable': false,
 			'es2017-object': true,
 			'es2017-string': true,

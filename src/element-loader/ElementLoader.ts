@@ -21,7 +21,10 @@ export default function(this: LoaderContext, source: string) {
 		fullWidgetPaths[widget.path] = require.resolve(path.resolve(widget.path));
 	});
 
-	const program = ts.createProgram(widgets.map((widget) => fullWidgetPaths[widget.path]), {});
+	const program = ts.createProgram(widgets.map((widget) => fullWidgetPaths[widget.path]), {
+		jsx: ts.JsxEmit.Preserve,
+		jsxFactory: 'tsx'
+	});
 	const checker = program.getTypeChecker();
 
 	widgets.forEach((widget) => {

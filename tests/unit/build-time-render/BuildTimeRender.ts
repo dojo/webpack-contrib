@@ -456,11 +456,11 @@ describe('build-time-render', () => {
 				return runBtr(compilation, callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
 					assert.lengthOf(compilation.errors, 2);
-					assert.strictEqual(compilation.errors[0].message, 'Block error');
 					assert.include(
-						compilation.errors[1].message,
+						compilation.errors[0].message,
 						'BTR runtime Error: runtime error\n    at main (http://localhost'
 					);
+					assert.strictEqual(compilation.errors[1].message, 'Block error');
 
 					const noErrorCompilation = createCompilation('build-bridge');
 					outputPath = path.join(
@@ -533,11 +533,11 @@ describe('build-time-render', () => {
 				return runBtr(compilation, callbackStub).then(() => {
 					assert.isTrue(callbackStub.calledOnce);
 					assert.lengthOf(compilation.errors, 3);
-					assert.strictEqual(compilation.errors[0].message, 'Block error');
 					assert.include(
-						compilation.errors[1].message,
+						compilation.errors[0].message,
 						'BTR runtime Error: runtime error\n    at main (http://localhost'
 					);
+					assert.strictEqual(compilation.errors[1].message, 'Block error');
 					assert.strictEqual(compilation.errors[2].message, 'Test Error');
 				});
 			});

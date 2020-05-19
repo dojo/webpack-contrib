@@ -3,7 +3,7 @@
   "version": "7.0.0-pre",
   "description": "Webpack loaders and plugins used by the Dojo build process",
   "engines": {
-    "npm": ">=3.0.0"
+    "node": ">=12"
   },
   "private": true,
   "homepage": "http://dojo.io",
@@ -78,7 +78,7 @@
     "recast": "0.12.7",
     "source-map": "0.6.1",
     "ts-loader": "5.4.5",
-    "ts-node": "^8.0.3",
+    "ts-node": "8.10.1",
     "typed-css-modules": "0.3.7",
     "webpack-hot-middleware": "2.24.3",
     "workbox-webpack-plugin": "3.6.3",
@@ -100,7 +100,7 @@
     "@types/minimatch": "3.0.3",
     "@types/mkdirp": "0.5.2",
     "@types/mockery": "1.4.29",
-    "@types/node": "9.6.5",
+    "@types/node": "12.12.39",
     "@types/sinon": "4.3.3",
     "@types/tapable": "1.0.4",
     "@types/webpack": "4.4.19",

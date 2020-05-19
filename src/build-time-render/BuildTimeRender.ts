@@ -1,7 +1,8 @@
 import { Compiler, compilation } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
+import { Worker } from 'worker_threads';
 
-import { join, resolve } from 'path';
+import { join } from 'path';
 import {
 	serve,
 	getClasses,
@@ -20,7 +21,6 @@ import * as cssnano from 'cssnano';
 const filterCss = require('filter-css');
 const webpack = require('webpack');
 const postcss = require('postcss');
-const clearModule = require('clear-module');
 const createHash = require('webpack/lib/util/createHash');
 import { parse } from 'node-html-parser';
 
@@ -342,11 +342,28 @@ export default class BuildTimeRender {
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
+		const promise = new Promise<any>((resolve, reject) => {
+			const worker = new Worker(join(__dirname, 'block-worker.js'), {
+				workerData: {
+					basePath: this._basePath,
+					modulePath,
+					args
+				}
+			});
+
+			worker.on('message', resolve);
+			worker.on('error', reject);
+			worker.on('exit', (code) => {
+				if (code !== 0) {
+					reject(new Error(`Worker stopped with exit code ${code}`));
+				}
+			});
+		});
 		try {
-			const module = require(`${this._basePath}/${modulePath}`);
-			if (module && module.default) {
-				const promise = module.default(...args);
-				const result = await promise;
+			const { result, error } = await promise;
+			if (error) {
+				this._blockErrors.push(new Error(error));
+			} else {
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || {};
 				this._buildBridgeResult[modulePath][JSON.stringify(args)] = JSON.stringify(result);
 				return result;
@@ -597,7 +614,6 @@ ${blockCacheEntry}`
 			})
 			.map((key) => this._manifest[key]);
 
-		clearModule.match(new RegExp(`${resolve(this._basePath, 'src')}.*`));
 		const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
 		const app = await serve(`${this._output}`, this._baseUrl);
 		try {

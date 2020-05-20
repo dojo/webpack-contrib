@@ -186,10 +186,10 @@ export default class BuildTimeRender {
 		additionalScripts,
 		additionalCss
 	}: RenderResult) {
-		let staticPath = false;
+		let isStatic = this._static;
 		if (typeof path === 'object') {
 			if (this._useHistory) {
-				staticPath = !!path.static;
+				isStatic = path.static === undefined ? isStatic : path.static;
 			}
 			path = path.path;
 		} else {
@@ -223,7 +223,7 @@ export default class BuildTimeRender {
 			if (title) {
 				html = html.replace(/<title>.*<\/title>/, title);
 			}
-			if (this._static || staticPath) {
+			if (isStatic) {
 				html = html.replace(this._createScripts(), '');
 			} else {
 				html = html.replace(this._createScripts(), `${script}${css}${this._createScripts(false)}`);
@@ -266,7 +266,7 @@ export default class BuildTimeRender {
 				);
 			}
 		}
-		if (!this._static && !staticPath) {
+		if (!isStatic) {
 			blockScripts.forEach((blockScript, i) => {
 				writtenAssets.push(blockScript);
 				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);

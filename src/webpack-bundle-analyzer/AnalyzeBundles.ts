@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import * as mkdir from 'mkdirp';
+import * as mkdirp from 'mkdirp';
 import * as viewer from './viewer';
 const bfj = require('bfj');
 
@@ -36,7 +36,7 @@ export default function analyzeBundles(stats: any, config: any, optsOverrides: P
 	return generateStaticReport(stats, webpackOutputPath, opts.reportFilename, opts.excludeBundles);
 }
 
-function updateStatsHash(stats: any, webpackOutputPath: string, outputDirectory: string): any {
+export function updateStatsHash(stats: any, webpackOutputPath: string, outputDirectory: string): any {
 	try {
 		const manifest = JSON.parse(fs.readFileSync(path.join(webpackOutputPath, 'manifest.json'), 'utf8'));
 		const originalManifest = JSON.parse(
@@ -54,8 +54,8 @@ function updateStatsHash(stats: any, webpackOutputPath: string, outputDirectory:
 	}
 }
 
-async function generateStatsFile(stats: any, outputDirectory: string, outputPath: string) {
-	mkdir.sync(outputDirectory);
+export async function generateStatsFile(stats: any, outputDirectory: string, outputPath: string) {
+	mkdirp.sync(outputDirectory);
 
 	try {
 		await bfj.write(outputPath, stats, {
@@ -68,7 +68,12 @@ async function generateStatsFile(stats: any, outputDirectory: string, outputPath
 	} catch {}
 }
 
-function generateStaticReport(stats: any, webpackOutputPath: string, reportFilename: string, excludeBundles?: string) {
+export function generateStaticReport(
+	stats: any,
+	webpackOutputPath: string,
+	reportFilename: string,
+	excludeBundles?: string
+) {
 	return viewer.generateReportData(stats, {
 		reportFilename: path.resolve(webpackOutputPath, reportFilename),
 		bundleDir: webpackOutputPath,

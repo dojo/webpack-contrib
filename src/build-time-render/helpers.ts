@@ -122,7 +122,7 @@ export async function getPageLinks(page: any) {
 				.toLowerCase();
 		})
 	);
-	links = [...new Set(links.filter((link) => /^http(s)?:\/\//.test(link) === false))];
+	links = [...new Set(links.filter((link) => /^(http(s)?:\/\/)|(mailto:)|(file:)/.test(link) === false))];
 	return links;
 }
 

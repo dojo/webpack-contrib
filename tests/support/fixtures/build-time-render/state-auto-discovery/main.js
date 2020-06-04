@@ -11,6 +11,8 @@
 		const imgFive = document.createElement('img');
 		const linkOne = document.createElement('a');
 		const linkTwo = document.createElement('a');
+		const linkMailto = document.createElement('a');
+		const linkFile = document.createElement('a');
 		div.classList.add('hello', 'another');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 		app.appendChild(div);
@@ -35,6 +37,12 @@
 
 		linkTwo.setAttribute('href', 'other');
 		div.appendChild(linkTwo);
+
+		linkMailto.setAttribute('href', 'mailto:me@email.com');
+		div.appendChild(linkMailto);
+
+		linkFile.setAttribute('href', 'file://file.location');
+		div.appendChild(linkFile);
 	}
 
 	if (route === '/') {

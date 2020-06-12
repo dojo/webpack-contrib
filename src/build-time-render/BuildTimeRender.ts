@@ -592,7 +592,6 @@ ${blockCacheEntry}`
 		}
 
 		this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
-		console.log(this._manifest);
 		this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
 			obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
 			return obj;

@@ -414,7 +414,7 @@ describe('build-time-render', () => {
 					assert.lengthOf(compilation.errors, 1);
 					assert.strictEqual(
 						compilation.errors[0].message,
-						'Failed to run build time rendering. Could not find DOM node with id: "missing" in src/index.html'
+						'Build Time Render Error (path: "default path"): Could not find DOM node with id: "missing" in src/index.html'
 					);
 				});
 			});
@@ -458,9 +458,12 @@ describe('build-time-render', () => {
 					assert.lengthOf(compilation.errors, 2);
 					assert.include(
 						compilation.errors[0].message,
-						'BTR runtime Error: runtime error\n    at main (http://localhost'
+						'Build Time Render Runtime Error (path: "default path"): runtime error\n    at main (http://localhost'
 					);
-					assert.strictEqual(compilation.errors[1].message, 'Block error');
+					assert.strictEqual(
+						compilation.errors[1].message,
+						'Build Time Render Block Error (path: "default path"): Block error'
+					);
 
 					const noErrorCompilation = createCompilation('build-bridge');
 					outputPath = path.join(
@@ -535,10 +538,16 @@ describe('build-time-render', () => {
 					assert.lengthOf(compilation.errors, 3);
 					assert.include(
 						compilation.errors[0].message,
-						'BTR runtime Error: runtime error\n    at main (http://localhost'
+						'Build Time Render Runtime Error (path: "default path"): runtime error\n    at main (http://localhost'
 					);
-					assert.strictEqual(compilation.errors[1].message, 'Block error');
-					assert.strictEqual(compilation.errors[2].message, 'Test Error');
+					assert.strictEqual(
+						compilation.errors[1].message,
+						'Build Time Render Block Error (path: "default path"): Block error'
+					);
+					assert.strictEqual(
+						compilation.errors[2].message,
+						'Build Time Render Error (path: "default path"): Test Error'
+					);
 				});
 			});
 		});

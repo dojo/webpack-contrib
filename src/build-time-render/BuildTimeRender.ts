@@ -88,6 +88,7 @@ class MockCompilation {
 	private _manifest: { [index: string]: string };
 	public assets: { [index: string]: MockAsset };
 	public errors: any[] = [];
+	public warnings: any[] = [];
 	constructor(output: string) {
 		this._manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
 		this.assets = Object.keys(this._manifest).reduce(
@@ -657,7 +658,7 @@ ${blockCacheEntry}`
 				try {
 					await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
 				} catch {
-					compilation.errors.push(this._createError('Failed to visit path'));
+					compilation.warnings.push(this._createError('Failed to visit path'));
 					continue;
 				}
 				const pathDirectories = this._currentPath.replace('#', '').split('/');

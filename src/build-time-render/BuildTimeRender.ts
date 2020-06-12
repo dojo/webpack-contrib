@@ -104,7 +104,7 @@ class MockCompilation {
 }
 
 export default class BuildTimeRender {
-	private _currentPath: string | undefined = '';
+	private _currentPath: string | undefined;
 	private _cssFiles: string[] = [];
 	private _entries: string[];
 	private _manifest: any;

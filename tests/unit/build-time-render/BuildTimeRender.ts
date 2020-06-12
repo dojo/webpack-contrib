@@ -414,7 +414,7 @@ describe('build-time-render', () => {
 					assert.lengthOf(compilation.errors, 1);
 					assert.strictEqual(
 						compilation.errors[0].message,
-						'Build Time Render Error (path: "default path"): Could not find DOM node with id: "missing" in src/index.html'
+						'Build Time Render Error: Could not find DOM node with id: "missing" in src/index.html'
 					);
 				});
 			});

@@ -103,11 +103,19 @@ export async function getRenderHooks(page: any, scope: string): Promise<any> {
 	}, scope);
 }
 
-export async function getForSelector(page: any, selector: string) {
+export async function getForSelector(page: any, selector: string): Promise<string> {
 	try {
 		return await page.$eval(selector, (element: Element) => element.outerHTML);
 	} catch {
 		return '';
+	}
+}
+
+export async function getAllForSelector(page: any, selector: string): Promise<string[]> {
+	try {
+		return await page.$$eval(selector, (elements: Element[]) => elements.map((element) => element.outerHTML));
+	} catch {
+		return [];
 	}
 }
 

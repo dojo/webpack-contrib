@@ -31,21 +31,37 @@
 
 	if (route === '/') {
 		document.title = "Hello home";
+		const meta = document.createElement('meta');
+		meta.setAttribute('name', 'description');
+		meta.setAttribute('content', 'home');
+		document.head.appendChild(meta);
 		renderDefault();
 	} else if (route === '/my-path') {
 		document.title = "Hello my-path";
+		const meta = document.createElement('meta');
+		meta.setAttribute('name', 'description');
+		meta.setAttribute('content', 'my-path');
+		document.head.appendChild(meta);
 		div = document.createElement('div');
 		div.classList.add('hello', 'another');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 		app.appendChild(div);
 	} else if (route === '/my-path/other') {
 		document.title = "Hello my-path/other";
+		const meta = document.createElement('meta');
+		meta.setAttribute('name', 'description');
+		meta.setAttribute('content', 'my-path other');
+		document.head.appendChild(meta);
 		div = document.createElement('div');
 		div.classList.add('other');
 		div.innerHTML = 'Other';
 		app.appendChild(div);
 	} else {
 		document.title = "Hello home";
+		const meta = document.createElement('meta');
+		meta.setAttribute('name', 'description');
+		meta.setAttribute('content', 'home');
+		document.head.appendChild(meta);
 		renderDefault();
 	}
 	window.test = {

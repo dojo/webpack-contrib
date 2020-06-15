@@ -10,6 +10,7 @@ import {
 	generateRouteInjectionScript,
 	getScriptSources,
 	getForSelector,
+	getAllForSelector,
 	setupEnvironment,
 	getPageStyles,
 	getRenderHooks,
@@ -26,7 +27,7 @@ import { parse } from 'node-html-parser';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
-	title: string;
+	head: string[];
 	content: string;
 	styles: string;
 	script: string;
@@ -178,7 +179,7 @@ export default class BuildTimeRender {
 
 	private async _writeIndexHtml({
 		content,
-		title,
+		head,
 		script,
 		path = '',
 		styles,
@@ -200,6 +201,10 @@ export default class BuildTimeRender {
 		const writtenAssets: string[] = this._entries.map((entry) => this._manifest[entry]);
 		if (this._writeHtml) {
 			html = html.replace(this._originalRoot, content);
+			if (head) {
+				head = head.filter((node) => !/.*localhost.*/.test(node));
+				html = html.replace(/<head>[\s\S]*<\/head>/, `<head>\n\t\t${head.join('\n\t\t')}\n\t</head>`);
+			}
 			let css = this._entries.reduce((css, entry) => {
 				const cssFile = this._manifest[entry.replace('.js', '.css')];
 				if (cssFile) {
@@ -220,9 +225,6 @@ export default class BuildTimeRender {
 
 			styles = await this._processCss(styles);
 			html = html.replace(`</head>`, `<style>${styles}</style></head>`);
-			if (title) {
-				html = html.replace(/<title>.*<\/title>/, title);
-			}
 			if (isStatic) {
 				html = html.replace(this._createScripts(), '');
 			} else {
@@ -319,7 +321,7 @@ export default class BuildTimeRender {
 		const classes: any[] = await getClasses(page);
 		let pathValue = typeof path === 'object' ? path.path : path;
 		let content = await getForSelector(page, `#${this._root}`);
-		let title = await getForSelector(page, 'title');
+		let head = await getAllForSelector(page, 'head > *');
 		let styles = this._filterCss(classes);
 		let script = '';
 
@@ -334,7 +336,7 @@ export default class BuildTimeRender {
 			styles,
 			script,
 			path,
-			title,
+			head,
 			blockScripts: [],
 			additionalScripts: [],
 			additionalCss: []
@@ -406,7 +408,7 @@ export default class BuildTimeRender {
 			styles: combined.styles,
 			content: this._originalRoot,
 			script,
-			title: '',
+			head: [],
 			blockScripts: combined.blockScripts,
 			additionalScripts: combined.additionalScripts,
 			additionalCss: combined.additionalCss

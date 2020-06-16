@@ -33,7 +33,7 @@
 		renderDefault();
 	} else if (route === '/my-path') {
 		div = document.createElement('div');
-		div.classList.add('hello', 'another');
+		div.classList.add('hello', 'another', 'color');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);
 		app.appendChild(div);
 	} else if (route === '/my-path/other') {

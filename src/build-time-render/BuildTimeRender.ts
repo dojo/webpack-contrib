@@ -110,7 +110,7 @@ export default class BuildTimeRender {
 	private _cssFiles: string[] = [];
 	private _entries: string[];
 	private _manifest: any;
-	private _manifestContent: any = {};
+	private _manifestContent: { [index: string]: string } = {};
 	private _buildBridgeResult: any = {};
 	private _blockEntries: string[] = [];
 	private _output?: string;
@@ -203,17 +203,20 @@ export default class BuildTimeRender {
 		const writtenAssets: string[] = this._entries.map((entry) => this._manifest[entry]);
 		if (this._writeHtml) {
 			html = html.replace(this._originalRoot, content);
-			if (head) {
+			if (head.length) {
 				head = head.filter((node) => !/.*localhost.*/.test(node));
 				html = html.replace(/<head>[\s\S]*<\/head>/, `<head>\n\t\t${head.join('\n\t\t')}\n\t</head>`);
 			}
-			let css = this._entries.reduce((css, entry) => {
-				const cssFile = this._manifest[entry.replace('.js', '.css')];
-				if (cssFile) {
-					html = html.replace(`<link href="${cssFile}" rel="stylesheet">`, '');
-					css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
-
-					writtenAssets.push(cssFile);
+			const cssFiles = Object.keys(this._manifest).filter((key) => /\.css$/.test(key));
+			let css = cssFiles.reduce((css, file) => {
+				const cssFile = this._manifest[file];
+				const cssFileRegExp = new RegExp(`<link .*?href="${cssFile}".*?>`);
+				if (cssFile && cssFileRegExp.test(html)) {
+					html = html.replace(cssFileRegExp, '');
+					if (this._entries.indexOf(file.replace('.css', '.js')) !== -1) {
+						css = `${css}<link rel="stylesheet" href="${cssFile}" />`;
+						writtenAssets.push(cssFile);
+					}
 				}
 				return css;
 			}, '');
@@ -676,9 +679,11 @@ ${blockCacheEntry}`
 				const additionalScripts = scripts.filter(
 					(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
 				);
-				const additionalCss = (await getPageStyles(page)).filter((url: string) =>
-					this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
-				);
+				const additionalCss = (await getPageStyles(page))
+					.filter((url: string) =>
+						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
+					)
+					.filter((url) => !/^http(s)?:\/\/.*/.test(url) || url.indexOf('localhost') !== -1);
 				const blockScripts = this._sync
 					? this._writeSyncBuildBridgeCache()
 					: this._writeBuildBridgeCache(additionalScripts);

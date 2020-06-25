@@ -213,7 +213,17 @@ describe('build-time-render', () => {
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] },
 				scope: 'test',
-				onDemand: true
+				onDemand: true,
+				paths: [
+					{
+						path: 'excluded',
+						exclude: true
+					},
+					{
+						path: '/other/excluded/',
+						exclude: true
+					}
+				]
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -983,7 +993,17 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					paths: [
+						{
+							path: 'excluded',
+							exclude: true
+						},
+						{
+							path: '/other/excluded/',
+							exclude: true
+						}
+					]
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -2280,7 +2300,17 @@ describe('build-time-render', () => {
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
 					scope: 'test',
-					renderer: 'jsdom'
+					renderer: 'jsdom',
+					paths: [
+						{
+							path: 'excluded',
+							exclude: true
+						},
+						{
+							path: '/other/excluded/',
+							exclude: true
+						}
+					]
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -2423,7 +2453,17 @@ describe('build-time-render', () => {
 				const btr = new Btr({
 					basePath: '',
 					useHistory: true,
-					paths: ['other'],
+					paths: [
+						'other',
+						{
+							path: 'excluded',
+							exclude: true
+						},
+						{
+							path: '/other/excluded/',
+							exclude: true
+						}
+					],
 					discoverPaths: false,
 					entries: ['runtime', 'main'],
 					root: 'app',

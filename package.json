@@ -37,7 +37,7 @@
     "precommit": "lint-staged",
     "prettier": "prettier --write \"{src,tests}/**/*.{ts,tsx}\"",
     "release": "run-s lint clean build \"dojo-release -- {@}\" --",
-    "test": "NODE_OPTIONS=--max_old_space_size=4096 run-s lint build intern",
+    "test": "NODE_OPTIONS=--max_old_space_size=4096 run-s lint build \"intern -- {@}\" --",
     "uploadCoverage": "codecov --file=coverage/coverage.json",
     "watch:ts": "dojo-tsc-watcher -p tsconfig.json -- dojo-package",
     "watch": "run-p watch:ts \"build:static:** -- --watch\""
@@ -71,7 +71,7 @@
     "lodash": "4.17.4",
     "minimatch": "3.0.4",
     "mkdirp": "0.5.1",
-    "node-html-parser": "1.1.11",
+    "node-html-parser": "1.2.20",
     "opener": "1.4.3",
     "postcss": "7.0.7",
     "puppeteer": "1.11.0",

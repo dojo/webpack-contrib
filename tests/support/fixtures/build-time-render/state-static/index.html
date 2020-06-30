@@ -1,10 +1,50 @@
 <html>
 	<head>
-		<link rel="manifest" href="manifest.json" />
-		<link href="main.css" rel="stylesheet">
-		<script src="http://localhost:9999/main.js"></script>
-		<link href="http://localhost:9999/main.css" rel="stylesheet">
-		<title>Original Title</title>
+		<meta charset="utf-8" />
+		<meta name="theme-color" content="#222127" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/png" href="favicon.png" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+		<link rel="preconnect" href="https://www.google-analytics.com" />
+		<link
+			rel="alternate"
+			type="application/rss+xml"
+			title="SitePen RSS Feed"
+			href="https://www.sitepen.com/rss.xml"
+		/>
+		<link
+			rel="alternate"
+			type="application/atom+xml"
+			title="SitePen Atom Feed"
+			href="https://www.sitepen.com/atom.xml"
+		/>
+		<link
+			rel="preload"
+			as="style"
+			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:wght@400;700&display=swap"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:wght@400;700&display=swap"
+			rel="stylesheet"
+			media="print"
+			onload="this.media='all'"
+		/>
+		<script>
+			window.isThisAScriptTag = true;
+		</script>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-3242977-2"></script>
+		<script>
+			window.isThisAScriptTag = true;
+		</script>
+		<style>
+			.sticky {
+				background-color: rgb(9, 19, 31) !important;
+				padding-top: 2px !important;
+				padding-bottom: 2px !important;
+			}
+		</style>
+		<link rel="manifest" href="manifest.json">
 	</head>
 	<body>
 		<div id="app"></div>

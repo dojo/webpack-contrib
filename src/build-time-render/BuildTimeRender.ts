@@ -23,7 +23,7 @@ const filterCss = require('filter-css');
 const webpack = require('webpack');
 const postcss = require('postcss');
 const createHash = require('webpack/lib/util/createHash');
-import { parse } from 'node-html-parser';
+import { parse, HTMLElement } from 'node-html-parser';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -135,6 +135,7 @@ export default class BuildTimeRender {
 	private _writtenHtmlFiles: string[] = [];
 	private _initialBtr = true;
 	private _onDemand = false;
+	private _headNodes: string[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -204,7 +205,7 @@ export default class BuildTimeRender {
 		if (this._writeHtml) {
 			html = html.replace(this._originalRoot, content);
 			if (head.length) {
-				head = head.filter((node) => !/.*localhost.*/.test(node));
+				head = [...head, ...this._headNodes];
 				html = html.replace(/<head>[\s\S]*<\/head>/, `<head>\n\t\t${head.join('\n\t\t')}\n\t</head>`);
 			}
 			const cssFiles = Object.keys(this._manifest).filter((key) => /\.css$/.test(key));
@@ -326,7 +327,7 @@ export default class BuildTimeRender {
 		const classes: any[] = await getClasses(page);
 		let pathValue = typeof path === 'object' ? path.path : path;
 		let content = await getForSelector(page, `#${this._root}`);
-		let head = await getAllForSelector(page, 'head > *');
+		let head = await getAllForSelector(page, 'head > *:not(script):not(link)');
 		let styles = this._filterCss(classes);
 		let script = '';
 
@@ -612,8 +613,14 @@ ${blockCacheEntry}`
 		const originalManifest = { ...this._manifest };
 
 		const html = this._manifestContent['index.html'];
-		const root = parse(html);
+		const root = parse(html, { script: true, style: true });
 		const rootNode = root.querySelector(`#${this._root}`);
+		const headNode = root.querySelector('head');
+		if (headNode) {
+			this._headNodes = (headNode.childNodes.filter((node) => node.nodeType === 1) as HTMLElement[])
+				.filter((node) => node.tagName === 'script' || node.tagName === 'link')
+				.map((node) => `${node.toString()}`);
+		}
 		if (!rootNode) {
 			compilation.errors.push(
 				this._createError(`Could not find DOM node with id: "${this._root}" in src/index.html`)

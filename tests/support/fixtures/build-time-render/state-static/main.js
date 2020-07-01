@@ -42,6 +42,12 @@
 		meta.setAttribute('name', 'description');
 		meta.setAttribute('content', 'my-path');
 		document.head.appendChild(meta);
+		const link = document.createElement('link');
+		link.setAttribute('href', 'something');
+		const script = document.createElement('script');
+		script.setAttribute('src', 'external.js');
+		document.head.appendChild(link);
+		document.head.appendChild(script);
 		div = document.createElement('div');
 		div.classList.add('hello', 'another');
 		div.innerHTML = JSON.stringify(window.DojoHasEnvironment);

@@ -1,8 +1,48 @@
 <html>
 	<head>
-		<link rel="manifest" href="manifest.json">
+		<meta charset="utf-8">
+		<meta name="theme-color" content="#222127">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+			.sticky {
+				background-color: rgb(9, 19, 31) !important;
+				padding-top: 2px !important;
+				padding-bottom: 2px !important;
+			}
+		</style>
 		<title>Hello my-path/other</title>
 		<meta name="description" content="my-path other">
+		<link rel="icon" type="image/png" href="favicon.png" >
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin >
+		<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin >
+		<link rel="preconnect" href="https://www.google-analytics.com" >
+		<link rel="alternate"
+			type="application/rss+xml"
+			title="SitePen RSS Feed"
+			href="https://www.sitepen.com/rss.xml"
+		>
+		<link rel="alternate"
+			type="application/atom+xml"
+			title="SitePen Atom Feed"
+			href="https://www.sitepen.com/atom.xml"
+		>
+		<link rel="preload"
+			as="style"
+			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:wght@400;700&display=swap"
+		>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:wght@400;700&display=swap"
+			rel="stylesheet"
+			media="print"
+			onload="this.media='all'"
+		>
+		<script>
+			window.isThisAScriptTag = true;
+		</script>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-3242977-2"></script>
+		<script>
+			window.isThisAScriptTag = true;
+		</script>
+		<link rel="manifest" href="manifest.json">
 	<style>.other.another{color:pink;background:url("relative.png");background:url("/root.png");background:url("./relative.png");background:url("../relative.png");background:url("https://example.com");background:url("http://example.com");background:url(https://example.com);background:url(http://example.com)}span{width:100%}</style></head>
 	<body>
 		<div id="app"><div class="other">Other</div></div>

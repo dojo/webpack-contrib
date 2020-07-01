@@ -60,6 +60,7 @@ export interface BuildTimeRenderArguments {
 	writeHtml?: boolean;
 	onDemand?: boolean;
 	writeCss?: boolean;
+	spinner?: any;
 }
 
 function genHash(content: string): string {
@@ -163,6 +164,7 @@ export default class BuildTimeRender {
 	private _onDemand = false;
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
+	private _spinner?: any;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -179,7 +181,8 @@ export default class BuildTimeRender {
 			sync = false,
 			writeHtml = true,
 			writeCss = true,
-			onDemand = false
+			onDemand = false,
+			spinner
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -187,6 +190,7 @@ export default class BuildTimeRender {
 		this._basePath = basePath;
 		this._baseUrl = normalizePath(baseUrl, false);
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
+		this._spinner = spinner;
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -389,7 +393,6 @@ export default class BuildTimeRender {
 	}
 
 	private async _buildBridge(modulePath: string, args: any[]) {
-		this._blockTimes[modulePath] = performance.now();
 		const promise = new Promise<any>((resolve, reject) => {
 			const worker = new Worker(join(__dirname, 'block-worker.js'), {
 				workerData: {
@@ -412,10 +415,6 @@ export default class BuildTimeRender {
 			if (error) {
 				this._blockErrors.push(this._createError(error, 'Block'));
 			} else {
-				const time = performance.now() - this._blockTimes[modulePath];
-				if (time && this._logging) {
-					this._logging.info(`Slow:${modulePath}:Took:${time / 1000}`);
-				}
 				this._buildBridgeResult[modulePath] = this._buildBridgeResult[modulePath] || {};
 				this._buildBridgeResult[modulePath][JSON.stringify(args)] = JSON.stringify(result);
 				return result;
@@ -716,11 +715,12 @@ ${blockCacheEntry}`
 					}
 					pageManifest.push(this._currentPath);
 				}
+				if (this._spinner) {
+					this._spinner.text = `building - BTR - exploring ${this._currentPath}`;
+				}
 				let page = await this._createPage(browser);
 				try {
-					const url = `http://localhost:${app.port}${this._baseUrl}${this._currentPath}`;
-					this._logging && this._logging.info(`Visited:${url}`);
-					await page.goto(url);
+					await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
 				} catch {
 					compilation.warnings.push(this._createError('Failed to visit path'));
 					continue;
@@ -757,7 +757,6 @@ ${blockCacheEntry}`
 					for (let i = 0; i < links.length; i++) {
 						if (pageManifest.indexOf(links[i]) === -1 && this._excludedPaths.indexOf(links[i]) === -1) {
 							(!this._onDemand || this._initialBtr) && paths.push(links[i]);
-							this._logging && this._logging.info(`Discovered:${links[i]}`);
 							pageManifest.push(links[i]);
 						}
 					}

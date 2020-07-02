@@ -74,6 +74,7 @@
     "mkdirp": "0.5.1",
     "node-html-parser": "1.2.20",
     "opener": "1.4.3",
+    "ora": "^4.0.4",
     "postcss": "7.0.7",
     "puppeteer": "1.11.0",
     "recast": "0.12.7",

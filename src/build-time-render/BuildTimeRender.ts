@@ -19,6 +19,7 @@ import {
 
 import renderer, { Renderer } from './Renderer';
 import * as cssnano from 'cssnano';
+import * as ora from 'ora';
 const filterCss = require('filter-css');
 const webpack = require('webpack');
 const postcss = require('postcss');
@@ -60,7 +61,7 @@ export interface BuildTimeRenderArguments {
 	writeHtml?: boolean;
 	onDemand?: boolean;
 	writeCss?: boolean;
-	spinner?: any;
+	spinner?: ora.Ora;
 }
 
 function genHash(content: string): string {
@@ -164,7 +165,8 @@ export default class BuildTimeRender {
 	private _onDemand = false;
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
-	private _spinner?: any;
+	private _spinner?: ora.Ora;
+	private _spinnerText?: string;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -191,6 +193,7 @@ export default class BuildTimeRender {
 		this._baseUrl = normalizePath(baseUrl, false);
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
 		this._spinner = spinner;
+		this._spinnerText = spinner && spinner.text;
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -716,7 +719,9 @@ ${blockCacheEntry}`
 					pageManifest.push(this._currentPath);
 				}
 				if (this._spinner) {
-					this._spinner.text = `building - BTR - exploring ${this._currentPath}`;
+					this._spinner.text = `${this._spinnerText ? `${this._spinnerText} - ` : ''}BTR - exploring ${
+						this._currentPath
+					}`;
 				}
 				let page = await this._createPage(browser);
 				try {
@@ -838,7 +843,13 @@ ${blockCacheEntry}`
 			if (this._onDemand && !this._initialBtr) {
 				return callback();
 			}
-			return this._run(compilation, callback);
+
+			return this._run(compilation, callback).then((result) => {
+				if (this._spinnerText && this._spinner) {
+					this._spinner.text = this._spinnerText;
+				}
+				return result;
+			});
 		});
 	}
 }

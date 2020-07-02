@@ -40,6 +40,7 @@ export interface BuildTimePath {
 	path: string;
 	match?: string[];
 	static?: boolean;
+	exclude?: boolean;
 }
 
 export interface BuildTimeRenderArguments {
@@ -115,7 +116,7 @@ export default class BuildTimeRender {
 	private _blockEntries: string[] = [];
 	private _output?: string;
 	private _jsonpName?: string;
-	private _paths: (BuildTimePath | string)[];
+	private _paths: (BuildTimePath | string)[] = [''];
 	private _static = false;
 	private _puppeteerOptions: any;
 	private _root: string;
@@ -136,6 +137,7 @@ export default class BuildTimeRender {
 	private _initialBtr = true;
 	private _onDemand = false;
 	private _headNodes: string[] = [];
+	private _excludedPaths: string[] = [];
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -167,7 +169,14 @@ export default class BuildTimeRender {
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
 		this._puppeteerOptions = puppeteerOptions;
-		this._paths = ['', ...paths];
+		for (let i = 0; i < paths.length; i++) {
+			const path = paths[i];
+			if (typeof path === 'object' && path.exclude) {
+				this._excludedPaths.push(path.path.replace(trailingSlash, '').replace(leadingSlash, ''));
+			} else {
+				this._paths.push(path);
+			}
+		}
 		this._root = root;
 		this._sync = sync;
 		this._scope = scope;
@@ -703,7 +712,7 @@ ${blockCacheEntry}`
 				if (this._discoverPaths) {
 					const links = await getPageLinks(page);
 					for (let i = 0; i < links.length; i++) {
-						if (pageManifest.indexOf(links[i]) === -1) {
+						if (pageManifest.indexOf(links[i]) === -1 && this._excludedPaths.indexOf(links[i]) === -1) {
 							(!this._onDemand || this._initialBtr) && paths.push(links[i]);
 							pageManifest.push(links[i]);
 						}

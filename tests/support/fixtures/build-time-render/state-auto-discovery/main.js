@@ -54,6 +54,12 @@
 		const link = document.createElement('a');
 		link.setAttribute('href', 'my-path/other');
 		div.appendChild(link);
+		const excludedLinkOne = document.createElement('a');
+		excludedLinkOne.setAttribute('href', 'excluded')
+		const excludedLinkTwo = document.createElement('a');
+		excludedLinkTwo.setAttribute('href', '/other/excluded')
+		div.appendChild(excludedLinkOne);
+		div.appendChild(excludedLinkTwo);
 		app.appendChild(div);
 	} else if (route === '/my-path/other') {
 		div = document.createElement('div');

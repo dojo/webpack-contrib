@@ -1,4 +1,4 @@
-import { Compiler, compilation, Logger } from 'webpack';
+import { Compiler, compilation } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
 import { Worker } from 'worker_threads';
 
@@ -100,23 +100,6 @@ class MockCompilation {
 	public assets: { [index: string]: MockAsset };
 	public errors: any[] = [];
 	public warnings: any[] = [];
-	public getLogger(): Logger {
-		return {
-			info() {},
-			clear() {},
-			debug() {},
-			error() {},
-			group() {},
-			groupCollapsed() {},
-			groupEnd() {},
-			log() {},
-			profile() {},
-			profileEnd() {},
-			status() {},
-			trace() {},
-			warn() {}
-		};
-	}
 	constructor(output: string) {
 		this._manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
 		this.assets = Object.keys(this._manifest).reduce(

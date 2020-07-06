@@ -490,6 +490,16 @@ describe('build-time-render', () => {
 				puppeteerOptions: { args: ['--no-sandbox'] },
 				scope: 'test',
 				onDemand: true,
+				paths: [
+					{
+						path: 'excluded',
+						exclude: true
+					},
+					{
+						path: '/other/excluded/',
+						exclude: true
+					}
+				],
 				spinner
 			});
 			btr.apply(compiler);
@@ -575,6 +585,16 @@ describe('build-time-render', () => {
 				puppeteerOptions: { args: ['--no-sandbox'] },
 				scope: 'test',
 				onDemand: true,
+				paths: [
+					{
+						path: 'excluded',
+						exclude: true
+					},
+					{
+						path: '/other/excluded/',
+						exclude: true
+					}
+				],
 				spinner
 			});
 			btr.apply(compiler);

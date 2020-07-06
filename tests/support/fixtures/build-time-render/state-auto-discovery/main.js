@@ -64,6 +64,9 @@
 	} else if (route === '/my-path/other') {
 		div = document.createElement('div');
 		div.classList.add('other');
+		div.classList.add('media:colon');
+		div.classList.add('not');
+		div.classList.add('other-not');
 		div.innerHTML = 'Other';
 		app.appendChild(div);
 

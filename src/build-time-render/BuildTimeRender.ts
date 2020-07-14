@@ -308,14 +308,19 @@ export default class BuildTimeRender {
 		return this._cssFiles.reduce((result, entry: string) => {
 			let filteredCss: string = filterCss(join(this._output!, entry), (context: string, value: string) => {
 				if (context === 'selector') {
-					value = value.replace(/(:| ).*/, '');
-					value = value
+					let parsedValue = value
+						.split('\\:')
+						.map((part) => part.replace(/((>?|~?):| ).*/, ''))
+						.join('\\:');
+					parsedValue = parsedValue
 						.split('.')
 						.slice(0, 2)
 						.join('.');
-					const firstChar = value.substr(0, 1);
+					const firstChar = parsedValue.substr(0, 1);
+					const noMatchingClass =
+						classes.indexOf(parsedValue) === -1 && classes.indexOf(parsedValue.replace('\\:', ':')) === -1;
 
-					return classes.indexOf(value) === -1 && ['.', '#'].indexOf(firstChar) !== -1;
+					return noMatchingClass && ['.', '#'].indexOf(firstChar) !== -1;
 				}
 			});
 

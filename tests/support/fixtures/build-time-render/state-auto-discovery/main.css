@@ -24,4 +24,18 @@ span {
 	width: 100%;
 }
 
+.not~:not('span') {
+	color: blue;
+}
+
+.other-not>:not('span') {
+	color: blue;
+}
+
+@media (min-width: 1280px) {
+	.media\:colon {
+		color: purple;
+	}
+}
+
 /*# sourceMappingURL=main.16469ae7e579bf3f6af50cbfcb734efa.bundle.css.map*/

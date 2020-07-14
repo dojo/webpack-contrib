@@ -1,9 +1,9 @@
 <html>
 	<head>
 		<link rel="manifest" href="manifest.json" />
-	<style>.other.another{color:pink;background:url("relative.png");background:url("/root.png");background:url("./relative.png");background:url("../relative.png");background:url("https://example.com");background:url("http://example.com");background:url(https://example.com);background:url(http://example.com)}span{width:100%}</style></head>
+	<style>.other.another{color:pink;background:url("relative.png");background:url("/root.png");background:url("./relative.png");background:url("../relative.png");background:url("https://example.com");background:url("http://example.com");background:url(https://example.com);background:url(http://example.com)}span{width:100%}.not~:not("span"),.other-not>:not("span"){color:#00f}@media (min-width:1280px){.media\:colon{color:purple}}</style></head>
 	<body>
-		<div id="app"><div class="other">Other</div></div>
+		<div id="app"><div class="other media:colon not other-not">Other</div></div>
 		<script>
 	if (!window['test']) {
 		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path\/other(\/)?$/, '/');

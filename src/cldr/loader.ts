@@ -27,9 +27,9 @@ function generateCldr(cldrData: any, locales: string[], includeInverse = false) 
 function getValidCldrDataLocale(locale: string): string {
 	const cldr = new Cldr(locale);
 	try {
-		require('cldr-data/main/${locale}/ca-gregorian.json');
+		require(`cldr-data/main/${locale}/ca-gregorian.json`);
 	} catch {
-		locale = cldr.attributes.minLanguageId;
+		locale = cldr.attributes.language;
 	}
 	return locale;
 }

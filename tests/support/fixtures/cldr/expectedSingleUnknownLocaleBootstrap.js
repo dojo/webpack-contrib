@@ -30,6 +30,35 @@ i18n.setCldrLoaders({ 'zh-CN': function() {
 	}
 
 	return Promise.all(promises);
+},'zh': function() {
+	var promises = [];
+
+	if (has('__i18n_date__')) {
+		promises.push(
+			import(/* webpackChunkName: "i18n/zh/date-time" */ 'cldr-data/main/zh/ca-gregorian.json')
+		);
+		promises.push(
+			import(/* webpackChunkName: "i18n/zh/date-time" */ 'cldr-data/main/zh/dateFields.json')
+		);
+		promises.push(
+			import(/* webpackChunkName: "i18n/zh/date-time" */ 'cldr-data/main/zh/timeZoneNames.json')
+		);
+	}
+	if (has('__i18n_number__')) {
+		promises.push(
+			import(/* webpackChunkName: "i18n/zh/currency" */ 'cldr-data/main/zh/currencies.json')
+		);
+	}
+	if (has('__i18n_date__') || has('__i18n_number__') || has('__i18n_unit__')) {
+		promises.push(
+			import(/* webpackChunkName: "i18n/zh/common" */ 'cldr-data/main/zh/numbers.json')
+		);
+	}
+	if (has('__i18n_unit__')) {
+		promises.push(import(/* webpackChunkName: "i18n/zh/unit" */ 'cldr-data/main/zh/units.json'));
+	}
+
+	return Promise.all(promises);
 }, fallback: function () {
 		return Promise.all([
 			import(/* webpackChunkName: "i18n/supplemental/fallback" */ 'cldr-core/supplemental/likelySubtags.json'),
@@ -68,6 +97,6 @@ i18n.setCldrLoaders({ 'zh-CN': function() {
 
 	return Promise.all(promises);
 } });
-i18n.setSupportedLocales(["zh-CN"]);
+i18n.setSupportedLocales(["zh-CN","zh"]);
 i18n.setDefaultLocale('zh-CN');
 export default i18n.setLocale({ default: true });

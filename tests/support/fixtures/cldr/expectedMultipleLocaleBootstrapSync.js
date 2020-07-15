@@ -12,14 +12,6 @@ var cldrData = [weekData, ordinals, numberingSystems, parentLocales, likelySubta
 
 
 
-cldrData.push(require('cldr-data/main/en/ca-gregorian.json'));
-cldrData.push(require('cldr-data/main/en/dateFields.json'));
-cldrData.push(require('cldr-data/main/en/timeZoneNames.json'));
-cldrData.push(require('cldr-data/main/en/currencies.json'));
-cldrData.push(require('cldr-data/main/en/numbers.json'));
-cldrData.push(require('cldr-data/main/en/units.json'));
-
-
 cldrData.push(require('cldr-data/main/fr/ca-gregorian.json'));
 cldrData.push(require('cldr-data/main/fr/dateFields.json'));
 cldrData.push(require('cldr-data/main/fr/timeZoneNames.json'));
@@ -35,8 +27,17 @@ cldrData.push(require('cldr-data/main/ja/currencies.json'));
 cldrData.push(require('cldr-data/main/ja/numbers.json'));
 cldrData.push(require('cldr-data/main/ja/units.json'));
 
+
+cldrData.push(require('cldr-data/main/en/ca-gregorian.json'));
+cldrData.push(require('cldr-data/main/en/dateFields.json'));
+cldrData.push(require('cldr-data/main/en/timeZoneNames.json'));
+cldrData.push(require('cldr-data/main/en/currencies.json'));
+cldrData.push(require('cldr-data/main/en/numbers.json'));
+cldrData.push(require('cldr-data/main/en/units.json'));
+
+
 Globalize.load(cldrData)
-i18n.setCldrLoaders({ 'en': true,'fr': true,'ja': true, fallback: true, supplemental: true });
-i18n.setSupportedLocales(["en","fr","ja"]);
-i18n.setDefaultLocale('en');
+i18n.setCldrLoaders({ 'fr': true,'ja': true,'en-US': true,'en': true, fallback: true, supplemental: true });
+i18n.setSupportedLocales(["fr","ja","en-US","en"]);
+i18n.setDefaultLocale('fr');
 export default i18n.setLocale({ default: true });

@@ -52,6 +52,7 @@ export default function(this: webpack.loader.LoaderContext) {
 		},
 		[] as string[]
 	);
+	const registeredCldrLocales: string[] = [];
 
 	likelySubtags.supplemental.likelySubtags = generateCldr(likelySubtags.supplemental.likelySubtags, locales, true);
 	plurals.supplemental['plurals-type-cardinal'] = generateCldr(
@@ -61,6 +62,10 @@ export default function(this: webpack.loader.LoaderContext) {
 
 	function loadLocaleCldrTemplate(locale: string) {
 		locale = getValidCldrDataLocale(locale);
+		if (registeredCldrLocales.indexOf(locale) !== -1) {
+			return '';
+		}
+		registeredCldrLocales.push(locale);
 		return `
 cldrData.push(require('cldr-data/main/${locale}/ca-gregorian.json'));
 cldrData.push(require('cldr-data/main/${locale}/dateFields.json'));

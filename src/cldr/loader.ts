@@ -36,9 +36,24 @@ function getValidCldrDataLocale(locale: string): string {
 
 export default function(this: webpack.loader.LoaderContext) {
 	const { locale, supportedLocales = [], sync } = getOptions(this);
-	const locales = [locale, ...supportedLocales];
 
 	Cldr.load(likelySubtags);
+	const definedLocales: string[] = [locale, ...supportedLocales];
+	const locales = definedLocales.reduce(
+		(calculatedLocales, locale) => {
+			const cldr = new Cldr(locale);
+			if (
+				cldr.attributes.minLanguageId !== locale &&
+				definedLocales.indexOf(cldr.attributes.minLanguageId) === -1
+			) {
+				return [...calculatedLocales, locale, cldr.attributes.minLanguageId];
+			}
+			return [...calculatedLocales, locale];
+		},
+		[] as string[]
+	);
+	const registeredCldrLocales: string[] = [];
+
 	likelySubtags.supplemental.likelySubtags = generateCldr(likelySubtags.supplemental.likelySubtags, locales, true);
 	plurals.supplemental['plurals-type-cardinal'] = generateCldr(
 		plurals.supplemental['plurals-type-cardinal'],
@@ -47,6 +62,10 @@ export default function(this: webpack.loader.LoaderContext) {
 
 	function loadLocaleCldrTemplate(locale: string) {
 		locale = getValidCldrDataLocale(locale);
+		if (registeredCldrLocales.indexOf(locale) !== -1) {
+			return '';
+		}
+		registeredCldrLocales.push(locale);
 		return `
 cldrData.push(require('cldr-data/main/${locale}/ca-gregorian.json'));
 cldrData.push(require('cldr-data/main/${locale}/dateFields.json'));

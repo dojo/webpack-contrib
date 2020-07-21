@@ -62,8 +62,8 @@ describe('cldr loader', () => {
 		});
 		it('should generate loaders for the all supported locales', () => {
 			mockLoaderUtils.getOptions.returns({
-				locale: 'en',
-				supportedLocales: ['fr', 'ja'],
+				locale: 'fr',
+				supportedLocales: ['ja', 'en-US'],
 				sync: true
 			});
 			const cldrLoaderOutput = mockModule.getModuleUnderTest().default();

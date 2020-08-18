@@ -32,7 +32,7 @@ describe('ServiceWorkerPlugin', () => {
 		const compilation = createCompilation(compiler);
 		compiler.hooks.beforeRun.callAsync(compilation, next);
 		assert.isTrue(next.called);
-		assert.deepEqual(CopyPlugin.firstCall.args, [[{ from: swPath, to: 'service-worker.js' }]]);
+		assert.deepEqual(CopyPlugin.firstCall.args, [{ patterns: [{ from: swPath, to: 'service-worker.js' }] }]);
 	});
 
 	it('should throw an error with an invalid service worker path', () => {

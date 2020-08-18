@@ -59,10 +59,12 @@ describe('ExternalLoaderPlugin', () => {
 		];
 
 		function test(outputPath: string) {
-			const expectedCopy = expectedCopyArgs.map(({ from, to }) => ({
-				from,
-				to: to.replace('OUTPUT_PATH', outputPath)
-			}));
+			const expectedCopy = {
+				patterns: expectedCopyArgs.map(({ from, to }) => ({
+					from,
+					to: to.replace('OUTPUT_PATH', outputPath)
+				}))
+			};
 			const expectedAssetInclude = {
 				assets: expectedAssets.map((asset) => asset.replace('OUTPUT_PATH', outputPath)),
 				append: false,
@@ -98,7 +100,7 @@ describe('ExternalLoaderPlugin', () => {
 		const dependencies = [{ from: 'abc', to: 'def', inject: true }];
 		let plugin = new Plugin({ dependencies, pathPrefix: 'prefix' });
 
-		const expectedCopyArgs = [{ from: 'abc', to: 'prefix/externals/def' }];
+		const expectedCopyArgs = { patterns: [{ from: 'abc', to: 'prefix/externals/def' }] };
 
 		const expectedAssetIncludeArgs = {
 			assets: ['prefix/externals/def'],

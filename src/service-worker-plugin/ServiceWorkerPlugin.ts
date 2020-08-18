@@ -150,7 +150,9 @@ export default class ServiceWorkerPlugin {
 		}
 
 		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler, next) => {
-			new CopyWebpackPlugin([{ from: this._serviceWorker, to: 'service-worker.js' }]).apply(compiler);
+			new CopyWebpackPlugin({ patterns: [{ from: this._serviceWorker, to: 'service-worker.js' }] }).apply(
+				compiler
+			);
 			next();
 		});
 	}

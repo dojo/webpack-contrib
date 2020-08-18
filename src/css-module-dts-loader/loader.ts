@@ -2,25 +2,16 @@ import { statSync, readFileSync, existsSync, writeFileSync } from 'fs';
 import { dirname, normalize } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
 import * as webpack from 'webpack';
-const DtsCreator = require('typed-css-modules');
+import DtsCreator from 'typed-css-modules';
 const { getOptions } = require('loader-utils');
 const instances = require('ts-loader/dist/instances');
-
-type DtsResult = {
-	writeFile(): Promise<void>;
-	formatted: string;
-};
-
-type DtsCreatorInstance = {
-	create(filePath: string, initialContents: boolean, clearCache: boolean): Promise<DtsResult>;
-};
 
 type LoaderArgs = {
 	type: string;
 	instanceName?: string;
 };
 
-const creator: DtsCreatorInstance = new DtsCreator({ EOL: '\n' });
+const creator: DtsCreator = new DtsCreator({ EOL: '\n' });
 
 const mTimeMap = new Map<string, Date>();
 const cssMap = new Map<string, string>();
@@ -54,7 +45,7 @@ function generateDTSFile(filePath: string): Promise<void> {
 			mTimeMap.set(filePath, mtime);
 
 			if (newCss !== css || !definition) {
-				return creator.create(filePath, false, true).then((content) => {
+				return creator.create(filePath, undefined, true).then((content) => {
 					cssMap.set(filePath, newCss);
 					const newDefinition = content.formatted;
 					if (!newDefinition) {

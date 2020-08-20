@@ -443,15 +443,19 @@ describe('build-time-render', () => {
 			assert.deepStrictEqual(btr._run.getCall(0).args[2], { path: '/static-override/', static: false });
 		});
 
-		it('it should update text on provided spinner', async () => {
-			let spinnerTexts: string[] = [];
-			const spinner: any = {
-				get text() {
-					return 'prefix';
-				},
-				set text(text: string) {
-					spinnerTexts.push(text);
-				}
+		it('it should log with provided logger and restore after complete', async () => {
+			let loggerTitles: string[] = [];
+			let loggerText: string[] = [];
+			let removeTitleCalled = false;
+			const logger: any = function(this: any, text: string) {
+				loggerTitles.push(text);
+				return this;
+			};
+			logger.start = function(text: string) {
+				loggerText.push(text);
+			};
+			logger.restore = function() {
+				removeTitleCalled = true;
 			};
 			compiler = {
 				hooks: {
@@ -500,7 +504,7 @@ describe('build-time-render', () => {
 						exclude: true
 					}
 				],
-				spinner
+				logger
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -527,109 +531,16 @@ describe('build-time-render', () => {
 				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
 				''
 			);
-			assert.deepStrictEqual(spinnerTexts, [
-				'prefix - BTR - exploring ',
-				'prefix - BTR - exploring my-path',
-				'prefix - BTR - exploring other',
-				'prefix - BTR - exploring my-path/other',
-				'prefix',
-				'prefix - BTR - exploring other',
-				'prefix - BTR - exploring unknown'
+			assert.deepStrictEqual(loggerTitles, []);
+			assert.deepStrictEqual(loggerText, [
+				'exploring ',
+				'exploring my-path',
+				'exploring other',
+				'exploring my-path/other',
+				'exploring other',
+				'exploring unknown'
 			]);
-		});
-
-		it('it should handle a spinner without existing text', async () => {
-			let spinnerTexts: string[] = [];
-			const spinner: any = {
-				get text() {
-					return '';
-				},
-				set text(text: string) {
-					spinnerTexts.push(text);
-				}
-			};
-			compiler = {
-				hooks: {
-					afterEmit: {
-						tapAsync: tapStub
-					},
-					normalModuleFactory: {
-						tap: stub()
-					}
-				},
-				options: {
-					output: {
-						path: path.join(
-							__dirname,
-							'..',
-							'..',
-							'support',
-							'fixtures',
-							'build-time-render',
-							'state-auto-discovery'
-						)
-					}
-				}
-			};
-			const fs = mockModule.getMock('fs-extra');
-			const outputFileSync = stub();
-			fs.outputFileSync = outputFileSync;
-			fs.readFileSync = readFileSync;
-			fs.existsSync = existsSync;
-			const Btr = getBuildTimeRenderModule();
-			const btr = new Btr({
-				basePath: '',
-				useHistory: true,
-				entries: ['runtime', 'main'],
-				root: 'app',
-				puppeteerOptions: { args: ['--no-sandbox'] },
-				scope: 'test',
-				onDemand: true,
-				paths: [
-					{
-						path: 'excluded',
-						exclude: true
-					},
-					{
-						path: '/other/excluded/',
-						exclude: true
-					}
-				],
-				spinner
-			});
-			btr.apply(compiler);
-			assert.isTrue(pluginRegistered);
-			await runBtr(createCompilation('state-auto-discovery'), callbackStub);
-			assert.isTrue(callbackStub.calledOnce);
-			assert.strictEqual(outputFileSync.callCount, 5);
-
-			outputFileSync.resetHistory();
-			callbackStub.resetHistory();
-			await runBtr(createCompilation('state-auto-discovery'), callbackStub);
-			assert.strictEqual(outputFileSync.callCount, 0);
-			assert.isTrue(callbackStub.calledOnce);
-			outputFileSync.resetHistory();
-			callbackStub.resetHistory();
-			await btr.runPath(
-				callbackStub,
-				'other',
-				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
-				''
-			);
-			await btr.runPath(
-				callbackStub,
-				'unknown',
-				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
-				''
-			);
-			assert.deepStrictEqual(spinnerTexts, [
-				'BTR - exploring ',
-				'BTR - exploring my-path',
-				'BTR - exploring other',
-				'BTR - exploring my-path/other',
-				'BTR - exploring other',
-				'BTR - exploring unknown'
-			]);
+			assert.isTrue(removeTitleCalled);
 		});
 	});
 

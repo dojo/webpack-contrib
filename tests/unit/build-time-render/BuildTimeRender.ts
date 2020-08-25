@@ -46,6 +46,7 @@ const createCompilation = (
 		| 'build-bridge-blocks-only'
 ) => {
 	const errors: Error[] = [];
+	const warnings: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
 		'utf-8'
@@ -62,7 +63,7 @@ const createCompilation = (
 		assets[parsedManifest[key]] = { source: () => content };
 		return assets;
 	}, assets);
-	return { assets, errors };
+	return { assets, errors, warnings };
 };
 
 let normalModuleReplacementPluginStub: any;
@@ -554,10 +555,7 @@ describe('build-time-render', () => {
 						compilation.errors[1].message,
 						'Build Time Render Block Error (path: "default path"): Block error'
 					);
-					assert.strictEqual(
-						compilation.errors[2].message,
-						'Build Time Render Error (path: "default path"): Test Error'
-					);
+					assert.strictEqual(compilation.errors[2].message, 'Build Time Render Error: Test Error');
 				});
 			});
 		});

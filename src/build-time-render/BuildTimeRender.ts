@@ -59,6 +59,7 @@ export interface BuildTimeRenderArguments {
 	discoverPaths?: boolean;
 	writeHtml?: boolean;
 	onDemand?: boolean;
+	writeCss?: boolean;
 }
 
 function genHash(content: string): string {
@@ -133,6 +134,7 @@ export default class BuildTimeRender {
 	private _discoverPaths: boolean;
 	private _sync: boolean;
 	private _writeHtml: boolean;
+	private _writeCss: boolean;
 	private _writtenHtmlFiles: string[] = [];
 	private _initialBtr = true;
 	private _onDemand = false;
@@ -153,6 +155,7 @@ export default class BuildTimeRender {
 			discoverPaths = true,
 			sync = false,
 			writeHtml = true,
+			writeCss = true,
 			onDemand = false
 		} = args;
 		const path = paths[0];
@@ -182,6 +185,7 @@ export default class BuildTimeRender {
 		this._scope = scope;
 		this._onDemand = onDemand;
 		this._writeHtml = writeHtml;
+		this._writeCss = writeCss;
 		this._entries = entries.map((entry) => `${entry.replace('.js', '')}.js`);
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory || paths.length === 0) {
@@ -238,8 +242,11 @@ export default class BuildTimeRender {
 				return `${prev}<link rel="preload" href="${url}" as="style">`;
 			}, css);
 
-			styles = await this._processCss(styles);
-			html = html.replace(`</head>`, `<style>${styles}</style></head>`);
+			if (this._writeCss) {
+				styles = await this._processCss(styles);
+				html = html.replace(`</head>`, `<style>${styles}</style></head>`);
+			}
+
 			if (isStatic) {
 				html = html.replace(this._createScripts(), '');
 			} else {

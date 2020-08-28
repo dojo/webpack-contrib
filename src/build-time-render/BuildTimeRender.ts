@@ -69,6 +69,14 @@ function genHash(content: string): string {
 		.substr(0, 20);
 }
 
+function normalizePath(path: string) {
+	return path
+		.replace(/#.*/, '')
+		.replace(/\/$/, '')
+		.replace(/^\//, '')
+		.toLowerCase();
+}
+
 const trailingSlash = new RegExp(/\/$/);
 const leadingSlash = new RegExp(/^\//);
 
@@ -601,7 +609,11 @@ ${blockCacheEntry}`
 		return btrError;
 	};
 
-	private async _run(compilation: compilation.Compilation | MockCompilation, callback: Function, path?: string) {
+	private async _run(
+		compilation: compilation.Compilation | MockCompilation,
+		callback: Function,
+		path?: string | BuildTimePath
+	) {
 		this._buildBridgeResult = {};
 		this._blockEntries = [];
 		this._blockErrors = [];
@@ -610,13 +622,14 @@ ${blockCacheEntry}`
 				callback();
 			});
 		}
+		path = typeof path === 'string' ? { path } : path;
 		const paths = path ? [path] : [...this._paths];
 		let pageManifest = paths.map((path) => (typeof path === 'object' ? path.path : path));
 		if (this._onDemand && !this._initialBtr && existsSync(join(this._output, 'btr-manifest.json'))) {
 			pageManifest = JSON.parse(readFileSync(join(this._output, 'btr-manifest.json'), 'utf8'));
 		}
-		if (this._onDemand && path && pageManifest.indexOf(path) !== -1) {
-			removeSync(join(this._output, ...path.split('/'), 'index.html'));
+		if (this._onDemand && path && pageManifest.indexOf(path.path) !== -1) {
+			removeSync(join(this._output, ...path.path.split('/'), 'index.html'));
 		} else {
 			let htmlFileToRemove = this._writtenHtmlFiles.pop();
 			while (htmlFileToRemove) {
@@ -773,13 +786,10 @@ ${blockCacheEntry}`
 		this._output = output;
 		this._jsonpName = jsonpName;
 		const compilation = new MockCompilation(this._output);
-		path = path
-			.replace(/#.*/, '')
-			.replace(/\/$/, '')
-			.replace(/^\//, '')
-			.toLowerCase();
+		path = normalizePath(path);
+		const foundPath = this._paths.find((p) => normalizePath(typeof p === 'string' ? p : p.path) === path);
 		this._initialBtr = false;
-		return this._run(compilation, callback, path);
+		return this._run(compilation, callback, foundPath || path);
 	}
 
 	public apply(compiler: Compiler) {

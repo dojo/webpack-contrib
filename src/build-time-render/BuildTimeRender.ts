@@ -168,7 +168,8 @@ export default class BuildTimeRender {
 		const initialPath = typeof path === 'object' ? path.path : path;
 
 		this._basePath = basePath;
-		this._baseUrl = `/${normalizePath(baseUrl, false)}/`.replace(/^\/{2,}/, '/');
+		this._baseUrl = normalizePath(baseUrl, false);
+		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;

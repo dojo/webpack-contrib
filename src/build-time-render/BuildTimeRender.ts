@@ -352,7 +352,6 @@ export default class BuildTimeRender {
 		let styles = this._filterCss(classes);
 		let script = '';
 
-		content = content.replace(/http:\/\/localhost:\d+\//g, '');
 		content = content.replace(new RegExp(this._baseUrl.slice(1), 'g'), '');
 		if (this._useHistory) {
 			script = generateBasePath(pathValue, this._scope);

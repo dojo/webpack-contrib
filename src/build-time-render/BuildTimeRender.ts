@@ -69,16 +69,14 @@ function genHash(content: string): string {
 		.substr(0, 20);
 }
 
-function normalizePath(path: string) {
-	return path
+function normalizePath(path: string, lowercase = true) {
+	path = path
 		.replace(/#.*/, '')
 		.replace(/\/$/, '')
-		.replace(/^\//, '')
-		.toLowerCase();
-}
+		.replace(/^\//, '');
 
-const trailingSlash = new RegExp(/\/$/);
-const leadingSlash = new RegExp(/^\//);
+	return lowercase ? path.toLowerCase() : path;
+}
 
 class MockAsset {
 	private _assetPath: string;
@@ -170,20 +168,15 @@ export default class BuildTimeRender {
 		const initialPath = typeof path === 'object' ? path.path : path;
 
 		this._basePath = basePath;
-		this._baseUrl = baseUrl;
-		if (!trailingSlash.test(this._baseUrl)) {
-			this._baseUrl = `${this._baseUrl}/`;
-		}
-		if (!leadingSlash.test(this._baseUrl)) {
-			this._baseUrl = `/${this._baseUrl}`;
-		}
+		this._baseUrl = `/${normalizePath(baseUrl, false)}/`.replace(/^\/{2,}/, '/');
+
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
 		this._puppeteerOptions = puppeteerOptions;
 		for (let i = 0; i < paths.length; i++) {
 			const path = paths[i];
 			if (typeof path === 'object' && path.exclude) {
-				this._excludedPaths.push(path.path.replace(trailingSlash, '').replace(leadingSlash, ''));
+				this._excludedPaths.push(normalizePath(path.path, false));
 			} else {
 				this._paths.push(path);
 			}

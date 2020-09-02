@@ -1,4 +1,3 @@
-import { loader } from 'webpack';
 import { createInstrumenter } from 'istanbul-lib-instrument';
 import { getOptions } from 'loader-utils';
 import { RawSourceMap, MappedPosition, MappingItem, SourceMapConsumer, SourceMapGenerator } from 'source-map';
@@ -11,7 +10,7 @@ import { RawSourceMap, MappedPosition, MappingItem, SourceMapConsumer, SourceMap
  * @param content the source code
  * @param sourceMap an optional source map
  */
-export default <loader.Loader>function(source: string | Buffer, sourceMap?: any) {
+export default function(this: any, source: string | Buffer, sourceMap?: any) {
 	const callback = this.async()!;
 	const options = ({ ...getOptions(this) } || {}) as any;
 
@@ -66,7 +65,7 @@ export default <loader.Loader>function(source: string | Buffer, sourceMap?: any)
 		},
 		_sourceMap
 	);
-};
+}
 
 /**
  * Merge a list of source maps generated through successive transforms of a

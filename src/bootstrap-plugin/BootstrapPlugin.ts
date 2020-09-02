@@ -50,9 +50,9 @@ export class BootstrapPlugin {
 	}
 
 	apply(compiler: webpack.Compiler) {
-		compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
+		compiler.hooks.compilation.tap(this.constructor.name, (compilation: webpack.Compilation) => {
 			compilation.hooks.seal.tap(this.constructor.name, () => {
-				compilation.modules.forEach((module) => {
+				compilation.modules.forEach((module: webpack.Module) => {
 					if (module.issuer && !asyncModuleRegExp.test(module.issuer.userRequest)) {
 						let matchedModule = -1;
 						this._shimModules.some((shimModule, index) => {

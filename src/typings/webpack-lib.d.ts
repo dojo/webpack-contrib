@@ -42,7 +42,6 @@ declare module 'webpack/lib/dependencies/ModuleDependency' {
 	class ModuleDependency extends webpack.compilation.Dependency {
 		constructor(request: string);
 
-		public module: any;
 		public request: string;
 		public userRequest: string;
 
@@ -52,15 +51,13 @@ declare module 'webpack/lib/dependencies/ModuleDependency' {
 	export = ModuleDependency;
 }
 
-declare module 'webpack/lib/dependencies/WebpackMissingModule' {
-	namespace WebpackMissingModule {
-		const module: (request: string) => string;
-		const moduleCode: (request: string) => string;
-		const promise: (request: string) => string;
+declare module 'webpack/lib/RuntimeTemplate' {
+	class RuntimeTemplate {
+		missingModule({ request: string }): string;
 	}
-	export = WebpackMissingModule;
-}
 
+	export = RuntimeTemplate;
+}
 declare module 'webpack/lib/Module' {
 	import * as webpack from 'webpack';
 	import DependenciesBlock = require('webpack/lib/DependenciesBlock');

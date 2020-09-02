@@ -1,5 +1,4 @@
 import * as Cldr from 'cldrjs';
-import * as webpack from 'webpack';
 import { getOptions } from 'loader-utils';
 const likelySubtags = require('cldr-core/supplemental/likelySubtags.json');
 const plurals = require('cldr-core/supplemental/plurals.json');
@@ -34,7 +33,7 @@ function getValidCldrDataLocale(locale: string): string {
 	return locale;
 }
 
-export default function(this: webpack.loader.LoaderContext) {
+export default function(this: any) {
 	const { locale, supportedLocales = [], sync } = getOptions(this);
 
 	Cldr.load(likelySubtags);

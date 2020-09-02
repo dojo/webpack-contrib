@@ -1,4 +1,4 @@
-import { Compiler, compilation } from 'webpack';
+import { Compiler, Compilation } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
 import { Worker } from 'worker_threads';
 
@@ -604,7 +604,7 @@ ${blockCacheEntry}`
 	};
 
 	private async _run(
-		compilation: compilation.Compilation | MockCompilation,
+		compilation: Compilation.Compilation | MockCompilation,
 		callback: Function,
 		path?: string | BuildTimePath
 	) {
@@ -805,15 +805,18 @@ ${blockCacheEntry}`
 			this._jsonpName = compiler.options.output.jsonpFunction;
 		}
 
-		compiler.hooks.afterEmit.tapAsync(this.constructor.name, async (compilation, callback) => {
-			if (!this._output) {
-				return callback();
+		compiler.hooks.afterEmit.tapAsync(
+			this.constructor.name,
+			async (compilation: Compilation, callback: () => void) => {
+				if (!this._output) {
+					return callback();
+				}
+				writeFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
+				if (this._onDemand && !this._initialBtr) {
+					return callback();
+				}
+				return this._run(compilation, callback);
 			}
-			writeFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
-			if (this._onDemand && !this._initialBtr) {
-				return callback();
-			}
-			return this._run(compilation, callback);
-		});
+		);
 	}
 }

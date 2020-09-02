@@ -1,7 +1,6 @@
 import { statSync, readFileSync, existsSync, writeFileSync } from 'fs';
 import { dirname, normalize } from 'path';
 import { createSourceFile, forEachChild, Node, ScriptTarget, SyntaxKind } from 'typescript';
-import * as webpack from 'webpack';
 const DtsCreator = require('typed-css-modules');
 const { getOptions } = require('loader-utils');
 const instances = require('ts-loader/dist/instances');
@@ -73,13 +72,13 @@ export = styles;`,
 	});
 }
 
-function getCssImport(node: Node, loaderContext: webpack.loader.LoaderContext): Promise<string> | void {
+function getCssImport(node: Node, loaderContext: any): Promise<string> | void {
 	if (node.kind === SyntaxKind.StringLiteral) {
 		const importPath = node.getText().replace(/\'|\"/g, '');
 		if (/\.m\.css$/.test(importPath) && isRelative(importPath)) {
 			const parentFileName = node.getSourceFile().fileName;
 			return new Promise((resolve, reject) => {
-				loaderContext.resolve(dirname(parentFileName), importPath, (error, path) => {
+				loaderContext.resolve(dirname(parentFileName), importPath, (error: any, path: string) => {
 					if (error) {
 						reject(error);
 					}
@@ -93,11 +92,7 @@ function getCssImport(node: Node, loaderContext: webpack.loader.LoaderContext): 
 	}
 }
 
-function traverseNode(
-	node: Node,
-	filePaths: Promise<string>[],
-	loaderContext: webpack.loader.LoaderContext
-): Promise<string>[] {
+function traverseNode(node: Node, filePaths: Promise<string>[], loaderContext: any): Promise<string>[] {
 	switch (node.kind) {
 		case SyntaxKind.SourceFile:
 			forEachChild(node, (childNode: Node) => {
@@ -114,7 +109,7 @@ function traverseNode(
 	return filePaths;
 }
 
-export default function(this: webpack.loader.LoaderContext, content: string, sourceMap?: string) {
+export default function(this: any, content: string, sourceMap?: string) {
 	const callback = this.async() as Function;
 	const { instanceName }: LoaderArgs = getOptions(this);
 

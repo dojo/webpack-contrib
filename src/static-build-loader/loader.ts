@@ -1,5 +1,4 @@
 import getFeatures from './getFeatures';
-import * as webpack from 'webpack';
 import * as recast from 'recast';
 import { ExpressionStatement, BaseNode } from 'estree';
 
@@ -97,11 +96,7 @@ function setComment<T>(
  * @param content The JavaScript code to optimize
  * @param sourceMap Optional Source map for the code. If provided it will be updated to reflect the optimizations made
  */
-export default function loader(
-	this: webpack.loader.LoaderContext,
-	content: string,
-	sourceMap?: webpack.RawSourceMap
-): string | void {
+export default function loader(this: any, content: string, sourceMap?: any): string | void {
 	if (
 		!HAS_MODULE_REGEXP.test(this.resourcePath) &&
 		content.indexOf('/has') < 0 &&

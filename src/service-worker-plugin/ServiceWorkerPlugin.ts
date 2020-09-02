@@ -149,7 +149,7 @@ export default class ServiceWorkerPlugin {
 			throw new Error('The service worker path must be a non-empty string');
 		}
 
-		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler, next) => {
+		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler: Compiler, next: () => void) => {
 			new CopyWebpackPlugin([{ from: this._serviceWorker, to: 'service-worker.js' }]).apply(compiler);
 			next();
 		});

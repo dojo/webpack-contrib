@@ -1,7 +1,12 @@
 import ModuleDependency = require('webpack/lib/dependencies/ModuleDependency');
-import webpackMissingModule = require('webpack/lib/dependencies/WebpackMissingModule');
 import ReplaceSource = require('webpack-sources/lib/ReplaceSource');
+import RuntimeTemplate = require('webpack/lib/RuntimeTemplate');
+import * as webpack from 'webpack';
 
+export declare class Template {
+	apply(dep: any, source: any): void;
+	compilation?: webpack.Compilation;
+}
 /**
  * A custom Webpack dependency used to inject an arbitrary `require` to the beginning of the target source.
  */
@@ -12,12 +17,16 @@ export default class InjectedModuleDependency extends ModuleDependency {
 	 * only side effects.
 	 */
 	variable?: string;
+
+	static Template: typeof Template;
 }
 
 /**
  * A custom template for rendering injected `require`s to the beginning of the target source.
  */
 InjectedModuleDependency.Template = class {
+	compilation?: webpack.Compilation;
+
 	/**
 	 * Add the depedency's module to the source as a `require` call.
 	 *
@@ -25,9 +34,10 @@ InjectedModuleDependency.Template = class {
 	 * @param source The source to be modified
 	 */
 	apply(dep: InjectedModuleDependency, source: ReplaceSource) {
-		const content = dep.module
-			? `__webpack_require__(${JSON.stringify(dep.module.id)});`
-			: webpackMissingModule.module(dep.request);
+		const module = this.compilation && this.compilation.moduleGraph.getModule(dep);
+		const content = module
+			? `__webpack_require__(${JSON.stringify(module.id)});`
+			: new RuntimeTemplate().missingModule(dep);
 
 		const prefix = dep.variable ? `var ${dep.variable} = ` : '';
 		source.insert(0, `${prefix}${content}\n`);

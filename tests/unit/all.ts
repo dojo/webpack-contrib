@@ -1,5 +1,6 @@
 import './main';
 import './cldr/all';
+import './electron-plugin/ElectronPlugin';
 import './emit-all-plugin/EmitAllPlugin';
 import './external-loader-plugin/ExternalLoaderPlugin';
 import './static-build-loader/all';

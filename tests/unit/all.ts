@@ -22,3 +22,4 @@ import './webpack-bundle-analyzer/parseUtils';
 import './webpack-bundle-analyzer/analyzer';
 import './webpack-bundle-analyzer/viewer';
 import './webpack-hot-client/client';
+import './element-loader/loader';

@@ -811,7 +811,12 @@ ${blockCacheEntry}`
 				if (!this._output) {
 					return callback();
 				}
-				writeFileSync(join(this._output, 'btr-index.html'), compilation.assets['index.html'].source(), 'utf8');
+				const compiler = compilation.compiler;
+				const indexHtml = readFileSync(
+					join(compilation.getPath(compiler.outputPath), 'index.html'),
+					'utf8'
+				).toString();
+				writeFileSync(join(this._output, 'btr-index.html'), indexHtml, 'utf8');
 				if (this._onDemand && !this._initialBtr) {
 					return callback();
 				}

@@ -36,7 +36,8 @@ function createLogger(title: string[], text?: string) {
 	logger.restore = function() {
 		const newTitles = [...title];
 		newTitles.pop();
-		return createLiveLogger(...newTitles).start();
+		const logger = createLiveLogger(...newTitles);
+		return spinner.isSpinning ? logger.start() : logger;
 	};
 
 	return logger;

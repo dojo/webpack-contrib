@@ -10,7 +10,8 @@ describe('logger', () => {
 	let sandbox: sinon.SinonSandbox;
 	const oraMock = {
 		start: sinon.stub(),
-		stop: sinon.stub()
+		stop: sinon.stub(),
+		isSpinning: false
 	};
 
 	beforeEach(() => {
@@ -87,10 +88,15 @@ describe('logger', () => {
 			.restore()
 			.stop();
 
+		// Should not start when restoring if not already spinning
+		assert.isTrue(oraMock.start.notCalled);
+		assert.isTrue(oraMock.stop.calledOnce);
+
+		oraMock.isSpinning = true;
+		logger.restore().restore();
 		assert.isTrue(oraMock.start.calledTwice);
 		assert.isTrue(oraMock.start.calledWith('foo - bar'));
 		assert.isTrue(oraMock.start.calledWith('foo'));
-		assert.isTrue(oraMock.stop.calledOnce);
 	});
 
 	afterEach(() => {

@@ -613,7 +613,6 @@ ${blockCacheEntry}`
 		callback: Function,
 		path?: string | BuildTimePath
 	) {
-		this._logging = compilation.getLogger('BuildTimeRender');
 		this._buildBridgeResult = {};
 		this._blockEntries = [];
 		this._blockErrors = [];

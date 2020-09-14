@@ -53,7 +53,7 @@
     "clear-module": "3.1.0",
     "commander": "2.13.0",
     "connect-history-api-fallback": "1.6.0",
-    "copy-webpack-plugin": "4.6.0",
+    "copy-webpack-plugin": "6.1.0",
     "cssnano": "4.1.7",
     "electron": "7.1.7",
     "electron-packager": "14.1.1",
@@ -82,7 +82,7 @@
     "ts-node": "8.10.1",
     "typed-css-modules": "0.3.7",
     "webpack-hot-middleware": "2.24.3",
-    "workbox-webpack-plugin": "3.6.3",
+    "workbox-webpack-plugin": "5.1.4",
     "wrapper-webpack-plugin": "2.0.0"
   },
   "devDependencies": {
@@ -124,7 +124,7 @@
     "stream-combiner2": "1.1.1",
     "style-loader": "0.23.1",
     "typescript": "~3.4.5",
-    "webpack": "5.0.0-beta.29"
+    "webpack": "5.0.0-beta.30"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

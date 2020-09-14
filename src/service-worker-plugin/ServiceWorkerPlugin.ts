@@ -112,7 +112,7 @@ export default class ServiceWorkerPlugin {
 				clientsClaim,
 				excludeChunks: excludeBundles,
 				importScripts,
-				importWorkboxFrom: 'local',
+				inlineWorkboxRuntime: true,
 				skipWaiting,
 				runtimeCaching: routes.map((route) => {
 					const { options = {}, strategy, urlPattern } = route;
@@ -150,7 +150,9 @@ export default class ServiceWorkerPlugin {
 		}
 
 		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler: Compiler, next: () => void) => {
-			new CopyWebpackPlugin([{ from: this._serviceWorker, to: 'service-worker.js' }]).apply(compiler);
+			new CopyWebpackPlugin({ patterns: [{ from: this._serviceWorker, to: 'service-worker.js' }] }).apply(
+				compiler
+			);
 			next();
 		});
 	}

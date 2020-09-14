@@ -510,8 +510,7 @@ __webpack_require__.r(__webpack_exports__);
 					if (this._manifestContent[blockChunk].indexOf(blockCacheEntry) === -1) {
 						this._manifestContent[blockChunk] = this._manifestContent[blockChunk].replace(
 							'APPEND_BLOCK_CACHE_ENTRY **/',
-							`APPEND_BLOCK_CACHE_ENTRY **/
-${blockCacheEntry}`
+							`APPEND_BLOCK_CACHE_ENTRY **/${blockCacheEntry}`
 						);
 					}
 					this._manifest[`${chunkName}.js`] = `${chunkName}.js`;
@@ -603,6 +602,11 @@ ${blockCacheEntry}`
 		return btrError;
 	};
 
+	private _getSource(file: string, compilation: Compilation.Compilation | MockCompilation) {
+		const compiler = compilation.compiler;
+		return readFileSync(join(compilation.getPath(compiler.outputPath), file), 'utf8').toString();
+	}
+
 	private async _run(
 		compilation: Compilation.Compilation | MockCompilation,
 		callback: Function,
@@ -632,9 +636,9 @@ ${blockCacheEntry}`
 			}
 		}
 
-		this._manifest = JSON.parse(compilation.assets['manifest.json'].source());
+		this._manifest = JSON.parse(this._getSource('manifest.json', compilation));
 		this._manifestContent = Object.keys(this._manifest).reduce((obj: any, chunkname: string) => {
-			obj[chunkname] = compilation.assets[this._manifest[chunkname]].source();
+			obj[chunkname] = this._getSource(this._manifest[chunkname], compilation);
 			return obj;
 		}, this._manifestContent);
 		const originalManifest = { ...this._manifest };
@@ -755,7 +759,7 @@ ${blockCacheEntry}`
 			if (this._hasBuildBridgeCache) {
 				outputFileSync(
 					join(this._output, '..', 'info', 'manifest.original.json'),
-					compilation.assets['manifest.json'].source(),
+					this._getSource('manifest.json', compilation),
 					'utf8'
 				);
 			}
@@ -802,7 +806,7 @@ ${blockCacheEntry}`
 
 		if (compiler.options.output) {
 			this._output = compiler.options.output.path;
-			this._jsonpName = compiler.options.output.jsonpFunction;
+			this._jsonpName = `webpackChunk${compiler.options.output.uniqueName}`;
 		}
 
 		compiler.hooks.afterEmit.tapAsync(
@@ -811,11 +815,7 @@ ${blockCacheEntry}`
 				if (!this._output) {
 					return callback();
 				}
-				const compiler = compilation.compiler;
-				const indexHtml = readFileSync(
-					join(compilation.getPath(compiler.outputPath), 'index.html'),
-					'utf8'
-				).toString();
+				const indexHtml = this._getSource('index.html', compilation);
 				writeFileSync(join(this._output, 'btr-index.html'), indexHtml, 'utf8');
 				if (this._onDemand && !this._initialBtr) {
 					return callback();

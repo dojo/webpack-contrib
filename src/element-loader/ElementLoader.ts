@@ -1,8 +1,6 @@
 import { getOptions } from 'loader-utils';
 import * as ts from 'typescript';
 import * as path from 'path';
-import * as webpack from 'webpack';
-import LoaderContext = webpack.loader.LoaderContext;
 import { discoverDescriptor } from './discoverDescriptor';
 
 interface WidgetConfig {
@@ -10,7 +8,7 @@ interface WidgetConfig {
 	tag?: string;
 }
 
-export default function(this: LoaderContext, source: string) {
+export default function(this: any, source: string) {
 	const options = getOptions(this) || {};
 	const widgets: WidgetConfig[] = options.widgets || [];
 	const elementPrefix = options.elementPrefix || '';

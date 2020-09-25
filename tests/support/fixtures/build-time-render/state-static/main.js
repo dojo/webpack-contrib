@@ -44,6 +44,7 @@
 		document.head.appendChild(meta);
 		const link = document.createElement('link');
 		link.setAttribute('href', 'something');
+		link.setAttribute('rel', 'preconnect');
 		const script = document.createElement('script');
 		script.setAttribute('src', 'external.js');
 		document.head.appendChild(link);

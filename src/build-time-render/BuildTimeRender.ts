@@ -113,17 +113,7 @@ class MockCompilation {
 	}
 }
 
-const relRegExp = /rel\=\"([\w]+)\"/;
-const dynamicRelTags = ['preconnect', 'prefetch', 'preload', 'prerender', 'dns-prefetch', 'stylesheet'];
-
-function isDynamicLinkTag(link: string) {
-	const matches = link.match(relRegExp);
-	if (matches && matches[1]) {
-		const isDynamicRel = dynamicRelTags.indexOf(matches[1]) > -1;
-		return isDynamicRel;
-	}
-	return false;
-}
+const dynamicLinkRegExp = /rel\=(\"|\')(preconnect|prefetch|preload|prerender|dns-prefetch|stylesheet)(\"|\')/;
 
 export default class BuildTimeRender {
 	private _currentPath: string | undefined;
@@ -366,7 +356,7 @@ export default class BuildTimeRender {
 
 		let links = await getAllForSelector(page, 'head > link');
 		links = links.filter((link) => {
-			return !isDynamicLinkTag(link);
+			return !dynamicLinkRegExp.test(link);
 		});
 
 		let styles = this._filterCss(classes);
@@ -668,7 +658,7 @@ ${blockCacheEntry}`
 					if (node.tagName === 'script') {
 						return true;
 					} else if (node.tagName === 'link') {
-						return isDynamicLinkTag(node.toString());
+						return dynamicLinkRegExp.test(node.toString());
 					}
 				})
 				.map((node) => `${node.toString()}`);

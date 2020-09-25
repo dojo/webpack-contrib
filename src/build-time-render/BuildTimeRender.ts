@@ -355,9 +355,7 @@ export default class BuildTimeRender {
 		let head = await getAllForSelector(page, 'head > *:not(script):not(link)');
 
 		let links = await getAllForSelector(page, 'head > link');
-		links = links.filter((link) => {
-			return !dynamicLinkRegExp.test(link);
-		});
+		links = links.filter((link) => !dynamicLinkRegExp.test(link));
 
 		let styles = this._filterCss(classes);
 		let script = '';
@@ -654,13 +652,11 @@ ${blockCacheEntry}`
 
 		if (headNode) {
 			this._headNodes = (headNode.childNodes.filter((node) => node.nodeType === 1) as HTMLElement[])
-				.filter((node) => {
-					if (node.tagName === 'script') {
-						return true;
-					} else if (node.tagName === 'link') {
-						return dynamicLinkRegExp.test(node.toString());
-					}
-				})
+				.filter(
+					(node) =>
+						node.tagName === 'script' ||
+						(node.tagName === 'link' && dynamicLinkRegExp.test(node.toString()))
+				)
 				.map((node) => `${node.toString()}`);
 		}
 		if (!rootNode) {

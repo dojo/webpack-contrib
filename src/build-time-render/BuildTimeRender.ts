@@ -113,6 +113,18 @@ class MockCompilation {
 	}
 }
 
+const relRegExp = /rel\=\"([\w]+)\"/;
+const dynamicRelTags = ['preconnect', 'prefetch', 'preload', 'prerender', 'dns-prefetch', 'stylesheet'];
+
+function isDynamicLinkTag(link: string) {
+	const matches = link.match(relRegExp);
+	if (matches && matches[1]) {
+		const isDynamicRel = dynamicRelTags.indexOf(matches[1]) > -1;
+		return isDynamicRel;
+	}
+	return false;
+}
+
 export default class BuildTimeRender {
 	private _currentPath: string | undefined;
 	private _cssFiles: string[] = [];
@@ -351,6 +363,12 @@ export default class BuildTimeRender {
 		let pathValue = typeof path === 'object' ? path.path : path;
 		let content = await getForSelector(page, `#${this._root}`);
 		let head = await getAllForSelector(page, 'head > *:not(script):not(link)');
+
+		let links = await getAllForSelector(page, 'head > link');
+		links = links.filter((link) => {
+			return !isDynamicLinkTag(link);
+		});
+
 		let styles = this._filterCss(classes);
 		let script = '';
 
@@ -364,7 +382,7 @@ export default class BuildTimeRender {
 			styles,
 			script,
 			path,
-			head,
+			head: [...head, ...links],
 			blockScripts: [],
 			additionalScripts: [],
 			additionalCss: []
@@ -643,9 +661,16 @@ ${blockCacheEntry}`
 		const root = parse(html, { script: true, style: true });
 		const rootNode = root.querySelector(`#${this._root}`);
 		const headNode = root.querySelector('head');
+
 		if (headNode) {
 			this._headNodes = (headNode.childNodes.filter((node) => node.nodeType === 1) as HTMLElement[])
-				.filter((node) => node.tagName === 'script' || node.tagName === 'link')
+				.filter((node) => {
+					if (node.tagName === 'script') {
+						return true;
+					} else if (node.tagName === 'link') {
+						return isDynamicLinkTag(node.toString());
+					}
+				})
 				.map((node) => `${node.toString()}`);
 		}
 		if (!rootNode) {

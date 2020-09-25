@@ -371,6 +371,77 @@ describe('build-time-render', () => {
 			);
 			assert.isTrue(consoleWarnStub.calledOnce);
 		});
+
+		it('should match ondemand paths with configuration paths', async () => {
+			compiler = {
+				hooks: {
+					afterEmit: {
+						tapAsync: tapStub
+					},
+					normalModuleFactory: {
+						tap: stub()
+					}
+				},
+				options: {
+					output: {
+						path: path.join(
+							__dirname,
+							'..',
+							'..',
+							'support',
+							'fixtures',
+							'build-time-render',
+							'state-auto-discovery'
+						)
+					}
+				}
+			};
+			const fs = mockModule.getMock('fs-extra');
+			const outputFileSync = stub();
+			fs.outputFileSync = outputFileSync;
+			fs.readFileSync = readFileSync;
+			fs.existsSync = existsSync;
+			const Btr = getBuildTimeRenderModule();
+			const btr = new Btr({
+				basePath: '',
+				useHistory: true,
+				entries: ['runtime', 'main'],
+				root: 'app',
+				puppeteerOptions: { args: ['--no-sandbox'] },
+				scope: 'test',
+				onDemand: true,
+				paths: [
+					{
+						path: '/static-override/',
+						static: false
+					}
+				]
+			});
+
+			stub(btr, '_run');
+
+			await btr.runPath(
+				callbackStub,
+				'other',
+				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
+				''
+			);
+
+			assert.isTrue(btr._run.calledOnce);
+			assert.strictEqual(btr._run.getCall(0).args[2], 'other');
+
+			btr._run.resetHistory();
+
+			await btr.runPath(
+				callbackStub,
+				'static-override',
+				path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'state-auto-discovery'),
+				''
+			);
+
+			assert.isTrue(btr._run.calledOnce);
+			assert.deepStrictEqual(btr._run.getCall(0).args[2], { path: '/static-override/', static: false });
+		});
 	});
 
 	describe('puppeteer', () => {

@@ -68,8 +68,14 @@ function genHash(content: string): string {
 		.substr(0, 20);
 }
 
-const trailingSlash = new RegExp(/\/$/);
-const leadingSlash = new RegExp(/^\//);
+function normalizePath(path: string, lowercase = true) {
+	path = path
+		.replace(/#.*/, '')
+		.replace(/\/$/, '')
+		.replace(/^\//, '');
+
+	return lowercase ? path.toLowerCase() : path;
+}
 
 class MockAsset {
 	private _assetPath: string;
@@ -105,6 +111,8 @@ class MockCompilation {
 		this.assets['index.html'] = new MockAsset(join(output, 'btr-index.html'));
 	}
 }
+
+const dynamicLinkRegExp = /rel\=(\"|\')(preconnect|prefetch|preload|prerender|dns-prefetch|stylesheet)(\"|\')/;
 
 export default class BuildTimeRender {
 	private _currentPath: string | undefined;
@@ -159,20 +167,16 @@ export default class BuildTimeRender {
 		const initialPath = typeof path === 'object' ? path.path : path;
 
 		this._basePath = basePath;
-		this._baseUrl = baseUrl;
-		if (!trailingSlash.test(this._baseUrl)) {
-			this._baseUrl = `${this._baseUrl}/`;
-		}
-		if (!leadingSlash.test(this._baseUrl)) {
-			this._baseUrl = `/${this._baseUrl}`;
-		}
+		this._baseUrl = normalizePath(baseUrl, false);
+		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
+
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
 		this._puppeteerOptions = puppeteerOptions;
 		for (let i = 0; i < paths.length; i++) {
 			const path = paths[i];
 			if (typeof path === 'object' && path.exclude) {
-				this._excludedPaths.push(path.path.replace(trailingSlash, '').replace(leadingSlash, ''));
+				this._excludedPaths.push(normalizePath(path.path, false));
 			} else {
 				this._paths.push(path);
 			}
@@ -342,6 +346,10 @@ export default class BuildTimeRender {
 		let pathValue = typeof path === 'object' ? path.path : path;
 		let content = await getForSelector(page, `#${this._root}`);
 		let head = await getAllForSelector(page, 'head > *:not(script):not(link)');
+
+		let links = await getAllForSelector(page, 'head > link');
+		links = links.filter((link) => !dynamicLinkRegExp.test(link));
+
 		let styles = this._filterCss(classes);
 		let script = '';
 
@@ -356,7 +364,7 @@ export default class BuildTimeRender {
 			styles,
 			script,
 			path,
-			head,
+			head: [...head, ...links],
 			blockScripts: [],
 			additionalScripts: [],
 			additionalCss: []
@@ -595,7 +603,11 @@ ${blockCacheEntry}`
 		return btrError;
 	};
 
-	private async _run(compilation: compilation.Compilation | MockCompilation, callback: Function, path?: string) {
+	private async _run(
+		compilation: compilation.Compilation | MockCompilation,
+		callback: Function,
+		path?: string | BuildTimePath
+	) {
 		this._buildBridgeResult = {};
 		this._blockEntries = [];
 		this._blockErrors = [];
@@ -604,13 +616,14 @@ ${blockCacheEntry}`
 				callback();
 			});
 		}
+		path = typeof path === 'string' ? { path } : path;
 		const paths = path ? [path] : [...this._paths];
 		let pageManifest = paths.map((path) => (typeof path === 'object' ? path.path : path));
 		if (this._onDemand && !this._initialBtr && existsSync(join(this._output, 'btr-manifest.json'))) {
 			pageManifest = JSON.parse(readFileSync(join(this._output, 'btr-manifest.json'), 'utf8'));
 		}
-		if (this._onDemand && path && pageManifest.indexOf(path) !== -1) {
-			removeSync(join(this._output, ...path.split('/'), 'index.html'));
+		if (this._onDemand && path && pageManifest.indexOf(path.path) !== -1) {
+			removeSync(join(this._output, ...path.path.split('/'), 'index.html'));
 		} else {
 			let htmlFileToRemove = this._writtenHtmlFiles.pop();
 			while (htmlFileToRemove) {
@@ -630,9 +643,14 @@ ${blockCacheEntry}`
 		const root = parse(html, { script: true, style: true });
 		const rootNode = root.querySelector(`#${this._root}`);
 		const headNode = root.querySelector('head');
+
 		if (headNode) {
 			this._headNodes = (headNode.childNodes.filter((node) => node.nodeType === 1) as HTMLElement[])
-				.filter((node) => node.tagName === 'script' || node.tagName === 'link')
+				.filter(
+					(node) =>
+						node.tagName === 'script' ||
+						(node.tagName === 'link' && dynamicLinkRegExp.test(node.toString()))
+				)
 				.map((node) => `${node.toString()}`);
 		}
 		if (!rootNode) {
@@ -767,13 +785,10 @@ ${blockCacheEntry}`
 		this._output = output;
 		this._jsonpName = jsonpName;
 		const compilation = new MockCompilation(this._output);
-		path = path
-			.replace(/#.*/, '')
-			.replace(/\/$/, '')
-			.replace(/^\//, '')
-			.toLowerCase();
+		path = normalizePath(path);
+		const foundPath = this._paths.find((p) => normalizePath(typeof p === 'string' ? p : p.path) === path);
 		this._initialBtr = false;
-		return this._run(compilation, callback, path);
+		return this._run(compilation, callback, foundPath || path);
 	}
 
 	public apply(compiler: Compiler) {

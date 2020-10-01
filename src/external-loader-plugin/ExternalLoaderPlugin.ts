@@ -100,29 +100,28 @@ export default class ExternalLoaderPlugin {
 			[] as string[]
 		);
 
-		const copyPlugin = new CopyWebpackPlugin(
-			this._dependencies.reduce(
-				(config, dependency) =>
-					typeof dependency === 'string' || !dependency.from
-						? config
-						: config.concat([
-								{
-									from: `${dependency.from}`,
-									to: prefixPath(dependency.to || dependency.from)
-								}
-						  ]),
-				[] as { from: string; to: string; transform?: Function }[]
-			)
+		const patterns = this._dependencies.reduce(
+			(config, dependency) =>
+				typeof dependency === 'string' || !dependency.from
+					? config
+					: config.concat([
+							{
+								from: `${dependency.from}`,
+								to: prefixPath(dependency.to || dependency.from)
+							}
+					  ]),
+			[] as { from: string; to: string; transform?: Function }[]
 		);
 
-		const htmlPlugin = new HtmlWebpackIncludeAssetsPlugin({
+		if (patterns.length) {
+			new CopyWebpackPlugin({ patterns }).apply(compiler);
+		}
+
+		new HtmlWebpackIncludeAssetsPlugin({
 			assets: toInject,
 			append: false,
 			files: `${this._pathPrefix}index.html`,
 			hash: this._hash
-		});
-
-		copyPlugin.apply(compiler);
-		htmlPlugin.apply(compiler);
+		}).apply(compiler);
 	}
 }

@@ -80,67 +80,80 @@ export default class EmitAllPlugin {
 
 	apply(compiler: webpack.Compiler) {
 		const { basePath, inlineSourceMaps, legacy } = this;
-		compiler.hooks.emit.tapAsync(this.constructor.name, async (compilation, callback) => {
-			new Set(this.additionalAssets).forEach((file) => {
-				if (fs.existsSync(file)) {
-					const assetName = file.replace(this.basePath, '').replace(/^(\/|\\)/, '');
-					const source = fs.readFileSync(file, 'utf-8').toString();
-					compilation.assets[assetName] = createSource(source);
-				}
-			});
-
-			compilation.chunks = [];
-			Object.keys(compilation.assets).forEach((key) => {
-				if (!this.assetFilter(key, compilation.assets[key])) {
-					delete compilation.assets[key];
-				}
-			});
-			await Promise.all(
-				compilation.modules.map(async (module: NormalModule) => {
-					const { resource } = module;
-					if ((resource || '').includes(basePath)) {
-						const extension = legacy ? '.js' : '.mjs';
-						const source = module.originalSource().source();
-						const assetName = resource.replace(basePath, '').replace(/\.ts(x)?$/, extension);
-
-						if (assetName.includes('.css')) {
-							await Promise.all(
-								module.dependencies.map(async ({ identifier, content, sourceMap }: any) => {
-									if (identifier.includes(resource)) {
-										const { css, map } = await this.processCssAsset(assetName, content, sourceMap);
-
-										if (sourceMap && !inlineSourceMaps) {
-											compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
-										}
-
-										compilation.assets[assetName] = createSource(css);
-
-										const cssjs = source.replace(/\s*\/\/[^\n]*\n/, '');
-										compilation.assets[assetName + '.js'] = createSource(cssjs);
-									}
-								})
-							);
-						} else {
-							const sourceMap = (module.originalSource() as any)._sourceMap;
-							let js = source;
-
-							if (sourceMap) {
-								const { map, url } = this.normalizeSourceMap(assetName, sourceMap, inlineSourceMaps);
-								js += url;
-
-								if (!inlineSourceMaps) {
-									compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
-								}
-							}
-
-							compilation.assets[assetName] = createSource(js);
-						}
+		compiler.hooks.emit.tapAsync(
+			this.constructor.name,
+			async (compilation: webpack.Compilation, callback: () => void) => {
+				new Set(this.additionalAssets).forEach((file) => {
+					if (fs.existsSync(file)) {
+						const assetName = file.replace(this.basePath, '').replace(/^(\/|\\)/, '');
+						const source = fs.readFileSync(file, 'utf-8').toString();
+						compilation.assets[assetName] = createSource(source);
 					}
-				})
-			);
+				});
 
-			callback();
-		});
+				compilation.chunks = [];
+				Object.keys(compilation.assets).forEach((key) => {
+					if (!this.assetFilter(key, compilation.assets[key])) {
+						delete compilation.assets[key];
+					}
+				});
+				await Promise.all(
+					Array.from<NormalModule>(compilation.modules).map(async (module: NormalModule) => {
+						const { resource } = module;
+						if ((resource || '').includes(basePath)) {
+							const extension = legacy ? '.js' : '.mjs';
+							const source = module.originalSource().source();
+							const assetName = resource.replace(basePath, '').replace(/\.ts(x)?$/, extension);
+
+							if (assetName.includes('.css')) {
+								await Promise.all(
+									module.dependencies.map(async ({ identifier, content, sourceMap }: any) => {
+										if (identifier.includes(resource)) {
+											const { css, map } = await this.processCssAsset(
+												assetName,
+												content,
+												sourceMap
+											);
+
+											if (sourceMap && !inlineSourceMaps) {
+												compilation.assets[assetName + '.map'] = createSource(
+													JSON.stringify(map)
+												);
+											}
+
+											compilation.assets[assetName] = createSource(css);
+
+											const cssjs = source.replace(/\s*\/\/[^\n]*\n/, '');
+											compilation.assets[assetName + '.js'] = createSource(cssjs);
+										}
+									})
+								);
+							} else {
+								const sourceMap = (module.originalSource() as any)._sourceMap;
+								let js = source;
+
+								if (sourceMap) {
+									const { map, url } = this.normalizeSourceMap(
+										assetName,
+										sourceMap,
+										inlineSourceMaps
+									);
+									js += url;
+
+									if (!inlineSourceMaps) {
+										compilation.assets[assetName + '.map'] = createSource(JSON.stringify(map));
+									}
+								}
+
+								compilation.assets[assetName] = createSource(js);
+							}
+						}
+					})
+				);
+
+				callback();
+			}
+		);
 	}
 
 	private normalizeSourceMap(assetName: string, sourceMap: any, inline: boolean) {

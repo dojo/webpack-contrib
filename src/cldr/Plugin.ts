@@ -13,9 +13,9 @@ export class CldrPlugin {
 	};
 
 	apply(compiler: webpack.Compiler) {
-		compiler.hooks.compilation.tap(this.constructor.name, (compilation) => {
+		compiler.hooks.compilation.tap(this.constructor.name, (compilation: webpack.Compilation) => {
 			compilation.hooks.seal.tap(this.constructor.name, () => {
-				compilation.modules.forEach((module) => {
+				compilation.modules.forEach((module: webpack.Module) => {
 					if (module && module.userRequest) {
 						if (i18nNumberRegExp.test(module.userRequest)) {
 							this._defineConfiguration.__i18n_number__ = true;

@@ -112,7 +112,7 @@ export default class ServiceWorkerPlugin {
 				clientsClaim,
 				excludeChunks: excludeBundles,
 				importScripts,
-				importWorkboxFrom: 'local',
+				inlineWorkboxRuntime: true,
 				skipWaiting,
 				runtimeCaching: routes.map((route) => {
 					const { options = {}, strategy, urlPattern } = route;
@@ -149,8 +149,10 @@ export default class ServiceWorkerPlugin {
 			throw new Error('The service worker path must be a non-empty string');
 		}
 
-		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler, next) => {
-			new CopyWebpackPlugin([{ from: this._serviceWorker, to: 'service-worker.js' }]).apply(compiler);
+		compiler.hooks.beforeRun.tapAsync(this.constructor.name, (compiler: Compiler, next: () => void) => {
+			new CopyWebpackPlugin({ patterns: [{ from: this._serviceWorker, to: 'service-worker.js' }] }).apply(
+				compiler
+			);
 			next();
 		});
 	}

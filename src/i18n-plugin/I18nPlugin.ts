@@ -1,7 +1,7 @@
 /* tslint:disable:interface-name */
 import { deepAssign } from '@dojo/framework/core/util';
 import { join } from 'path';
-import { Compiler, DefinePlugin } from 'webpack';
+import { Compilation, Compiler, DefinePlugin, Module } from 'webpack';
 import NormalModule = require('webpack/lib/NormalModule');
 import InjectedModuleDependency from './dependencies/InjectedModuleDependency';
 
@@ -78,16 +78,13 @@ export default class I18nPlugin {
 		});
 		definePlugin.apply(compiler);
 
-		compiler.hooks.compilation.tap(this.constructor.name, (compilation, params) => {
-			compilation.dependencyFactories.set(InjectedModuleDependency as any, params.normalModuleFactory);
-			compilation.dependencyTemplates.set(
-				InjectedModuleDependency as any,
-				// `@types/webpack` defines `Compilation#dependencyTemplates` as `Map<typeof Dependency, Tapable>`,
-				// which is incorrect. The templates used throughout webpack do *not* extend Tapable.
-				new InjectedModuleDependency.Template() as any
-			);
+		compiler.hooks.compilation.tap(this.constructor.name, (compilation: Compilation, params: any) => {
+			const template = new InjectedModuleDependency.Template();
+			template.compilation = compilation;
+			compilation.dependencyFactories.set(InjectedModuleDependency, params.normalModuleFactory);
+			compilation.dependencyTemplates.set(InjectedModuleDependency, template);
 
-			compilation.hooks.succeedModule.tap(this.constructor.name, (module) => {
+			compilation.hooks.succeedModule.tap(this.constructor.name, (module: Module) => {
 				if (this.target.test((module as NormalModule).resource)) {
 					const dep = new InjectedModuleDependency(join(__dirname, './templates/setLocaleData.js'));
 					(module as NormalModule).addDependency(dep);

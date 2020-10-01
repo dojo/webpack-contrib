@@ -19,9 +19,14 @@ describe('InjectedModuleDependency', () => {
 		const source = new ReplaceSource('');
 		const dep = new InjectedModuleDependency('/resource');
 		const template = new InjectedModuleDependency.Template();
-		const module = { id: 42 } as any;
+		template.compilation = {
+			moduleGraph: {
+				getModule() {
+					return { id: 42 };
+				}
+			}
+		};
 
-		dep.module = module;
 		template.apply(dep, source);
 
 		assert.sameDeepMembers(source.replacements, [getReplacement(source, 0, '__webpack_require__(42);\n')]);
@@ -31,10 +36,15 @@ describe('InjectedModuleDependency', () => {
 		const source = new ReplaceSource('');
 		const dep = new InjectedModuleDependency('/resource');
 		const template = new InjectedModuleDependency.Template();
-		const module = { id: 42 } as any;
+		template.compilation = {
+			moduleGraph: {
+				getModule() {
+					return { id: 42 };
+				}
+			}
+		};
 
 		dep.variable = 'answer';
-		dep.module = module;
 		template.apply(dep, source);
 
 		assert.sameDeepMembers(source.replacements, [
@@ -47,10 +57,15 @@ describe('InjectedModuleDependency', () => {
 		const dep = new InjectedModuleDependency('/resource');
 		const template = new InjectedModuleDependency.Template();
 		const id = '/path/to/module.js';
-		const module = { id } as any;
+		template.compilation = {
+			moduleGraph: {
+				getModule() {
+					return { id };
+				}
+			}
+		};
 
 		dep.variable = 'answer';
-		dep.module = module;
 		template.apply(dep, source);
 
 		assert.sameDeepMembers(source.replacements, [

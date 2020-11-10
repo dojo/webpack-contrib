@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'fs-extra';
 import * as path from 'path';
 import { stub, SinonStub } from 'sinon';
 import MockModule from '../../support/MockModule';
-import { BuildTimeRenderArguments } from '../../../src/build-time-render/BuildTimeRender';
+import { BuildTimeRenderArguments } from '../../../src/build-time-render/interfaces';
 
 const { afterEach, beforeEach, describe, it, before, after } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
@@ -29,6 +29,7 @@ function normalise(value: string) {
 }
 
 const callbackStub = stub();
+const baseFixturesPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render');
 
 const createCompilation = (
 	type:
@@ -46,6 +47,7 @@ const createCompilation = (
 		| 'build-bridge-blocks-only'
 ) => {
 	const errors: Error[] = [];
+	const warnings: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
 		'utf-8'
@@ -62,7 +64,7 @@ const createCompilation = (
 		assets[parsedManifest[key]] = { source: () => content };
 		return assets;
 	}, assets);
-	return { assets, errors };
+	return { assets, errors, warnings };
 };
 
 let normalModuleReplacementPluginStub: any;
@@ -99,7 +101,7 @@ describe('build-time-render', () => {
 		runBtr = () => {};
 	});
 
-	it('skip build time rendering when there are build errors ', () => {
+	it('skip build time rendering when there are build errors ', async () => {
 		outputPath = path.join(__dirname, '..', '..', 'support', 'fixtures', 'build-time-render', 'build-bridge');
 		compiler = {
 			hooks: {
@@ -150,10 +152,9 @@ describe('build-time-render', () => {
 		);
 		const compilation = createCompilation('build-bridge');
 		compilation.errors.push(new Error('An errors'));
-		return runBtr(compilation, callbackStub).then(() => {
-			assert.isTrue(callbackStub.calledOnce);
-			assert.isTrue(outputFileSync.notCalled);
-		});
+		await runBtr(compilation, callbackStub);
+		assert.isTrue(callbackStub.calledOnce);
+		assert.isTrue(outputFileSync.notCalled);
 	});
 
 	describe('on demand btr', () => {
@@ -230,89 +231,48 @@ describe('build-time-render', () => {
 			await runBtr(createCompilation('state-auto-discovery'), callbackStub);
 			assert.isTrue(callbackStub.calledOnce);
 			assert.strictEqual(outputFileSync.callCount, 5);
-			assert.isTrue(
-				outputFileSync.secondCall.args[0].indexOf(
-					path.join(
-						'support',
-						'fixtures',
-						'build-time-render',
-						'state-auto-discovery',
-						'my-path',
-						'index.html'
-					)
-				) > -1
-			);
-			assert.isTrue(
-				outputFileSync.thirdCall.args[0].indexOf(
-					path.join('support', 'fixtures', 'build-time-render', 'state-auto-discovery', 'other', 'index.html')
-				) > -1
-			);
-			assert.isTrue(
-				outputFileSync
-					.getCall(3)
-					.args[0].indexOf(
-						path.join(
-							'support',
-							'fixtures',
-							'build-time-render',
-							'state-auto-discovery',
-							'my-path',
-							'other',
-							'index.html'
-						)
-					) > -1
+			assert.isTrue(callbackStub.calledOnce);
+			assert.strictEqual(outputFileSync.callCount, 5);
+			assert.strictEqual(
+				outputFileSync.getCall(0).args[0],
+				path.join(baseFixturesPath, 'state-auto-discovery', 'index.html')
 			);
 			assert.strictEqual(
-				normalise(outputFileSync.secondCall.args[1]),
+				outputFileSync.getCall(1).args[0],
+				path.join(baseFixturesPath, 'state-auto-discovery', 'other', 'index.html')
+			);
+			assert.strictEqual(
+				normalise(outputFileSync.getCall(1).args[1]),
 				normalise(
 					readFileSync(
-						path.join(
-							__dirname,
-							'..',
-							'..',
-							'support',
-							'fixtures',
-							'build-time-render',
-							'state-auto-discovery',
-							'expected',
-							'my-path',
-							'index.html'
-						),
+						path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'other', 'index.html'),
 						'utf8'
 					)
 				)
 			);
 			assert.strictEqual(
-				normalise(outputFileSync.thirdCall.args[1]),
+				outputFileSync.getCall(2).args[0],
+				path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'index.html')
+			);
+			assert.strictEqual(
+				normalise(outputFileSync.getCall(2).args[1]),
 				normalise(
 					readFileSync(
-						path.join(
-							__dirname,
-							'..',
-							'..',
-							'support',
-							'fixtures',
-							'build-time-render',
-							'state-auto-discovery',
-							'expected',
-							'other',
-							'index.html'
-						),
+						path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'my-path', 'index.html'),
 						'utf8'
 					)
 				)
+			);
+			assert.strictEqual(
+				outputFileSync.getCall(3).args[0],
+				path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'other', 'index.html')
 			);
 			assert.strictEqual(
 				normalise(outputFileSync.getCall(3).args[1]),
 				normalise(
 					readFileSync(
 						path.join(
-							__dirname,
-							'..',
-							'..',
-							'support',
-							'fixtures',
-							'build-time-render',
+							baseFixturesPath,
 							'state-auto-discovery',
 							'expected',
 							'my-path',
@@ -797,7 +757,7 @@ describe('build-time-render', () => {
 				};
 			});
 
-			it('should auto detect history routing and statically build an index file for each route', () => {
+			it('should auto detect history routing and statically build an index file for each route', async () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -820,99 +780,53 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
+				await runBtr(createCompilation('state'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 5);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(0).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'other', 'index.html'),
+							'utf8'
 						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(1).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'other', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(2).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(2).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[0],
+					path.join(baseFixturesPath, 'state', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'index.html'), 'utf8'))
+				);
 			});
 
-			it('should statically build an index file for each route', () => {
+			it('should statically build an index file for each route', async () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -936,99 +850,53 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
+				await runBtr(createCompilation('state'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 5);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(0).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'other', 'index.html'),
+							'utf8'
 						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(1).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'other', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(2).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(2).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[0],
+					path.join(baseFixturesPath, 'state', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'index.html'), 'utf8'))
+				);
 			});
 
-			it('should auto discover paths to build from each rendered page', () => {
+			it('should auto discover paths to build from each rendered page', async () => {
 				compiler = {
 					hooks: {
 						afterEmit: {
@@ -1078,110 +946,59 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
+				await runBtr(createCompilation('state-auto-discovery'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 5);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'index.html')
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(1).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'other', 'index.html'),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(2).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(2).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'my-path', 'index.html'),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(
+						readFileSync(
 							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
+								baseFixturesPath,
 								'state-auto-discovery',
+								'expected',
 								'my-path',
-								'index.html'
-							)
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-auto-discovery',
 								'other',
 								'index.html'
-							)
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
+							),
+							'utf8'
 						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
+					)
+				);
 			});
 
 			describe('static', () => {
@@ -1212,7 +1029,7 @@ describe('build-time-render', () => {
 					};
 				});
 
-				it('should create index files for each route without js and css', () => {
+				it('should create index files for each route without js and css', async () => {
 					const fs = mockModule.getMock('fs-extra');
 					const outputFileSync = stub();
 					fs.outputFileSync = outputFileSync;
@@ -1236,113 +1053,62 @@ describe('build-time-render', () => {
 					});
 					btr.apply(compiler);
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 5);
-						assert.isTrue(
-							outputFileSync.secondCall.args[0].indexOf(
+					await runBtr(createCompilation('state-static'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 5);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static', 'my-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
 								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
+									baseFixturesPath,
 									'state-static',
+									'expected',
 									'my-path',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync.thirdCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static',
 									'other',
 									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync
-								.getCall(3)
-								.args[0].indexOf(
-									path.join(
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'my-path',
-										'other',
-										'index.html'
-									)
-								) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.secondCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'my-path',
-										'index.html'
-									),
-									'utf8'
-								)
+								),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.thirdCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(1).args[0],
+						path.join(baseFixturesPath, 'state-static', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(1).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static', 'expected', 'other', 'index.html'),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.getCall(3).args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'my-path',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(2).args[0],
+						path.join(baseFixturesPath, 'state-static', 'my-path', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(2).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static', 'expected', 'my-path', 'index.html'),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(3).args[0],
+						path.join(baseFixturesPath, 'state-static', 'index.html')
+					);
 				});
 
-				it('should create index files for specified routes without js and css', () => {
+				it('should create index files for specified routes without js and css', async () => {
 					outputPath = path.join(
 						__dirname,
 						'..',
@@ -1390,113 +1156,68 @@ describe('build-time-render', () => {
 					});
 					btr.apply(compiler);
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 5);
-						assert.isTrue(
-							outputFileSync.secondCall.args[0].indexOf(
+					await runBtr(createCompilation('state-static-per-path'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 5);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'my-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
 								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
+									baseFixturesPath,
 									'state-static-per-path',
+									'expected',
 									'my-path',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync.thirdCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static-per-path',
 									'other',
 									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync
-								.getCall(3)
-								.args[0].indexOf(
-									path.join(
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'my-path',
-										'other',
-										'index.html'
-									)
-								) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.secondCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'my-path',
-										'index.html'
-									),
-									'utf8'
-								)
+								),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.thirdCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(1).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(1).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static-per-path', 'expected', 'other', 'index.html'),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.getCall(3).args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'my-path',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(2).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'my-path', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(2).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									baseFixturesPath,
+									'state-static-per-path',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(3).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'index.html')
+					);
 				});
 
-				it('should create index without js and css even with no paths', () => {
+				it('should create index without js and css even with no paths', async () => {
 					outputPath = path.join(
 						__dirname,
 						'..',
@@ -1537,40 +1258,22 @@ describe('build-time-render', () => {
 					});
 					btr.apply(compiler);
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 2);
-						assert.isTrue(
-							outputFileSync.firstCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static-no-paths',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.firstCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-no-paths',
-										'expected',
-										'index.html'
-									),
-									'utf8'
-								)
+					await runBtr(createCompilation('state-static-no-paths'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 2);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static-no-paths', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static-no-paths', 'expected', 'index.html'),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
 				});
 			});
 		});
@@ -2186,7 +1889,7 @@ describe('build-time-render', () => {
 				};
 			});
 
-			it('should auto detect history routing and statically build an index file for each route', () => {
+			it('should auto detect history routing and statically build an index file for each route', async () => {
 				const fs = mockModule.getMock('fs-extra');
 				const outputFileSync = stub();
 				fs.outputFileSync = outputFileSync;
@@ -2210,216 +1913,53 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
+				await runBtr(createCompilation('state'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 5);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(0).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'other', 'index.html'),
+							'utf8'
 						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(1).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'other', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(2).args[0],
+					path.join(baseFixturesPath, 'state', 'my-path', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(2).args[1]),
+					normalise(
+						readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'my-path', 'index.html'), 'utf8')
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[0],
+					path.join(baseFixturesPath, 'state', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(readFileSync(path.join(baseFixturesPath, 'state', 'expected', 'index.html'), 'utf8'))
+				);
 			});
 
-			it('should statically build an index file for each route', () => {
-				const fs = mockModule.getMock('fs-extra');
-				const outputFileSync = stub();
-				fs.outputFileSync = outputFileSync;
-				fs.readFileSync = readFileSync;
-				fs.existsSync = existsSync;
-				const Btr = getBuildTimeRenderModule();
-				const btr = new Btr({
-					basePath: '',
-					paths: [
-						{
-							path: 'my-path'
-						},
-						'other',
-						'my-path/other'
-					],
-					useHistory: true,
-					entries: ['runtime', 'main'],
-					root: 'app',
-					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test',
-					renderer: 'jsdom'
-				});
-				btr.apply(compiler);
-				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'other', 'index.html')
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
-			});
-
-			it('should auto discover paths to build from each rendered page', () => {
+			it('should auto discover paths to build from each rendered page', async () => {
 				compiler = {
 					hooks: {
 						afterEmit: {
@@ -2470,113 +2010,62 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 5);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
+				await runBtr(createCompilation('state-auto-discovery'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 5);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'index.html')
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(1).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'other', 'index.html'),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(2).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(2).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'my-path', 'index.html'),
+							'utf8'
+						)
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(3).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'my-path', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(3).args[1]),
+					normalise(
+						readFileSync(
 							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
+								baseFixturesPath,
 								'state-auto-discovery',
+								'expected',
 								'my-path',
-								'index.html'
-							)
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync.thirdCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-auto-discovery',
 								'other',
 								'index.html'
-							)
-						) > -1
-					);
-					assert.isTrue(
-						outputFileSync
-							.getCall(3)
-							.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'my-path',
-									'other',
-									'index.html'
-								)
-							) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'my-path',
-									'index.html'
-								),
-								'utf8'
-							)
+							),
+							'utf8'
 						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.thirdCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.getCall(3).args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'my-path',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
-						)
-					);
-				});
+					)
+				);
 			});
 
-			it('should not auto discover paths when option set to false', () => {
+			it('should not auto discover paths when option set to false', async () => {
 				compiler = {
 					hooks: {
 						afterEmit: {
@@ -2629,42 +2118,26 @@ describe('build-time-render', () => {
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
-				return runBtr(createCompilation('state-auto-discovery'), callbackStub).then(() => {
-					assert.isTrue(callbackStub.calledOnce);
-					assert.strictEqual(outputFileSync.callCount, 3);
-					assert.isTrue(
-						outputFileSync.secondCall.args[0].indexOf(
-							path.join(
-								'support',
-								'fixtures',
-								'build-time-render',
-								'state-auto-discovery',
-								'other',
-								'index.html'
-							)
-						) > -1
-					);
-					assert.strictEqual(
-						normalise(outputFileSync.secondCall.args[1]),
-						normalise(
-							readFileSync(
-								path.join(
-									__dirname,
-									'..',
-									'..',
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-auto-discovery',
-									'expected',
-									'other',
-									'index.html'
-								),
-								'utf8'
-							)
+				await runBtr(createCompilation('state-auto-discovery'), callbackStub);
+				assert.isTrue(callbackStub.calledOnce);
+				assert.strictEqual(outputFileSync.callCount, 3);
+				assert.strictEqual(
+					outputFileSync.getCall(0).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'other', 'index.html')
+				);
+				assert.strictEqual(
+					normalise(outputFileSync.getCall(0).args[1]),
+					normalise(
+						readFileSync(
+							path.join(baseFixturesPath, 'state-auto-discovery', 'expected', 'other', 'index.html'),
+							'utf8'
 						)
-					);
-				});
+					)
+				);
+				assert.strictEqual(
+					outputFileSync.getCall(1).args[0],
+					path.join(baseFixturesPath, 'state-auto-discovery', 'index.html')
+				);
 			});
 
 			describe('static', () => {
@@ -2695,7 +2168,7 @@ describe('build-time-render', () => {
 					};
 				});
 
-				it('should create index files for each route without js and css', () => {
+				it('should create index files for each route without js and css', async () => {
 					const fs = mockModule.getMock('fs-extra');
 					const outputFileSync = stub();
 					fs.outputFileSync = outputFileSync;
@@ -2721,113 +2194,62 @@ describe('build-time-render', () => {
 					btr.apply(compiler);
 
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 5);
-						assert.isTrue(
-							outputFileSync.secondCall.args[0].indexOf(
+					await runBtr(createCompilation('state-static'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 5);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static', 'my-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
 								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
+									baseFixturesPath,
 									'state-static',
+									'expected',
 									'my-path',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync.thirdCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static',
 									'other',
 									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync
-								.getCall(3)
-								.args[0].indexOf(
-									path.join(
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'my-path',
-										'other',
-										'index.html'
-									)
-								) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.secondCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'my-path',
-										'index.html'
-									),
-									'utf8'
-								)
+								),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.thirdCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(1).args[0],
+						path.join(baseFixturesPath, 'state-static', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(1).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static', 'expected', 'other', 'index.html'),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.getCall(3).args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static',
-										'expected',
-										'my-path',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(2).args[0],
+						path.join(baseFixturesPath, 'state-static', 'my-path', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(2).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static', 'expected', 'my-path', 'index.html'),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(3).args[0],
+						path.join(baseFixturesPath, 'state-static', 'index.html')
+					);
 				});
 
-				it('should create index files for specified routes without js and css', () => {
+				it('should create index files for specified routes without js and css', async () => {
 					outputPath = path.join(
 						__dirname,
 						'..',
@@ -2877,113 +2299,68 @@ describe('build-time-render', () => {
 					btr.apply(compiler);
 
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static-per-path'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 5);
-						assert.isTrue(
-							outputFileSync.secondCall.args[0].indexOf(
+					await runBtr(createCompilation('state-static-per-path'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 5);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'my-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
 								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
+									baseFixturesPath,
 									'state-static-per-path',
+									'expected',
 									'my-path',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync.thirdCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static-per-path',
 									'other',
 									'index.html'
-								)
-							) > -1
-						);
-						assert.isTrue(
-							outputFileSync
-								.getCall(3)
-								.args[0].indexOf(
-									path.join(
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'my-path',
-										'other',
-										'index.html'
-									)
-								) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.secondCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'my-path',
-										'index.html'
-									),
-									'utf8'
-								)
+								),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.thirdCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(1).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'other', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(1).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static-per-path', 'expected', 'other', 'index.html'),
+								'utf8'
 							)
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.getCall(3).args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-per-path',
-										'expected',
-										'my-path',
-										'other',
-										'index.html'
-									),
-									'utf8'
-								)
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(2).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'my-path', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(2).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									baseFixturesPath,
+									'state-static-per-path',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
+					assert.strictEqual(
+						outputFileSync.getCall(3).args[0],
+						path.join(baseFixturesPath, 'state-static-per-path', 'index.html')
+					);
 				});
 
-				it('should create index without js and css even with no paths', () => {
+				it('should create index without js and css even with no paths', async () => {
 					outputPath = path.join(
 						__dirname,
 						'..',
@@ -3026,40 +2403,22 @@ describe('build-time-render', () => {
 					btr.apply(compiler);
 
 					assert.isTrue(pluginRegistered);
-					return runBtr(createCompilation('state-static-no-paths'), callbackStub).then(() => {
-						assert.isTrue(callbackStub.calledOnce);
-						assert.strictEqual(outputFileSync.callCount, 2);
-						assert.isTrue(
-							outputFileSync.firstCall.args[0].indexOf(
-								path.join(
-									'support',
-									'fixtures',
-									'build-time-render',
-									'state-static-no-paths',
-									'index.html'
-								)
-							) > -1
-						);
-						assert.strictEqual(
-							normalise(outputFileSync.firstCall.args[1]),
-							normalise(
-								readFileSync(
-									path.join(
-										__dirname,
-										'..',
-										'..',
-										'support',
-										'fixtures',
-										'build-time-render',
-										'state-static-no-paths',
-										'expected',
-										'index.html'
-									),
-									'utf8'
-								)
+					await runBtr(createCompilation('state-static-no-paths'), callbackStub);
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 2);
+					assert.strictEqual(
+						outputFileSync.getCall(0).args[0],
+						path.join(baseFixturesPath, 'state-static-no-paths', 'index.html')
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(0).args[1]),
+						normalise(
+							readFileSync(
+								path.join(baseFixturesPath, 'state-static-no-paths', 'expected', 'index.html'),
+								'utf8'
 							)
-						);
-					});
+						)
+					);
 				});
 			});
 		});

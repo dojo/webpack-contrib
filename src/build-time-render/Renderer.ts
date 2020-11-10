@@ -1,15 +1,15 @@
+import { Renderer } from './interfaces';
+
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
 const { JSDOM, ResourceLoader } = jsdom;
-
-export type Renderer = 'puppeteer' | 'jsdom';
 
 export default (renderer: Renderer = 'puppeteer') => {
 	if (renderer === 'puppeteer') {
 		return puppeteer;
 	}
 	return {
-		launch: (options: any) => {
+		launch: () => {
 			let requestCount = 0;
 			class CustomResourceLoader extends ResourceLoader {
 				fetch(url: string, options: any) {

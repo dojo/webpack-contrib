@@ -1,4 +1,5 @@
-import BuildTimeRender, { BuildTimeRenderArguments } from './BuildTimeRender';
+import BuildTimeRender from './BuildTimeRender';
+import { BuildTimeRenderArguments } from './interfaces';
 import { Request, Response, NextFunction } from 'express';
 import * as url from 'url';
 import webpack = require('webpack');

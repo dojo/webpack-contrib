@@ -73,6 +73,7 @@
     "minimatch": "3.0.4",
     "mkdirp": "0.5.1",
     "node-html-parser": "1.2.20",
+    "node-worker-threads-pool": "1.4.3",
     "opener": "1.4.3",
     "postcss": "7.0.7",
     "puppeteer": "1.11.0",

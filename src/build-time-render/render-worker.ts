@@ -68,7 +68,18 @@ async function renderWorker() {
 	const screenshotDirectory = join(output, '..', 'info', 'screenshots');
 	ensureDirSync(screenshotDirectory);
 
-	parentPort.on('message', async ({ renderPath }: RenderWorkerOptions) => {
+	parentPort.on('message', async (options: RenderWorkerOptions | 'close') => {
+		if (options === 'close') {
+			try {
+				await browser.disconnect();
+				await browser.close();
+				await app.server.close();
+			} finally {
+				parentPort!.postMessage('cleanup-complete');
+				return;
+			}
+		}
+		const { renderPath } = options;
 		const path = typeof renderPath === 'object' ? renderPath.path : renderPath;
 		const errors: Error[] = [];
 		const warnings: Error[] = [];
@@ -162,10 +173,10 @@ async function renderWorker() {
 					additionalScripts,
 					additionalCss
 				};
-
-				await page.close();
 			} catch {
 				warnings.push(createError(path, 'Failed to visit path'));
+			} finally {
+				await page.close();
 			}
 		} catch (error) {
 			errors.push(createError(path, error));

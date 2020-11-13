@@ -1,6 +1,5 @@
 import { Compiler, compilation } from 'webpack';
 import { outputFileSync, removeSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
-// import { StaticPool } from 'node-worker-threads-pool';
 import { join } from 'path';
 import { createError, generateRouteInjectionScript } from './helpers';
 
@@ -13,13 +12,10 @@ import {
 	Renderer,
 	BuildTimeRenderPath,
 	BuildTimeRenderArguments,
-	// RenderWorkerOptions,
-	// RenderWorkerData,
 	RenderWorkerResult,
 	BlockOutput,
 	PageResult
 } from './interfaces';
-
 const pool = require('node-worker-threads-pool');
 
 function genHash(content: string): string {
@@ -70,6 +66,37 @@ class MockCompilation {
 		);
 		this.assets['manifest.json'] = new MockAsset(join(output, 'manifest.json'));
 		this.assets['index.html'] = new MockAsset(join(output, 'btr-index.html'));
+	}
+}
+
+/**
+ * Need to extend the pool to deal with cleaning up the worker
+ * resources.
+ */
+class PoolWithCleanUp extends pool.StaticPool {
+	constructor(...args: any[]) {
+		super(...args);
+	}
+	async destroy() {
+		let promises = [];
+		for (let i = 0; i < this._workers.length; i++) {
+			const worker = this._workers[i];
+			const promise = new Promise((resolve) => {
+				const handle = setTimeout(() => {
+					resolve();
+				}, 100);
+				worker.on('message', (message: any) => {
+					if (typeof message === 'string' && message === 'cleanup-complete') {
+						clearTimeout(handle);
+						resolve();
+					}
+				});
+			});
+			worker.postMessage('close');
+			promises.push(promise);
+		}
+		await Promise.all(promises);
+		return await super.destroy();
 	}
 }
 
@@ -282,7 +309,7 @@ export default class BuildTimeRender {
 	}
 
 	private _createCombinedRenderResult(renderResults: RenderWorkerResult[]): RenderWorkerResult {
-		const paths: string[] = [];
+		const paths: BuildTimeRenderPath[] = [];
 		const content: string[] = [];
 		const combinedBlockScripts: string[] = [];
 		const combinedPageResult: PageResult = {
@@ -302,7 +329,7 @@ export default class BuildTimeRender {
 				? `${combinedPageResult.styles}\n${pageResult.styles}`
 				: combinedPageResult.styles;
 			content.push(pageResult.content);
-			paths.push(typeof path === 'object' ? path.path : path);
+			paths.push(path);
 			combinedBlockScripts.push(...blockScripts);
 			combinedPageResult.additionalScripts.push(...pageResult.additionalScripts);
 			combinedPageResult.additionalCss.push(...pageResult.additionalCss);
@@ -514,7 +541,7 @@ ${blockCacheEntry}`
 				})
 				.map((key) => this._manifest[key]);
 
-			const renderWorkerPool = new pool.StaticPool({
+			const renderWorkerPool = new PoolWithCleanUp({
 				size: 5,
 				task: __dirname + '/render-worker.js',
 				workerData: {
@@ -582,7 +609,7 @@ ${blockCacheEntry}`
 			}
 
 			let renderResults = await Promise.all(renderWorkerPromises);
-			renderWorkerPool.destroy();
+			await renderWorkerPool.destroy();
 			for (let i = 0; i < renderResults.length; i++) {
 				const renderResult = renderResults[i];
 				const { pageResult, blockOutput } = renderResult;

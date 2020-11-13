@@ -1,12 +1,12 @@
 <html>
 	<head>
-	<style>.hello{background:red}.link{line-height:20px;color:#00b0e8}.other{color:pink}span{width:100%;height:100%}</style></head>
+	<style>.other{color:pink}.hello{background:red}.link{line-height:20px;color:#00b0e8}span{width:100%;height:100%}</style></head>
 	<body>
 		<div id="app"></div>
 		<script>
 (function () {
-	var paths = ["",{"path":"#my-path"}];
-	var html = ["<div id=\"app\"><div class=\"hello link\">Hello</div></div>","<div id=\"app\"><div class=\"other\">Root</div></div>"];
+	var paths = [{"path":"#my-path"},""];
+	var html = ["<div id=\"app\"><div class=\"other\">Root</div></div>","<div id=\"app\"><div class=\"hello link\">Hello</div></div>"];
 	var element = document.getElementById('app');
 	var target;
 	paths.some(function (path, i) {

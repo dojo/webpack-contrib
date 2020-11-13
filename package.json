@@ -37,7 +37,7 @@
     "precommit": "lint-staged",
     "prettier": "prettier --write \"{src,tests}/**/*.{ts,tsx}\"",
     "release": "run-s lint clean build \"dojo-release -- {@}\" --",
-    "test": "NODE_OPTIONS=--max_old_space_size=4096 run-s lint build \"intern -- {@}\" --",
+    "test": "cross-env NODE_OPTIONS=--max_old_space_size=4096 run-s lint build \"intern -- {@}\" --",
     "uploadCoverage": "codecov --file=coverage/coverage.json",
     "watch:ts": "dojo-tsc-watcher -p tsconfig.json -- dojo-package",
     "watch": "run-p watch:ts \"build:static:** -- --watch\""
@@ -111,6 +111,7 @@
     "cldr-data": "36.0.0",
     "codecov": "~3.0.4",
     "cpx": "~1.5.0",
+    "cross-env": "7.0.2",
     "css-loader": "1.0.1",
     "del": "3.0.0",
     "exports-loader": "0.7.0",

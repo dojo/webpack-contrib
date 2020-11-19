@@ -88,9 +88,9 @@ export default class I18nPlugin {
 			);
 
 			compilation.hooks.succeedModule.tap(this.constructor.name, (module) => {
-				if (this.target.test((module as NormalModule).resource)) {
+				if (this.target.test(((module as unknown) as NormalModule).resource)) {
 					const dep = new InjectedModuleDependency(join(__dirname, './templates/setLocaleData.js'));
-					(module as NormalModule).addDependency(dep);
+					((module as unknown) as NormalModule).addDependency(dep);
 				}
 			});
 		});

@@ -24,3 +24,4 @@ import './webpack-bundle-analyzer/AnalyzeBundles';
 import './webpack-bundle-analyzer/viewer';
 import './webpack-hot-client/client';
 import './element-loader/loader';
+import './logger/logger';

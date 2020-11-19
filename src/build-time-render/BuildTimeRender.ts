@@ -16,6 +16,7 @@ import {
 	getRenderHooks,
 	getPageLinks
 } from './helpers';
+import { LiveLogger } from '../logger/logger';
 
 import renderer, { Renderer } from './Renderer';
 import * as cssnano from 'cssnano';
@@ -60,6 +61,7 @@ export interface BuildTimeRenderArguments {
 	writeHtml?: boolean;
 	onDemand?: boolean;
 	writeCss?: boolean;
+	logger?: LiveLogger;
 }
 
 function genHash(content: string): string {
@@ -148,6 +150,7 @@ export default class BuildTimeRender {
 	private _onDemand = false;
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
+	private _logger?: LiveLogger;
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -164,7 +167,8 @@ export default class BuildTimeRender {
 			sync = false,
 			writeHtml = true,
 			writeCss = true,
-			onDemand = false
+			onDemand = false,
+			logger
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -172,6 +176,7 @@ export default class BuildTimeRender {
 		this._basePath = basePath;
 		this._baseUrl = normalizePath(baseUrl, false);
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
+		this._logger = logger;
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -704,6 +709,9 @@ ${blockCacheEntry}`
 					}
 					pageManifest.push(this._currentPath);
 				}
+				if (this._logger) {
+					this._logger.start(`exploring ${this._currentPath}`);
+				}
 				let page = await this._createPage(browser);
 				try {
 					await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
@@ -824,7 +832,11 @@ ${blockCacheEntry}`
 			if (this._onDemand && !this._initialBtr) {
 				return callback();
 			}
-			return this._run(compilation, callback);
+
+			return this._run(compilation, callback).then((result) => {
+				this._logger && this._logger.restore();
+				return result;
+			});
 		});
 	}
 }

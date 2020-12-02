@@ -12,3 +12,6 @@ export * from './external-loader-plugin/ExternalLoaderPlugin';
 
 export { default as I18nPlugin } from './i18n-plugin/I18nPlugin';
 export * from './i18n-plugin/I18nPlugin';
+
+export { default as BundleAnalyzerPlugin } from './webpack-bundle-analyzer/BundleAnalyzerPlugin';
+export * from './webpack-bundle-analyzer/BundleAnalyzerPlugin';

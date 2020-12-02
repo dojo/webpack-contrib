@@ -33,10 +33,14 @@ export function getViewerData(bundleStats: any, bundleDir?: string | null) {
 				bundleInfo = null;
 			}
 
-			if (bundleInfo) {
-				bundlesSources[statAsset.name] = bundleInfo.src;
-				_.assign(parsedModules, bundleInfo.modules);
+			if (!bundleInfo) {
+				parsedModules = null;
+				bundlesSources = null;
+				break;
 			}
+
+			bundlesSources[statAsset.name] = bundleInfo.src;
+			_.assign(parsedModules, bundleInfo.modules);
 		}
 	}
 
@@ -45,7 +49,7 @@ export function getViewerData(bundleStats: any, bundleDir?: string | null) {
 		(result: any, statAsset: any) => {
 			const asset: any = (result[statAsset.name] = _.pick(statAsset, 'size'));
 
-			if (bundlesSources && bundlesSources[statAsset.name]) {
+			if (bundlesSources) {
 				asset.parsedSize = bundlesSources[statAsset.name].length;
 				asset.gzipSize = gzipSize.sync(bundlesSources[statAsset.name]);
 			}
@@ -59,7 +63,6 @@ export function getViewerData(bundleStats: any, bundleDir?: string | null) {
 				});
 
 			asset.tree = createModulesTree(asset.modules);
-			asset.chunks = statAsset.chunkNames || statAsset.chunks;
 		},
 		{}
 	);
@@ -72,8 +75,7 @@ export function getViewerData(bundleStats: any, bundleDir?: string | null) {
 				statSize: asset.tree.size,
 				parsedSize: asset.parsedSize,
 				gzipSize: asset.gzipSize,
-				groups: _.invokeMap(asset.tree.children, 'toChartData'),
-				chunks: asset.chunks
+				groups: _.invokeMap(asset.tree.children, 'toChartData')
 			});
 		},
 		[]

@@ -66,8 +66,11 @@ export interface BuildTimeRenderArguments {
 	onDemand?: boolean;
 	writeCss?: boolean;
 	logger?: LiveLogger;
-	cacheInvalidates?: string[];
-	cacheExcludes?: string[];
+	cacheOptions?: {
+		enabled?: boolean;
+		invalidates?: string[];
+		excludes?: string[];
+	};
 }
 
 function genHash(content: string): string {
@@ -157,9 +160,12 @@ export default class BuildTimeRender {
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
 	private _logger?: LiveLogger;
-	private _pageCachePath = 'page-cache.btr';
-	private _cacheExcludes: string[] = [];
-	private _cacheInvalidates: string[] = [];
+	private _pageCachePath = 'cache.btr';
+	private _cacheOptions: { enabled: boolean; invalidates: string[]; excludes: string[] } = {
+		enabled: false,
+		invalidates: [],
+		excludes: []
+	};
 
 	private _cache: { pages: { [index: string]: RenderResult } } = { pages: {} };
 
@@ -180,8 +186,7 @@ export default class BuildTimeRender {
 			writeCss = true,
 			onDemand = false,
 			logger,
-			cacheExcludes = [],
-			cacheInvalidates = []
+			cacheOptions
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -190,8 +195,7 @@ export default class BuildTimeRender {
 		this._baseUrl = normalizePath(baseUrl, false);
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
 		this._logger = logger;
-		this._cacheExcludes = cacheExcludes;
-		this._cacheInvalidates = cacheInvalidates;
+		this._cacheOptions = { ...this._cacheOptions, ...cacheOptions };
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -712,13 +716,15 @@ ${blockCacheEntry}`
 			}
 		});
 
-		Object.keys(this._cache.pages).forEach((key) => {
-			[...this._cacheInvalidates, ...this._cacheExcludes].forEach((glob) => {
-				if (minimatch(glob, key)) {
-					delete this._cache.pages[key];
-				}
+		if (this._cacheOptions.enabled) {
+			Object.keys(this._cache.pages).forEach((key) => {
+				[...this._cacheOptions.excludes, ...this._cacheOptions.invalidates].forEach((glob) => {
+					if (minimatch(glob, key)) {
+						delete this._cache.pages[key];
+					}
+				});
 			});
-		});
+		}
 
 		const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
 		const app = await serve(`${this._output}`, this._baseUrl);
@@ -754,7 +760,7 @@ ${blockCacheEntry}`
 				if (this._logger) {
 					this._logger.start(`exploring ${this._currentPath}`);
 				}
-				if (this._cache.pages[this._currentPath]) {
+				if (this._cacheOptions.enabled && this._cache.pages[this._currentPath]) {
 					const result = this._cache.pages[this._currentPath];
 					renderResults.push(result);
 					if (result.paths) {
@@ -847,19 +853,21 @@ ${blockCacheEntry}`
 			await browser.close();
 			await app.server.close();
 			this._initialBtr = false;
-			Object.keys(this._cache.pages).forEach((key) => {
-				this._cacheExcludes.forEach((glob) => {
-					if (minimatch(glob, key)) {
-						delete this._cache.pages[key];
-					}
+			if (this._cacheOptions.enabled) {
+				Object.keys(this._cache.pages).forEach((key) => {
+					this._cacheOptions.excludes.forEach((glob) => {
+						if (minimatch(glob, key)) {
+							delete this._cache.pages[key];
+						}
+					});
 				});
-			});
-			await new Promise((resolve) => {
-				zlib.gzip(Buffer.from(encode(this._cache)), {}, (error, result) => {
-					writeFileSync(this._pageCachePath, result, 'binary');
-					resolve();
+				await new Promise((resolve) => {
+					zlib.gzip(Buffer.from(encode(this._cache)), {}, (error, result) => {
+						writeFileSync(this._pageCachePath, result, 'binary');
+						resolve();
+					});
 				});
-			});
+			}
 			callback();
 		}
 	}

@@ -46,13 +46,15 @@ export class OnDemandBuildTimeRender {
 			!this._pages.has(originalPath)
 		) {
 			const path = originalPath.replace(/^\//, '').replace(/\/$/, '');
+			const cacheOptions = this._btrArgs.cacheOptions || {};
 			const btr = new BuildTimeRender({
 				...this._btrArgs,
 				scope: this._scope,
 				baseUrl: this._base,
 				basePath: process.cwd(),
 				entries: this._entries,
-				onDemand: true
+				onDemand: true,
+				cacheOptions: { ...cacheOptions, invalidates: [...(cacheOptions.invalidates || []), path] }
 			});
 
 			this._pages.add(originalPath);

@@ -42,6 +42,9 @@ describe('build-time-render middleware', () => {
 			jsonpName: 'jsonpFunction',
 			compiler,
 			base: 'base',
+			cacheOptions: {
+				invalidates: ['blog']
+			},
 			entries: ['main']
 		});
 		onDemandBuildTimeRender.middleware(mockRequest, {}, nextStub);
@@ -56,6 +59,9 @@ describe('build-time-render middleware', () => {
 				entries: ['main'],
 				root: 'app',
 				onDemand: true,
+				cacheOptions: {
+					invalidates: ['blog']
+				},
 				scope: 'lib'
 			}
 		]);
@@ -89,6 +95,9 @@ describe('build-time-render middleware', () => {
 				entries: ['main'],
 				root: 'app',
 				onDemand: true,
+				cacheOptions: {
+					invalidates: ['blog']
+				},
 				scope: 'lib'
 			}
 		]);

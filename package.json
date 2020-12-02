@@ -43,7 +43,8 @@
     "watch": "run-p watch:ts \"build:static:** -- --watch\""
   },
   "dependencies": {
-    "@dojo/framework": "~7.0.2",
+    "@dojo/framework": "8.0.0-alpha.6",
+    "@msgpack/msgpack": "2.3.0",
     "acorn": "6.1.1",
     "acorn-dynamic-import": "4.0.0",
     "acorn-walk": "6.1.1",
@@ -126,7 +127,7 @@
     "sinon": "~4.5.0",
     "stream-combiner2": "1.1.1",
     "style-loader": "0.23.1",
-    "typescript": "~3.4.5",
+    "typescript": "~3.8.3",
     "webpack": "4.43.0"
   },
   "lint-staged": {

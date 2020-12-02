@@ -161,7 +161,7 @@ export default class BuildTimeRender {
 	private _cacheExcludes: string[] = [];
 	private _cacheInvalidates: string[] = [];
 
-	private _cache: { [index: string]: RenderResult } = {};
+	private _cache: { pages: { [index: string]: RenderResult } } = { pages: {} };
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -704,18 +704,18 @@ ${blockCacheEntry}`
 					if (!error) {
 						resolve(decode(result) as any);
 					} else {
-						resolve({});
+						resolve({ pages: {} });
 					}
 				});
 			} else {
-				resolve({});
+				resolve({ pages: {} });
 			}
 		});
 
-		Object.keys(this._cache).forEach((key) => {
+		Object.keys(this._cache.pages).forEach((key) => {
 			this._cacheInvalidates.forEach((glob) => {
 				if (minimatch(glob, key)) {
-					delete this._cache[key];
+					delete this._cache.pages[key];
 				}
 			});
 		});
@@ -754,8 +754,8 @@ ${blockCacheEntry}`
 				if (this._logger) {
 					this._logger.start(`exploring ${this._currentPath}`);
 				}
-				if (this._cache[this._currentPath]) {
-					const result = this._cache[this._currentPath];
+				if (this._cache.pages[this._currentPath]) {
+					const result = this._cache.pages[this._currentPath];
 					renderResults.push(result);
 					if (result.paths) {
 						paths.push(...result.paths);
@@ -815,7 +815,7 @@ ${blockCacheEntry}`
 					result.additionalScripts = additionalScripts;
 					result.additionalCss = additionalCss;
 					renderResults.push(result);
-					this._cache[this._currentPath] = result;
+					this._cache.pages[this._currentPath] = result;
 					await page.close();
 				}
 			}
@@ -847,10 +847,10 @@ ${blockCacheEntry}`
 			await browser.close();
 			await app.server.close();
 			this._initialBtr = false;
-			Object.keys(this._cache).forEach((key) => {
+			Object.keys(this._cache.pages).forEach((key) => {
 				this._cacheExcludes.forEach((glob) => {
 					if (minimatch(glob, key)) {
-						delete this._cache[key];
+						delete this._cache.pages[key];
 					}
 				});
 			});

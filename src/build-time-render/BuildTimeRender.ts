@@ -1,6 +1,7 @@
 import { Compiler, compilation } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
 import { Worker } from 'worker_threads';
+import * as zlib from 'zlib';
 
 import { join } from 'path';
 import {
@@ -25,6 +26,8 @@ const webpack = require('webpack');
 const postcss = require('postcss');
 const createHash = require('webpack/lib/util/createHash');
 import { parse, HTMLElement } from 'node-html-parser';
+import { encode, decode } from '@msgpack/msgpack';
+import * as minimatch from 'minimatch';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -35,6 +38,7 @@ export interface RenderResult {
 	blockScripts: string[];
 	additionalScripts: string[];
 	additionalCss: string[];
+	paths?: string[];
 }
 
 export interface BuildTimePath {
@@ -62,6 +66,7 @@ export interface BuildTimeRenderArguments {
 	onDemand?: boolean;
 	writeCss?: boolean;
 	logger?: LiveLogger;
+	cacheExcludes?: string[];
 }
 
 function genHash(content: string): string {
@@ -151,6 +156,10 @@ export default class BuildTimeRender {
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
 	private _logger?: LiveLogger;
+	private _pageCachePath = 'page-cache.btr';
+	private _cacheExcludes: string[] = [];
+
+	private _cache: { [index: string]: RenderResult } = {};
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -168,7 +177,8 @@ export default class BuildTimeRender {
 			writeHtml = true,
 			writeCss = true,
 			onDemand = false,
-			logger
+			logger,
+			cacheExcludes = []
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -177,6 +187,7 @@ export default class BuildTimeRender {
 		this._baseUrl = normalizePath(baseUrl, false);
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
 		this._logger = logger;
+		this._cacheExcludes = cacheExcludes;
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -577,14 +588,18 @@ ${blockCacheEntry}`
 		if (this._hasBuildBridgeCache) {
 			outputFileSync(join(this._output!, 'manifest.json'), JSON.stringify(this._manifest, null, 2), 'utf-8');
 			this._filesToRemove.forEach((name) => {
-				removeSync(join(this._output!, name));
+				removeSync(join(this._output!, name as string));
 			});
 
 			this._filesToRemove = new Set();
 
 			this._filesToWrite.forEach((name) => {
-				this._filesToRemove.add(this._manifest[name]);
-				outputFileSync(join(this._output!, this._manifest[name]), this._manifestContent[name], 'utf-8');
+				this._filesToRemove.add(this._manifest[name as string]);
+				outputFileSync(
+					join(this._output!, this._manifest[name as string]),
+					this._manifestContent[name as string],
+					'utf-8'
+				);
 			});
 
 			this._filesToWrite = new Set();
@@ -678,6 +693,29 @@ ${blockCacheEntry}`
 			})
 			.map((key) => this._manifest[key]);
 
+		this._cache = await new Promise((resolve) => {
+			if (existsSync(this._pageCachePath)) {
+				const content = readFileSync(this._pageCachePath);
+				zlib.gunzip(content, {}, (error, result) => {
+					if (!error) {
+						resolve(decode(result) as any);
+					} else {
+						resolve({});
+					}
+				});
+			} else {
+				resolve({});
+			}
+		});
+
+		Object.keys(this._cache).forEach((key) => {
+			this._cacheExcludes.forEach((glob) => {
+				if (minimatch(glob, key)) {
+					delete this._cache[key];
+				}
+			});
+		});
+
 		const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
 		const app = await serve(`${this._output}`, this._baseUrl);
 		try {
@@ -712,56 +750,70 @@ ${blockCacheEntry}`
 				if (this._logger) {
 					this._logger.start(`exploring ${this._currentPath}`);
 				}
-				let page = await this._createPage(browser);
-				try {
-					await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
-				} catch {
-					compilation.warnings.push(this._createError('Failed to visit path'));
-					continue;
-				}
-				const pathDirectories = this._currentPath.replace('#', '').split('/');
-				if (pathDirectories.length > 0) {
-					pathDirectories.pop();
-					ensureDirSync(join(screenshotDirectory, ...pathDirectories));
-				}
-				let { rendering, blocksPending } = await getRenderHooks(page, this._scope);
-				while (rendering || blocksPending) {
-					({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
-				}
-				const scripts = await getScriptSources(page, app.port);
-				const additionalScripts = scripts.filter(
-					(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
-				);
-				const additionalCss = (await getPageStyles(page))
-					.filter((url: string) =>
-						this._entries.every((entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')]))
-					)
-					.filter((url) => !/^http(s)?:\/\/.*/.test(url) || url.indexOf('localhost') !== -1);
-				const blockScripts = this._sync
-					? this._writeSyncBuildBridgeCache()
-					: this._writeBuildBridgeCache(additionalScripts);
-				await page.screenshot({
-					path: join(
-						screenshotDirectory,
-						`${this._currentPath ? this._currentPath.replace('#', '') : 'default'}.png`
-					)
-				});
-				if (this._discoverPaths) {
-					const links = await getPageLinks(page);
-					for (let i = 0; i < links.length; i++) {
-						if (pageManifest.indexOf(links[i]) === -1 && this._excludedPaths.indexOf(links[i]) === -1) {
-							(!this._onDemand || this._initialBtr) && paths.push(links[i]);
-							pageManifest.push(links[i]);
+				if (this._cache[this._currentPath]) {
+					const result = this._cache[this._currentPath];
+					renderResults.push(result);
+					if (result.paths) {
+						paths.push(...result.paths);
+					}
+				} else {
+					let page = await this._createPage(browser);
+					try {
+						await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
+					} catch {
+						compilation.warnings.push(this._createError('Failed to visit path'));
+						continue;
+					}
+					const pathDirectories = this._currentPath.replace('#', '').split('/');
+					if (pathDirectories.length > 0) {
+						pathDirectories.pop();
+						ensureDirSync(join(screenshotDirectory, ...pathDirectories));
+					}
+					let { rendering, blocksPending } = await getRenderHooks(page, this._scope);
+					while (rendering || blocksPending) {
+						({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
+					}
+					const scripts = await getScriptSources(page, app.port);
+					const additionalScripts = scripts.filter(
+						(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+					);
+					const additionalCss = (await getPageStyles(page))
+						.filter((url: string) =>
+							this._entries.every(
+								(entry) => !url.endsWith(originalManifest[entry.replace('.js', '.css')])
+							)
+						)
+						.filter((url) => !/^http(s)?:\/\/.*/.test(url) || url.indexOf('localhost') !== -1);
+					const blockScripts = this._sync
+						? this._writeSyncBuildBridgeCache()
+						: this._writeBuildBridgeCache(additionalScripts);
+					await page.screenshot({
+						path: join(
+							screenshotDirectory,
+							`${this._currentPath ? this._currentPath.replace('#', '') : 'default'}.png`
+						)
+					});
+					let result = await this._getRenderResult(page, path);
+					if (this._discoverPaths) {
+						const links = await getPageLinks(page);
+						for (let i = 0; i < links.length; i++) {
+							if (pageManifest.indexOf(links[i]) === -1 && this._excludedPaths.indexOf(links[i]) === -1) {
+								if (!this._onDemand || this._initialBtr) {
+									paths.push(links[i]);
+									result.paths = result.paths || [];
+									result.paths.push(links[i]);
+								}
+								pageManifest.push(links[i]);
+							}
 						}
 					}
+					result.blockScripts = blockScripts;
+					result.additionalScripts = additionalScripts;
+					result.additionalCss = additionalCss;
+					renderResults.push(result);
+					this._cache[this._currentPath] = result;
+					await page.close();
 				}
-				let result = await this._getRenderResult(page, path);
-				result.blockScripts = blockScripts;
-				result.additionalScripts = additionalScripts;
-				result.additionalCss = additionalCss;
-				renderResults.push(result);
-
-				await page.close();
 			}
 
 			this._writeBuildTimeCacheFiles();
@@ -791,6 +843,12 @@ ${blockCacheEntry}`
 			await browser.close();
 			await app.server.close();
 			this._initialBtr = false;
+			await new Promise((resolve) => {
+				zlib.gzip(Buffer.from(encode(this._cache)), {}, (error, result) => {
+					writeFileSync(this._pageCachePath, result, 'binary');
+					resolve();
+				});
+			});
 			callback();
 		}
 	}

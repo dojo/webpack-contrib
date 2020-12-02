@@ -1,7 +1,6 @@
 import { Compiler, compilation } from 'webpack';
 import { outputFileSync, removeSync, ensureDirSync, readFileSync, existsSync, writeFileSync } from 'fs-extra';
 import { Worker } from 'worker_threads';
-import * as zlib from 'zlib';
 
 import { join } from 'path';
 import {
@@ -26,8 +25,9 @@ const webpack = require('webpack');
 const postcss = require('postcss');
 const createHash = require('webpack/lib/util/createHash');
 import { parse, HTMLElement } from 'node-html-parser';
-import { encode, decode } from '@msgpack/msgpack';
 import * as minimatch from 'minimatch';
+
+import { read as readCache, write as writeCache, Cache } from './cache';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -160,14 +160,13 @@ export default class BuildTimeRender {
 	private _headNodes: string[] = [];
 	private _excludedPaths: string[] = [];
 	private _logger?: LiveLogger;
-	private _pageCachePath = 'cache.btr';
 	private _cacheOptions: { enabled: boolean; invalidates: string[]; excludes: string[] } = {
 		enabled: false,
 		invalidates: [],
 		excludes: []
 	};
 
-	private _cache: { pages: { [index: string]: RenderResult } } = { pages: {} };
+	private _cache: Cache = { pages: {} };
 
 	constructor(args: BuildTimeRenderArguments) {
 		const {
@@ -701,20 +700,7 @@ ${blockCacheEntry}`
 			})
 			.map((key) => this._manifest[key]);
 
-		this._cache = await new Promise((resolve) => {
-			if (existsSync(this._pageCachePath)) {
-				const content = readFileSync(this._pageCachePath);
-				zlib.gunzip(content, {}, (error, result) => {
-					if (!error) {
-						resolve(decode(result) as any);
-					} else {
-						resolve({ pages: {} });
-					}
-				});
-			} else {
-				resolve({ pages: {} });
-			}
-		});
+		this._cache = await readCache();
 
 		if (this._cacheOptions.enabled) {
 			Object.keys(this._cache.pages).forEach((key) => {
@@ -821,7 +807,7 @@ ${blockCacheEntry}`
 					result.additionalScripts = additionalScripts;
 					result.additionalCss = additionalCss;
 					renderResults.push(result);
-					this._cache.pages[this._currentPath] = result;
+					this._cache.pages[this._currentPath] = { ...result, time: Date.now() };
 					await page.close();
 				}
 			}
@@ -861,12 +847,7 @@ ${blockCacheEntry}`
 						}
 					});
 				});
-				await new Promise((resolve) => {
-					zlib.gzip(Buffer.from(encode(this._cache)), {}, (error, result) => {
-						writeFileSync(this._pageCachePath, result, 'binary');
-						resolve();
-					});
-				});
+				await writeCache(this._cache);
 			}
 			callback();
 		}

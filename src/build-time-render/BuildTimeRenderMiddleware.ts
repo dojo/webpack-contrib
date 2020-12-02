@@ -52,7 +52,8 @@ export class OnDemandBuildTimeRender {
 				baseUrl: this._base,
 				basePath: process.cwd(),
 				entries: this._entries,
-				onDemand: true
+				onDemand: true,
+				cacheInvalidates: [...(this._btrArgs.cacheInvalidates || []), path]
 			});
 
 			this._pages.add(originalPath);

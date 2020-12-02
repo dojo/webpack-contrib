@@ -713,7 +713,7 @@ ${blockCacheEntry}`
 		});
 
 		Object.keys(this._cache.pages).forEach((key) => {
-			this._cacheInvalidates.forEach((glob) => {
+			[...this._cacheInvalidates, ...this._cacheExcludes].forEach((glob) => {
 				if (minimatch(glob, key)) {
 					delete this._cache.pages[key];
 				}

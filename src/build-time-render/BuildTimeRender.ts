@@ -66,6 +66,7 @@ export interface BuildTimeRenderArguments {
 	onDemand?: boolean;
 	writeCss?: boolean;
 	logger?: LiveLogger;
+	cacheInvalidates?: string[];
 	cacheExcludes?: string[];
 }
 
@@ -158,6 +159,7 @@ export default class BuildTimeRender {
 	private _logger?: LiveLogger;
 	private _pageCachePath = 'page-cache.btr';
 	private _cacheExcludes: string[] = [];
+	private _cacheInvalidates: string[] = [];
 
 	private _cache: { [index: string]: RenderResult } = {};
 
@@ -178,7 +180,8 @@ export default class BuildTimeRender {
 			writeCss = true,
 			onDemand = false,
 			logger,
-			cacheExcludes = []
+			cacheExcludes = [],
+			cacheInvalidates = []
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -188,6 +191,7 @@ export default class BuildTimeRender {
 		this._baseUrl = this._baseUrl ? `/${this._baseUrl}/` : '/';
 		this._logger = logger;
 		this._cacheExcludes = cacheExcludes;
+		this._cacheInvalidates = cacheInvalidates;
 
 		this._renderer = renderer;
 		this._discoverPaths = discoverPaths;
@@ -709,7 +713,7 @@ ${blockCacheEntry}`
 		});
 
 		Object.keys(this._cache).forEach((key) => {
-			this._cacheExcludes.forEach((glob) => {
+			this._cacheInvalidates.forEach((glob) => {
 				if (minimatch(glob, key)) {
 					delete this._cache[key];
 				}
@@ -843,6 +847,13 @@ ${blockCacheEntry}`
 			await browser.close();
 			await app.server.close();
 			this._initialBtr = false;
+			Object.keys(this._cache).forEach((key) => {
+				this._cacheExcludes.forEach((glob) => {
+					if (minimatch(glob, key)) {
+						delete this._cache[key];
+					}
+				});
+			});
 			await new Promise((resolve) => {
 				zlib.gzip(Buffer.from(encode(this._cache)), {}, (error, result) => {
 					writeFileSync(this._pageCachePath, result, 'binary');

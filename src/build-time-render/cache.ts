@@ -1,5 +1,6 @@
 import { existsSync, writeFileSync, readFileSync } from 'fs-extra';
 import { encode, decode } from '@msgpack/msgpack';
+import * as minimatch from 'minimatch';
 import * as zlib from 'zlib';
 
 const pageCachePath = 'cache.btr';
@@ -45,4 +46,15 @@ export function write(cache: Cache) {
 			resolve();
 		});
 	});
+}
+
+export function remove(cache: Cache, globs: string[]): Cache {
+	Object.keys(cache.pages).forEach((key) => {
+		globs.forEach((glob) => {
+			if (minimatch(key, glob)) {
+				delete cache.pages[key];
+			}
+		});
+	});
+	return cache;
 }

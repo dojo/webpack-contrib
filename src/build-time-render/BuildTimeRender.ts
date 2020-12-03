@@ -25,9 +25,8 @@ const webpack = require('webpack');
 const postcss = require('postcss');
 const createHash = require('webpack/lib/util/createHash');
 import { parse, HTMLElement } from 'node-html-parser';
-import * as minimatch from 'minimatch';
 
-import { read as readCache, write as writeCache, Cache } from './cache';
+import { read as readCache, write as writeCache, remove as removeFromCache, Cache } from './cache';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -704,13 +703,10 @@ ${blockCacheEntry}`
 		this._cache = await readCache();
 
 		if (this._cacheOptions.enabled) {
-			Object.keys(this._cache.pages).forEach((key) => {
-				[...this._cacheOptions.excludes, ...this._cacheOptions.invalidates].forEach((glob) => {
-					if (minimatch(glob, key)) {
-						delete this._cache.pages[key];
-					}
-				});
-			});
+			this._cache = removeFromCache(this._cache, [
+				...this._cacheOptions.excludes,
+				...this._cacheOptions.invalidates
+			]);
 		}
 
 		const browser = await renderer(this._renderer).launch(this._puppeteerOptions);
@@ -841,13 +837,7 @@ ${blockCacheEntry}`
 			await app.server.close();
 			this._initialBtr = false;
 			if (this._cacheOptions.enabled) {
-				Object.keys(this._cache.pages).forEach((key) => {
-					this._cacheOptions.excludes.forEach((glob) => {
-						if (minimatch(glob, key)) {
-							delete this._cache.pages[key];
-						}
-					});
-				});
+				this._cache = removeFromCache(this._cache, [...this._cacheOptions.excludes]);
 				await writeCache(this._cache);
 			}
 			callback();

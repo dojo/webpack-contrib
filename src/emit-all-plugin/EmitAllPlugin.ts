@@ -120,7 +120,7 @@ export default class EmitAllPlugin {
 									}
 								})
 							);
-						} else {
+						} else if (assetName.includes('.mjs') || assetName.includes('.js')) {
 							const sourceMap = (module.originalSource() as any)._sourceMap;
 							let js = source;
 

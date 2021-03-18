@@ -397,6 +397,45 @@ describe('EmitAllPlugin', () => {
 				});
 			});
 		});
+
+		describe('Unsupported assets', () => {
+			const applyPlugin = (
+				file: string,
+				source: string,
+				sourceMap?: { mappings: string; sources: string[] },
+				options: EmitAllPluginOptions = {}
+			) => {
+				file = file.replace(/\//g, path.sep);
+				options.basePath = options.basePath || `src${path.sep}`;
+
+				const factory = mockModule.getModuleUnderTest().emitAllFactory;
+				const emitAll = factory(options).plugin;
+				const compilation = createCompilation(compiler);
+				const jsModule = {
+					resource: file,
+					originalSource: () => ({
+						_sourceMap: sourceMap,
+						source: () => source
+					})
+				};
+
+				compilation.modules = [jsModule];
+				emitAll.apply(compiler);
+				compiler.hooks.emit.callAsync(compilation, () => {});
+
+				const assetName = file.replace(options.basePath, '');
+				const asset = compilation.assets[assetName];
+				const assetSourceMap = sourceMap && compilation.assets[`${assetName}.map`];
+
+				return { asset, compilation, assetSourceMap };
+			};
+
+			it('Skips unsupported assets', () => {
+				const source = 'module.exports = {}';
+				const { asset } = applyPlugin('src/image.png', source);
+				assert.isUndefined(asset);
+			});
+		});
 	});
 
 	describe('transformer', () => {

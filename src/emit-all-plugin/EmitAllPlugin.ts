@@ -102,7 +102,6 @@ export default class EmitAllPlugin {
 						const extension = legacy ? '.js' : '.mjs';
 						const source = module.originalSource().source();
 						const assetName = resource.replace(basePath, '').replace(/\.ts(x)?$/, extension);
-
 						if (assetName.includes('.css')) {
 							await Promise.all(
 								module.dependencies.map(async ({ identifier, content, sourceMap }: any) => {

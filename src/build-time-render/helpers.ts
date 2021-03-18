@@ -18,7 +18,7 @@ export async function serve(directory: string, base: string): Promise<ServeDetai
 			index: '/btr-index.html'
 		})
 	);
-	app.use(base, express.static(directory));
+	app.use(base, express.static(directory) as any);
 	app.use(
 		base,
 		history({
@@ -45,7 +45,7 @@ export async function serve(directory: string, base: string): Promise<ServeDetai
 			]
 		})
 	);
-	app.use(base, express.static(directory));
+	app.use(base, express.static(directory) as any);
 	const promise = new Promise<ServeDetails>((resolve) => {
 		const server = app.listen(port, () => {
 			resolve({ server, port });

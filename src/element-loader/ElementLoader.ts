@@ -43,7 +43,7 @@ export default function(this: LoaderContext, source: string) {
 					...descriptor,
 					tagName
 				})});`;
-				registration = registration.replace(`"${tagName}"`, `useNamespace("${tagName}")`);
+				registration = registration.replace(`"tagName":"${tagName}"`, `"tagName":useNamespace("${tagName}")`);
 				source += registration;
 			}
 		}

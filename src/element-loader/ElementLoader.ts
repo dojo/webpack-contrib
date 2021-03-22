@@ -8,6 +8,7 @@ import { discoverDescriptor } from './discoverDescriptor';
 interface WidgetConfig {
 	path: string;
 	tag?: string;
+	name?: string;
 }
 
 export default function(this: LoaderContext, source: string) {
@@ -34,10 +35,16 @@ export default function(this: LoaderContext, source: string) {
 			const descriptor = discoverDescriptor(sourceFile, checker);
 
 			if (descriptor) {
-				source += `registerCustomElement(() => useDefault(import('${widget.path}')), ${JSON.stringify({
+				const tagName = `${elementPrefix}-${widget.tag || descriptor.tagName}`;
+				const chunkName = widget.name ? `/* webpackChunkName: '${widget.name}' */ ` : '';
+				let registration = `registerCustomElement(() => useDefault(import(${chunkName}'${
+					widget.path
+				}')), ${JSON.stringify({
 					...descriptor,
-					tagName: `${elementPrefix}-${widget.tag || descriptor.tagName}`
+					tagName
 				})});`;
+				registration = registration.replace(`"tagName":"${tagName}"`, `"tagName":useNamespace("${tagName}")`);
+				source += registration;
 			}
 		}
 	});

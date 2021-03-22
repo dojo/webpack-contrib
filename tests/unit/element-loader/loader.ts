@@ -119,7 +119,18 @@ describe('element loader', () => {
 
 		assert.strictEqual(
 			loaderUnderTest.call(defaultScope, ''),
-			'registerCustomElement(() => useDefault(import(\'defaultExportFactory.ts\')), {"tagName":"-dojo-input","attributes":["key"],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(\'directExportFactory.ts\')), {"tagName":"-dojo-input","attributes":["key","attribute","stringEnum","stringOrNumber","foo"],"properties":["property","intEnum"],"events":["onClick","onChange"]});registerCustomElement(() => useDefault(import(\'defaultExportClass.ts\')), {"tagName":"-dojo-input","attributes":[],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(\'aliasedExportClass.ts\')), {"tagName":"-dojo-input","attributes":[],"properties":[],"events":[]});'
+			'registerCustomElement(() => useDefault(import(\'defaultExportFactory.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":["key"],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(\'directExportFactory.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":["key","attribute","stringEnum","stringOrNumber","foo"],"properties":["property","intEnum"],"events":["onClick","onChange"]});registerCustomElement(() => useDefault(import(\'defaultExportClass.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":[],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(\'aliasedExportClass.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":[],"properties":[],"events":[]});'
+		);
+	});
+
+	it('should use widget name as chunk when available', () => {
+		mockUtils.getOptions.returns({
+			widgets: Object.keys(files).map((key) => ({ path: key, name: key }))
+		});
+
+		assert.strictEqual(
+			loaderUnderTest.call(defaultScope, ''),
+			'registerCustomElement(() => useDefault(import(/* webpackChunkName: \'defaultExportFactory.ts\' */ \'defaultExportFactory.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":["key"],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(/* webpackChunkName: \'directExportFactory.ts\' */ \'directExportFactory.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":["key","attribute","stringEnum","stringOrNumber","foo"],"properties":["property","intEnum"],"events":["onClick","onChange"]});registerCustomElement(() => useDefault(import(/* webpackChunkName: \'defaultExportClass.ts\' */ \'defaultExportClass.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":[],"properties":[],"events":[]});registerCustomElement(() => useDefault(import(/* webpackChunkName: \'aliasedExportClass.ts\' */ \'aliasedExportClass.ts\')), {"tagName":useNamespace("-dojo-input"),"attributes":[],"properties":[],"events":[]});'
 		);
 	});
 

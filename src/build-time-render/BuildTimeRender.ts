@@ -747,7 +747,15 @@ ${blockCacheEntry}`
 					const result = this._cache.pages[this._currentPath];
 					renderResults.push(result);
 					if (result.paths) {
-						paths.push(...result.paths);
+						for (let i = 0; i < result.paths.length; i++) {
+							const newPath = result.paths[i];
+							if (pageManifest.indexOf(newPath) === -1 && this._excludedPaths.indexOf(newPath) === -1) {
+								if (!this._onDemand) {
+									paths.push(newPath);
+								}
+								pageManifest.push(newPath);
+							}
+						}
 					}
 				} else {
 					let page = await this._createPage(browser);

@@ -775,9 +775,14 @@ ${blockCacheEntry}`
 						({ rendering, blocksPending } = await getRenderHooks(page, this._scope));
 					}
 					const scripts = await getScriptSources(page, app.port);
-					const additionalScripts = scripts.filter(
-						(script) => script && this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
-					);
+					const additionalScripts = scripts.filter((script) => {
+						const isRuntime = script.indexOf('runtime/') !== -1 && script.indexOf('runtime/blocks') === -1;
+						return (
+							script &&
+							!isRuntime &&
+							this._entries.every((entry) => !script.endsWith(originalManifest[entry]))
+						);
+					});
 					const additionalCss = (await getPageStyles(page))
 						.filter((url: string) =>
 							this._entries.every(

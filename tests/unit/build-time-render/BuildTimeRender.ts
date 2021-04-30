@@ -132,7 +132,8 @@ describe('build-time-render', () => {
 			root: 'app',
 			puppeteerOptions: { args: ['--no-sandbox'] },
 			scope: 'test',
-			writeHtml: false
+			writeHtml: false,
+			renderer: 'puppeteer'
 		});
 		btr.apply(compiler);
 		const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -223,7 +224,8 @@ describe('build-time-render', () => {
 						path: '/other/excluded/',
 						exclude: true
 					}
-				]
+				],
+				renderer: 'puppeteer'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -415,7 +417,8 @@ describe('build-time-render', () => {
 						path: '/static-override/',
 						static: false
 					}
-				]
+				],
+				renderer: 'puppeteer'
 			});
 
 			stub(btr, '_run');
@@ -504,7 +507,8 @@ describe('build-time-render', () => {
 						exclude: true
 					}
 				],
-				logger
+				logger,
+				renderer: 'puppeteer'
 			});
 			btr.apply(compiler);
 			assert.isTrue(pluginRegistered);
@@ -617,7 +621,8 @@ describe('build-time-render', () => {
 					entries: ['bootstrap', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -697,7 +702,8 @@ describe('build-time-render', () => {
 					entries: ['bootstrap', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -794,7 +800,8 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -823,7 +830,8 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -847,7 +855,8 @@ describe('build-time-render', () => {
 					paths: [],
 					entries: ['runtime', 'main'],
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				} as any);
 				btr.apply(compiler);
 				assert.isFalse(pluginRegistered);
@@ -866,7 +875,8 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply({ ...compiler, options: {} });
 				assert.isTrue(pluginRegistered);
@@ -916,7 +926,8 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -1032,7 +1043,8 @@ describe('build-time-render', () => {
 					entries: ['runtime', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -1174,7 +1186,8 @@ describe('build-time-render', () => {
 							path: '/other/excluded/',
 							exclude: true
 						}
-					]
+					],
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				assert.isTrue(pluginRegistered);
@@ -1332,7 +1345,8 @@ describe('build-time-render', () => {
 						entries: ['runtime', 'main'],
 						root: 'app',
 						puppeteerOptions: { args: ['--no-sandbox'] },
-						scope: 'test'
+						scope: 'test',
+						renderer: 'puppeteer'
 					});
 					btr.apply(compiler);
 					assert.isTrue(pluginRegistered);
@@ -1486,7 +1500,8 @@ describe('build-time-render', () => {
 						entries: ['runtime', 'main'],
 						root: 'app',
 						puppeteerOptions: { args: ['--no-sandbox'] },
-						scope: 'test'
+						scope: 'test',
+						renderer: 'puppeteer'
 					});
 					btr.apply(compiler);
 					assert.isTrue(pluginRegistered);
@@ -1715,7 +1730,8 @@ describe('build-time-render', () => {
 					entries: ['bootstrap', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -1802,7 +1818,8 @@ describe('build-time-render', () => {
 					entries: ['bootstrap', 'main'],
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
-					scope: 'test'
+					scope: 'test',
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -1913,7 +1930,8 @@ describe('build-time-render', () => {
 				root: 'app',
 				puppeteerOptions: { args: ['--no-sandbox'] },
 				scope: 'test',
-				writeCss: false
+				writeCss: false,
+				renderer: 'puppeteer'
 			});
 			btr.apply(compiler);
 			const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -2010,7 +2028,8 @@ describe('build-time-render', () => {
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
 					scope: 'test',
-					writeHtml: false
+					writeHtml: false,
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
@@ -2103,7 +2122,8 @@ describe('build-time-render', () => {
 					root: 'app',
 					puppeteerOptions: { args: ['--no-sandbox'] },
 					scope: 'test',
-					sync: true
+					sync: true,
+					renderer: 'puppeteer'
 				});
 				btr.apply(compiler);
 				const callback = normalModuleReplacementPluginStub.firstCall.args[1];

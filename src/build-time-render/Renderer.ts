@@ -3,7 +3,7 @@ const { JSDOM, ResourceLoader } = jsdom;
 
 export type Renderer = 'puppeteer' | 'jsdom';
 
-export default (renderer: Renderer = 'puppeteer') => {
+export default (renderer: Renderer = 'jsdom') => {
 	if (renderer === 'puppeteer') {
 		try {
 			return require('puppeteer');

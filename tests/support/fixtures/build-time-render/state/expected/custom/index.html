@@ -1,0 +1,13 @@
+<html>
+	<head>
+		<link rel="manifest" href="manifest.json">
+	<style>.hello{background:red}span{width:100%}.another{background:red}.color{color:red}</style></head>
+	<body>
+		<div id="app"><div class="hello another color">{"staticFeatures":{"build-time-render":true}}</div></div>
+		<script>
+	if (!window['test']) {
+		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');
+	}
+</script><link rel="stylesheet" href="main.css" /><link rel="preload" href="another.css" as="style"><script src="runtime.js"></script><script src="main.js"></script>
+	<link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
+</html>

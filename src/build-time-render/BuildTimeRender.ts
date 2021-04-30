@@ -45,6 +45,7 @@ export interface BuildTimePath {
 	match?: string[];
 	static?: boolean;
 	exclude?: boolean;
+	output?: string;
 }
 
 export interface BuildTimeRenderArguments {
@@ -230,10 +231,15 @@ export default class BuildTimeRender {
 		additionalCss
 	}: RenderResult) {
 		let isStatic = this._static;
+		let output: string | undefined;
 		if (typeof path === 'object') {
 			if (this._useHistory) {
 				isStatic = path.static === undefined ? isStatic : path.static;
 			}
+			if (path.output) {
+				output = path.output.endsWith('.html') ? path.output : `${path.output}/index.html`;
+			}
+
 			path = path.path;
 		} else {
 			path = path;
@@ -322,7 +328,9 @@ export default class BuildTimeRender {
 				html = html.replace('</body>', `<script type="text/javascript" src="${blockScript}"></script></body>`);
 			});
 		}
-		const htmlPath = join(this._output!, ...path.split('/'), 'index.html');
+		const htmlPath = output
+			? join(this._output!, ...output.split('/'))
+			: join(this._output!, ...path.split('/'), 'index.html');
 		if (path) {
 			this._writtenHtmlFiles.push(htmlPath);
 		}

@@ -908,7 +908,8 @@ describe('build-time-render', () => {
 					basePath: '',
 					paths: [
 						{
-							path: 'my-path'
+							path: 'my-path',
+							output: 'my-path/foo.html'
 						},
 						'other',
 						'my-path/other'
@@ -925,7 +926,7 @@ describe('build-time-render', () => {
 					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'foo.html')
 						) > -1
 					);
 					assert.isTrue(
@@ -962,7 +963,7 @@ describe('build-time-render', () => {
 									'state',
 									'expected',
 									'my-path',
-									'index.html'
+									'foo.html'
 								),
 								'utf8'
 							)
@@ -2297,7 +2298,8 @@ describe('build-time-render', () => {
 					basePath: '',
 					paths: [
 						{
-							path: 'my-path'
+							path: 'my-path',
+							output: 'custom'
 						},
 						'other',
 						'my-path/other'
@@ -2315,7 +2317,7 @@ describe('build-time-render', () => {
 					assert.strictEqual(outputFileSync.callCount, 5);
 					assert.isTrue(
 						outputFileSync.secondCall.args[0].indexOf(
-							path.join('support', 'fixtures', 'build-time-render', 'state', 'my-path', 'index.html')
+							path.join('support', 'fixtures', 'build-time-render', 'state', 'custom', 'index.html')
 						) > -1
 					);
 					assert.isTrue(
@@ -2351,7 +2353,7 @@ describe('build-time-render', () => {
 									'build-time-render',
 									'state',
 									'expected',
-									'my-path',
+									'custom',
 									'index.html'
 								),
 								'utf8'

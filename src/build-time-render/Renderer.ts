@@ -1,12 +1,17 @@
-const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
 const { JSDOM, ResourceLoader } = jsdom;
 
 export type Renderer = 'puppeteer' | 'jsdom';
 
-export default (renderer: Renderer = 'puppeteer') => {
+export default (renderer: Renderer = 'jsdom') => {
 	if (renderer === 'puppeteer') {
-		return puppeteer;
+		try {
+			return require('puppeteer');
+		} catch {
+			throw new Error(
+				'Cannot find puppeteer, unable to run BTR. Please install puppeteer or use `jsdom` renderer'
+			);
+		}
 	}
 	return {
 		launch: (options: any) => {

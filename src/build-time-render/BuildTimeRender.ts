@@ -178,7 +178,7 @@ export default class BuildTimeRender {
 			puppeteerOptions,
 			basePath,
 			baseUrl = '/',
-			renderer = 'puppeteer',
+			renderer = 'jsdom',
 			discoverPaths = true,
 			sync = false,
 			writeHtml = true,

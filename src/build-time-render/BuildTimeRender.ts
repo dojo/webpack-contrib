@@ -133,7 +133,6 @@ export default class BuildTimeRender {
 	private _manifest: any;
 	private _manifestContent: { [index: string]: string } = {};
 	private _buildBridgeResult: any = {};
-	private _linkPaths: Record<string, any> = {};
 	private _blockEntries: string[] = [];
 	private _output?: string;
 	private _jsonpName?: string;
@@ -651,7 +650,6 @@ ${blockCacheEntry}`
 		path?: string | BuildTimePath
 	) {
 		this._buildBridgeResult = {};
-		this._linkPaths = {};
 		this._blockEntries = [];
 		this._blockErrors = [];
 		if (!this._output || compilation.errors.length > 0) {
@@ -772,12 +770,7 @@ ${blockCacheEntry}`
 					try {
 						await page.goto(`http://localhost:${app.port}${this._baseUrl}${this._currentPath}`);
 					} catch {
-						compilation.warnings.push(
-							this._createError(
-								`Failed to visit path. Found on path: "${this._linkPaths[this._currentPath] ||
-									'default path'}"`
-							)
-						);
+						compilation.warnings.push(this._createError('Failed to visit path'));
 						continue;
 					}
 					const pathDirectories = this._currentPath.replace('#', '').split('/');
@@ -825,7 +818,6 @@ ${blockCacheEntry}`
 									result.paths.push(links[i]);
 								}
 								pageManifest.push(links[i]);
-								this._linkPaths[links[i]] = this._currentPath;
 							}
 						}
 					}
@@ -844,11 +836,7 @@ ${blockCacheEntry}`
 				renderResults = [this._createCombinedRenderResult(renderResults)];
 			}
 
-			await Promise.all(
-				renderResults.map((result) => {
-					return this._writeIndexHtml(result);
-				})
-			);
+			await Promise.all(renderResults.map((result) => this._writeIndexHtml(result)));
 			if (this._hasBuildBridgeCache) {
 				outputFileSync(
 					join(this._output, '..', 'info', 'manifest.original.json'),

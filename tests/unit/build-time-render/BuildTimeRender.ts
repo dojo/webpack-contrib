@@ -1877,12 +1877,12 @@ describe('build-time-render', () => {
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
-					assert.strictEqual(bootstrapFilename, 'bootstrap.f74447cd79cfb78a4d0d.bundle.js');
+					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
 					assert.strictEqual(
 						normalise(bootstrap),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
 					);
-					assert.strictEqual(blocksFileName, 'blocks.d0f197baa8b236474067.bundle.js');
+					assert.strictEqual(blocksFileName, 'blocks.dbe2bc78e8fdc3f593cb.bundle.js');
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
@@ -3372,12 +3372,12 @@ describe('build-time-render', () => {
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
-					assert.strictEqual(bootstrapFilename, 'bootstrap.f74447cd79cfb78a4d0d.bundle.js');
+					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
 					assert.strictEqual(
 						normalise(bootstrap),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
 					);
-					assert.strictEqual(blocksFileName, 'blocks.d0f197baa8b236474067.bundle.js');
+					assert.strictEqual(blocksFileName, 'blocks.dbe2bc78e8fdc3f593cb.bundle.js');
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))

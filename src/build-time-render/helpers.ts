@@ -144,7 +144,7 @@ export async function getScriptSources(page: any, port: number): Promise<string[
 	const scripts: string[] = await page.$$eval('script', (elements: HTMLScriptElement[]) =>
 		elements.map((element) => element.src)
 	);
-	return scripts.map((script) => script.replace(`http://localhost:${port}`, ''));
+	return scripts.map((script) => script.replace(`http://localhost:${port}/`, ''));
 }
 
 export function generateRouteInjectionScript(html: string[], paths: any[], root: string): string {

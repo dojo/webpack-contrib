@@ -1,7 +1,6 @@
 <html>
 	<head>
 		<link rel="manifest" href="/manifest.json">
-		<link href="/main.css" rel="stylesheet">
 	<style>.other.another{color:pink;background:url("relative.png");background:url("/root.png");background:url("./relative.png");background:url("../relative.png");background:url("https://example.com");background:url("http://example.com");background:url(https://example.com);background:url(http://example.com)}span{width:100%}.not~:not("span"),.other-not>:not("span"){color:#00f}@media (min-width:1280px){.media\:colon{color:purple}}</style></head>
 	<body>
 		<div id="app"><div class="other media:colon not other-not">Other</div></div>
@@ -9,6 +8,6 @@
 	if (!window['test']) {
 		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path\/other(\/)?$/, '/');
 	}
-</script><script src="/runtime.js"></script><script src="/main.js"></script>
-	<link rel="preload" href="/additional.js" as="script"><link rel="prefetch" href="other.js" /><link rel="prefetch" href="main.css" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
+</script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
+	<link rel="preload" href="additional.js" as="script"><link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /></body>
 </html>

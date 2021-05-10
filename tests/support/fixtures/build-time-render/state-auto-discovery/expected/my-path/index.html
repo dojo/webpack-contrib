@@ -1,6 +1,7 @@
 <html>
 	<head>
-		<link rel="manifest" href="manifest.json">
+		<link rel="manifest" href="/manifest.json">
+		<link href="/main.css" rel="stylesheet">
 	<style>.hello{background:red}span{width:100%}.another{background:red}</style></head>
 	<body>
 		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}<a href="my-path/other"></a><a href="excluded"></a><a href="/other/excluded"></a></div></div>
@@ -8,6 +9,6 @@
 	if (!window['test']) {
 		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');
 	}
-</script><link rel="stylesheet" href="main.css" /><script src="runtime.js"></script><script src="main.js"></script>
-	<link rel="prefetch" href="other.js" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
+</script><script src="/runtime.js"></script><script src="/main.js"></script>
+	<link rel="prefetch" href="other.js" /><link rel="prefetch" href="main.css" /><link rel="prefetch" href="other.css" /><link rel="prefetch" href="additional.js" /></body>
 </html>

@@ -25,7 +25,10 @@ function getBuildTimeRenderModule(): {
 }
 
 function normalise(value: string) {
-	return value.replace(/^(\s*)(\r\n?|\n)/gm, '').trim();
+	return value
+		.replace(/^(\s*)/gm, '')
+		.replace(/(\r\n?|\n)/gm, '')
+		.trim();
 }
 
 const callbackStub = stub();
@@ -34,6 +37,7 @@ const createCompilation = (
 	type:
 		| 'state'
 		| 'state-auto-discovery'
+		| 'state-auto-discovery-error'
 		| 'state-scoped'
 		| 'state-static'
 		| 'state-static-per-path'
@@ -46,6 +50,7 @@ const createCompilation = (
 		| 'build-bridge-blocks-only'
 ) => {
 	const errors: Error[] = [];
+	const warnings: Error[] = [];
 	const manifest = readFileSync(
 		path.join(__dirname, `./../../support/fixtures/build-time-render/${type}/manifest.json`),
 		'utf-8'
@@ -62,7 +67,7 @@ const createCompilation = (
 		assets[parsedManifest[key]] = { source: () => content };
 		return assets;
 	}, assets);
-	return { assets, errors };
+	return { assets, errors, warnings };
 };
 
 let normalModuleReplacementPluginStub: any;
@@ -1872,12 +1877,12 @@ describe('build-time-render', () => {
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
-					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
+					assert.strictEqual(bootstrapFilename, 'bootstrap.f74447cd79cfb78a4d0d.bundle.js');
 					assert.strictEqual(
 						normalise(bootstrap),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
 					);
-					assert.strictEqual(blocksFileName, 'blocks.dbe2bc78e8fdc3f593cb.bundle.js');
+					assert.strictEqual(blocksFileName, 'blocks.d0f197baa8b236474067.bundle.js');
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
@@ -3367,12 +3372,12 @@ describe('build-time-render', () => {
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
-					assert.strictEqual(bootstrapFilename, 'bootstrap.247d4597a12706983d2c.bundle.js');
+					assert.strictEqual(bootstrapFilename, 'bootstrap.f74447cd79cfb78a4d0d.bundle.js');
 					assert.strictEqual(
 						normalise(bootstrap),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'bootstrap.js'), 'utf-8'))
 					);
-					assert.strictEqual(blocksFileName, 'blocks.dbe2bc78e8fdc3f593cb.bundle.js');
+					assert.strictEqual(blocksFileName, 'blocks.d0f197baa8b236474067.bundle.js');
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))

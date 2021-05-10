@@ -45,6 +45,12 @@ export async function serve(directory: string, base: string): Promise<ServeDetai
 			]
 		})
 	);
+	app.use(
+		base,
+		history({
+			disableDotRule: true
+		})
+	);
 	app.use(base, express.static(directory) as any);
 	const promise = new Promise<ServeDetails>((resolve) => {
 		const server = app.listen(port, () => {
@@ -130,7 +136,7 @@ export async function getPageLinks(page: any) {
 				.toLowerCase();
 		})
 	);
-	links = [...new Set(links.filter((link) => /^(http(s)?:\/\/)|(mailto:)|(file:)/.test(link) === false))];
+	links = [...new Set(links.filter((link) => /^(http(s)?:\/\/)|^(mailto:)|^(file:)|^(tel:)/.test(link) === false))];
 	return links;
 }
 
@@ -138,7 +144,7 @@ export async function getScriptSources(page: any, port: number): Promise<string[
 	const scripts: string[] = await page.$$eval('script', (elements: HTMLScriptElement[]) =>
 		elements.map((element) => element.src)
 	);
-	return scripts.map((script) => script.replace(`http://localhost:${port}/`, ''));
+	return scripts.map((script) => script.replace(`http://localhost:${port}`, ''));
 }
 
 export function generateRouteInjectionScript(html: string[], paths: any[], root: string): string {

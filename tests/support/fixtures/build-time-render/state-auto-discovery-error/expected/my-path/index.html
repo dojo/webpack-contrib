@@ -4,7 +4,7 @@
 		<link rel="manifest" href="manifest.json">
 	<style>.hello{background:red}span{width:100%}.another{background:red}</style></head>
 	<body>
-		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}<a href="my-path/other"></a><a href="excluded"></a><a href="/other/excluded"></a></div></div>
+		<div id="app"><div class="hello another">{"staticFeatures":{"build-time-render":true}}<a href="my-path/other"></a><a href="excluded"></a><a href="/other/excluded"></a><a href="bad.path2"></a></div></div>
 		<script>
 	if (!window['test']) {
 		window['test'].publicPath = window.location.pathname.replace(/(\/)?my-path(\/)?$/, '/');

@@ -2703,6 +2703,231 @@ describe('build-time-render', () => {
 				});
 			});
 
+			it('should handle bad paths during auto discovery', () => {
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: path.join(
+								__dirname,
+								'..',
+								'..',
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery-error'
+							)
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const btr = new Btr({
+					basePath: '',
+					useHistory: true,
+					entries: ['runtime', 'main'],
+					root: 'app',
+					puppeteerOptions: { args: ['--no-sandbox'] },
+					scope: 'test',
+					renderer: 'jsdom',
+					paths: [
+						{
+							path: 'excluded',
+							exclude: true
+						},
+						{
+							path: '/other/excluded/',
+							exclude: true
+						}
+					]
+				});
+				btr.apply(compiler);
+				assert.isTrue(pluginRegistered);
+				return runBtr(createCompilation('state-auto-discovery-error'), callbackStub).then(() => {
+					assert.isTrue(callbackStub.calledOnce);
+					assert.strictEqual(outputFileSync.callCount, 7);
+					assert.isTrue(
+						outputFileSync.secondCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery-error',
+								'my-path',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync.thirdCall.args[0].indexOf(
+							path.join(
+								'support',
+								'fixtures',
+								'build-time-render',
+								'state-auto-discovery-error',
+								'other',
+								'index.html'
+							)
+						) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(3)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'bad.path',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(4)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'my-path',
+									'other',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.isTrue(
+						outputFileSync
+							.getCall(5)
+							.args[0].indexOf(
+								path.join(
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'bad.path2',
+									'index.html'
+								)
+							) > -1
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.secondCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'expected',
+									'my-path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.thirdCall.args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'expected',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(3).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'expected',
+									'bad.path',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(4).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'expected',
+									'my-path',
+									'other',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+					assert.strictEqual(
+						normalise(outputFileSync.getCall(5).args[1]),
+						normalise(
+							readFileSync(
+								path.join(
+									__dirname,
+									'..',
+									'..',
+									'support',
+									'fixtures',
+									'build-time-render',
+									'state-auto-discovery-error',
+									'expected',
+									'bad.path2',
+									'index.html'
+								),
+								'utf8'
+							)
+						)
+					);
+				});
+			});
+
 			it('should not auto discover paths when option set to false', () => {
 				compiler = {
 					hooks: {

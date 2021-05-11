@@ -2,9 +2,11 @@ import BuildTimeRender, { BuildTimeRenderArguments } from './BuildTimeRender';
 import { Request, Response, NextFunction } from 'express';
 import * as url from 'url';
 import webpack = require('webpack');
+import { FeatureMap, Features } from '../static-build-loader/getFeatures';
 
 export interface OnDemandBuildTimeRenderOptions {
 	buildTimeRenderOptions: any;
+	features: FeatureMap | Features;
 	scope: string;
 	base: string;
 	compiler: webpack.Compiler;
@@ -22,6 +24,7 @@ export class OnDemandBuildTimeRender {
 	private _base: string;
 	private _active = false;
 	private _entries: string[];
+	private _features: FeatureMap | Features;
 
 	constructor(options: OnDemandBuildTimeRenderOptions) {
 		this._btrArgs = options.buildTimeRenderOptions;
@@ -34,6 +37,7 @@ export class OnDemandBuildTimeRender {
 			this._pages.clear();
 			this._active = true;
 		});
+		this._features = options.features;
 	}
 
 	public middleware(req: Request, _: Response, next: NextFunction) {
@@ -54,7 +58,8 @@ export class OnDemandBuildTimeRender {
 				basePath: process.cwd(),
 				entries: this._entries,
 				onDemand: true,
-				cacheOptions: { ...cacheOptions, invalidates: [...(cacheOptions.invalidates || []), path] }
+				cacheOptions: { ...cacheOptions, invalidates: [...(cacheOptions.invalidates || []), path] },
+				features: this._features
 			});
 
 			this._pages.add(originalPath);

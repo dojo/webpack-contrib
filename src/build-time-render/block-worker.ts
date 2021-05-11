@@ -1,3 +1,4 @@
+import { add } from '@dojo/framework/core/has';
 import { isMainThread, parentPort, workerData } from 'worker_threads';
 import * as tsnode from 'ts-node';
 
@@ -8,10 +9,11 @@ if (isMainThread) {
 tsnode.register({ transpileOnly: true });
 
 async function runBlock() {
-	const { basePath, modulePath, args } = workerData;
+	const { basePath, modulePath, args, features } = workerData;
 	const blockModule = require(`${basePath}/${modulePath}`);
 	if (blockModule && blockModule.default) {
 		try {
+			Object.keys(features).forEach((key) => add(key, features[key]));
 			const promise = blockModule.default(...args);
 			const result = await promise;
 			parentPort && parentPort.postMessage({ result: result, error: null });

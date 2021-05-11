@@ -27,6 +27,7 @@ const createHash = require('webpack/lib/util/createHash');
 import { parse, HTMLElement } from 'node-html-parser';
 
 import { read as readCache, write as writeCache, remove as removeFromCache, Cache } from './cache';
+import getFeatures, { FeatureMap, Features } from '../static-build-loader/getFeatures';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -71,6 +72,7 @@ export interface BuildTimeRenderArguments {
 		invalidates?: string[];
 		excludes?: string[];
 	};
+	features?: FeatureMap | Features;
 }
 
 function genHash(content: string): string {
@@ -165,6 +167,7 @@ export default class BuildTimeRender {
 		invalidates: [],
 		excludes: []
 	};
+	private _features?: FeatureMap;
 
 	private _cache: Cache = { pages: {} };
 
@@ -185,7 +188,8 @@ export default class BuildTimeRender {
 			writeCss = true,
 			onDemand = false,
 			logger,
-			cacheOptions
+			cacheOptions,
+			features
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -217,6 +221,12 @@ export default class BuildTimeRender {
 		this._useHistory = useHistory !== undefined ? useHistory : paths.length > 0 && !/^#.*/.test(initialPath);
 		if (this._useHistory || paths.length === 0) {
 			this._static = !!args.static;
+		}
+
+		if (!features || Array.isArray(features) || typeof features === 'string') {
+			this._features = getFeatures(features);
+		} else {
+			this._features = features;
 		}
 	}
 
@@ -414,7 +424,8 @@ export default class BuildTimeRender {
 				workerData: {
 					basePath: this._basePath,
 					modulePath,
-					args
+					args,
+					features: this._features
 				}
 			});
 

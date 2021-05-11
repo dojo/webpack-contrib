@@ -44,6 +44,7 @@ const createCompilation = (
 		| 'state-static-no-paths'
 		| 'hash'
 		| 'build-bridge'
+		| 'build-bridge-has'
 		| 'build-bridge-hash'
 		| 'build-bridge-error'
 		| 'build-bridge-single-bundle'
@@ -1774,6 +1775,96 @@ describe('build-time-render', () => {
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
+					assert.strictEqual(
+						normalise(blocks),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))
+					);
+					assert.strictEqual(
+						normalise(block),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'block.js'), 'utf-8'))
+					);
+				});
+			});
+
+			it('should be able to use has in block', () => {
+				outputPath = path.join(
+					__dirname,
+					'..',
+					'..',
+					'support',
+					'fixtures',
+					'build-time-render',
+					'build-bridge-has'
+				);
+				compiler = {
+					hooks: {
+						afterEmit: {
+							tapAsync: tapStub
+						},
+						normalModuleFactory: {
+							tap: stub()
+						}
+					},
+					options: {
+						output: {
+							path: outputPath,
+							jsonpFunction: 'foo'
+						}
+					}
+				};
+				const fs = mockModule.getMock('fs-extra');
+				const outputFileSync = stub();
+				fs.outputFileSync = outputFileSync;
+				fs.readFileSync = readFileSync;
+				fs.existsSync = existsSync;
+				const Btr = getBuildTimeRenderModule();
+				const basePath = path.join(process.cwd(), 'tests/support/fixtures/build-time-render/build-bridge-has');
+				const btr = new Btr({
+					basePath,
+					paths: [],
+					entries: ['bootstrap', 'main'],
+					root: 'app',
+					scope: 'test',
+					renderer: 'jsdom',
+					features: { foo: true }
+				});
+				btr.apply(compiler);
+				const callback = normalModuleReplacementPluginStub.firstCall.args[1];
+				const resource = {
+					context: `${basePath}/foo/bar`,
+					request: `something.build.js`,
+					contextInfo: {
+						issuer: 'foo'
+					}
+				};
+				callback(resource);
+				assert.equal(
+					resource.request,
+					"@dojo/webpack-contrib/build-time-render/build-bridge-loader?modulePath='foo/bar/something.build.js'!@dojo/webpack-contrib/build-time-render/bridge"
+				);
+				return runBtr(createCompilation('build-bridge-has'), callbackStub).then(() => {
+					const calls = outputFileSync.getCalls();
+					let html = '';
+					let blocks = '';
+					let block = '';
+					calls.map((call) => {
+						const [filename, content] = call.args;
+						if (filename.match(/index\.html$/)) {
+							html = content;
+						}
+						if (filename.match(/blocks\.js$/)) {
+							blocks = content;
+						}
+						if (filename.match(/block-.*\.js$/)) {
+							block = content;
+						}
+					});
+					console.log(html);
+					assert.strictEqual(
+						normalise(html),
+						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
+					);
+					console.log(blocks);
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))

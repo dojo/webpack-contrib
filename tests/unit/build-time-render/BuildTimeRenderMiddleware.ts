@@ -45,7 +45,8 @@ describe('build-time-render middleware', () => {
 			cacheOptions: {
 				invalidates: ['blog']
 			},
-			entries: ['main']
+			entries: ['main'],
+			features: { foo: true }
 		});
 		onDemandBuildTimeRender.middleware(mockRequest, {}, nextStub);
 		assert.isTrue(BuildTimeRenderMock.notCalled);
@@ -62,7 +63,8 @@ describe('build-time-render middleware', () => {
 				cacheOptions: {
 					invalidates: ['blog']
 				},
-				scope: 'lib'
+				scope: 'lib',
+				features: { foo: true }
 			}
 		]);
 		assert.isTrue(runPathStub.calledOnce);
@@ -98,7 +100,8 @@ describe('build-time-render middleware', () => {
 				cacheOptions: {
 					invalidates: ['blog']
 				},
-				scope: 'lib'
+				scope: 'lib',
+				features: { foo: true }
 			}
 		]);
 		assert.isTrue(runPathStub.calledTwice);

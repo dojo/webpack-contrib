@@ -71,6 +71,7 @@ export interface BuildTimeRenderArguments {
 		invalidates?: string[];
 		excludes?: string[];
 	};
+	features?: Record<string, boolean>;
 }
 
 function genHash(content: string): string {
@@ -165,6 +166,7 @@ export default class BuildTimeRender {
 		invalidates: [],
 		excludes: []
 	};
+	private _features?: Record<string, boolean>;
 
 	private _cache: Cache = { pages: {} };
 
@@ -185,7 +187,8 @@ export default class BuildTimeRender {
 			writeCss = true,
 			onDemand = false,
 			logger,
-			cacheOptions
+			cacheOptions,
+			features
 		} = args;
 		const path = paths[0];
 		const initialPath = typeof path === 'object' ? path.path : path;
@@ -218,6 +221,8 @@ export default class BuildTimeRender {
 		if (this._useHistory || paths.length === 0) {
 			this._static = !!args.static;
 		}
+
+		this._features = features;
 	}
 
 	private async _writeIndexHtml({
@@ -414,7 +419,8 @@ export default class BuildTimeRender {
 				workerData: {
 					basePath: this._basePath,
 					modulePath,
-					args
+					args,
+					features: this._features
 				}
 			});
 

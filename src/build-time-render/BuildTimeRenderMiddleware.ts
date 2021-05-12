@@ -5,6 +5,7 @@ import webpack = require('webpack');
 
 export interface OnDemandBuildTimeRenderOptions {
 	buildTimeRenderOptions: any;
+	features: Record<string, boolean>;
 	scope: string;
 	base: string;
 	compiler: webpack.Compiler;
@@ -22,6 +23,7 @@ export class OnDemandBuildTimeRender {
 	private _base: string;
 	private _active = false;
 	private _entries: string[];
+	private _features: Record<string, boolean>;
 
 	constructor(options: OnDemandBuildTimeRenderOptions) {
 		this._btrArgs = options.buildTimeRenderOptions;
@@ -34,6 +36,7 @@ export class OnDemandBuildTimeRender {
 			this._pages.clear();
 			this._active = true;
 		});
+		this._features = options.features;
 	}
 
 	public middleware(req: Request, _: Response, next: NextFunction) {
@@ -54,7 +57,8 @@ export class OnDemandBuildTimeRender {
 				basePath: process.cwd(),
 				entries: this._entries,
 				onDemand: true,
-				cacheOptions: { ...cacheOptions, invalidates: [...(cacheOptions.invalidates || []), path] }
+				cacheOptions: { ...cacheOptions, invalidates: [...(cacheOptions.invalidates || []), path] },
+				features: this._features
 			});
 
 			this._pages.add(originalPath);

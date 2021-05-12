@@ -1,6 +1,5 @@
 import { Worker } from 'worker_threads';
 import { join } from 'path';
-import { FeatureMap } from '../../../src/build-time-render/block-worker';
 
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
@@ -14,7 +13,7 @@ describe('block-worker', () => {
 		}: {
 			modulePath: string;
 			args?: any[];
-			features?: FeatureMap;
+			features?: Record<string, boolean>;
 		},
 		expectedResult: { result: any; error: any }
 	) => {

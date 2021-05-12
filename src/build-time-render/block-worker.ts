@@ -2,8 +2,6 @@ import { add } from '@dojo/framework/core/has';
 import { isMainThread, parentPort, workerData } from 'worker_threads';
 import * as tsnode from 'ts-node';
 
-export type FeatureMap = { [feature: string]: boolean };
-
 if (isMainThread) {
 	throw new Error('block worker should never be executed in the main thread');
 }
@@ -14,7 +12,7 @@ export interface WorkerData {
 	basePath: string;
 	modulePath: string;
 	args: any[];
-	features?: FeatureMap;
+	features?: Record<string, boolean>;
 }
 
 async function runBlock() {

@@ -2,11 +2,11 @@ import BuildTimeRender, { BuildTimeRenderArguments } from './BuildTimeRender';
 import { Request, Response, NextFunction } from 'express';
 import * as url from 'url';
 import webpack = require('webpack');
-import { FeatureMap, Features } from '../static-build-loader/getFeatures';
+import { FeatureMap } from '../static-build-loader/getFeatures';
 
 export interface OnDemandBuildTimeRenderOptions {
 	buildTimeRenderOptions: any;
-	features: FeatureMap | Features;
+	features: FeatureMap;
 	scope: string;
 	base: string;
 	compiler: webpack.Compiler;
@@ -24,7 +24,7 @@ export class OnDemandBuildTimeRender {
 	private _base: string;
 	private _active = false;
 	private _entries: string[];
-	private _features: FeatureMap | Features;
+	private _features: FeatureMap;
 
 	constructor(options: OnDemandBuildTimeRenderOptions) {
 		this._btrArgs = options.buildTimeRenderOptions;

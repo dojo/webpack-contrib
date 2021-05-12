@@ -1859,12 +1859,10 @@ describe('build-time-render', () => {
 							block = content;
 						}
 					});
-					console.log(html);
 					assert.strictEqual(
 						normalise(html),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'index.html'), 'utf-8'))
 					);
-					console.log(blocks);
 					assert.strictEqual(
 						normalise(blocks),
 						normalise(readFileSync(path.join(outputPath, 'expected', 'blocks.js'), 'utf-8'))

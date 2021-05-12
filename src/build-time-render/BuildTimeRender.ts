@@ -27,7 +27,7 @@ const createHash = require('webpack/lib/util/createHash');
 import { parse, HTMLElement } from 'node-html-parser';
 
 import { read as readCache, write as writeCache, remove as removeFromCache, Cache } from './cache';
-import getFeatures, { FeatureMap, Features } from '../static-build-loader/getFeatures';
+import { FeatureMap } from '../static-build-loader/getFeatures';
 
 export interface RenderResult {
 	path?: string | BuildTimePath;
@@ -72,7 +72,7 @@ export interface BuildTimeRenderArguments {
 		invalidates?: string[];
 		excludes?: string[];
 	};
-	features?: FeatureMap | Features;
+	features?: FeatureMap;
 }
 
 function genHash(content: string): string {
@@ -223,11 +223,7 @@ export default class BuildTimeRender {
 			this._static = !!args.static;
 		}
 
-		if (!features || Array.isArray(features) || typeof features === 'string') {
-			this._features = getFeatures(features);
-		} else {
-			this._features = features;
-		}
+		this._features = features;
 	}
 
 	private async _writeIndexHtml({

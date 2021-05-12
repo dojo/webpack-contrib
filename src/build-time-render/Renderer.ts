@@ -3,6 +3,31 @@ const { JSDOM, ResourceLoader } = jsdom;
 
 export type Renderer = 'puppeteer' | 'jsdom';
 
+class CustomResourceLoader extends ResourceLoader {
+	private _requestCount = 0;
+
+	get requestCount() {
+		return this._requestCount;
+	}
+
+	fetch(url: string, options: any) {
+		if (options.element && options.element.localName === 'iframe') {
+			return null;
+		}
+		this._requestCount++;
+		const response = super.fetch(url.replace(/#.*/, ''), options);
+		response.then(
+			() => {
+				this._requestCount--;
+			},
+			() => {
+				this._requestCount--;
+			}
+		);
+		return response;
+	}
+}
+
 export default (renderer: Renderer = 'jsdom') => {
 	if (renderer === 'puppeteer') {
 		try {
@@ -15,25 +40,6 @@ export default (renderer: Renderer = 'jsdom') => {
 	}
 	return {
 		launch: (options: any) => {
-			let requestCount = 0;
-			class CustomResourceLoader extends ResourceLoader {
-				fetch(url: string, options: any) {
-					if (options.element && options.element.localName === 'iframe') {
-						return null;
-					}
-					requestCount++;
-					const response = super.fetch(url.replace(/#.*/, ''), options);
-					response.then(
-						() => {
-							requestCount--;
-						},
-						() => {
-							requestCount--;
-						}
-					);
-					return response;
-				}
-			}
 			return Promise.resolve({
 				close: () => {
 					return Promise.resolve();
@@ -41,7 +47,6 @@ export default (renderer: Renderer = 'jsdom') => {
 				newPage: () => {
 					const beforeParseFuncs: any[] = [];
 					let window: any;
-					requestCount = 0;
 					return {
 						evaluate: (func: () => any, ...args: any[]) => {
 							return new Promise((resolve) => {
@@ -65,10 +70,11 @@ export default (renderer: Renderer = 'jsdom') => {
 							return Promise.resolve(func(nodes));
 						},
 						goto: async (url: string, options: any) => {
+							const resources = new CustomResourceLoader();
 							const jsdomOptions: any = {
 								runScripts: 'dangerously',
 								pretendToBeVisual: true,
-								resources: new CustomResourceLoader()
+								resources
 							};
 
 							jsdomOptions.beforeParse = (win: any) => {
@@ -86,7 +92,7 @@ export default (renderer: Renderer = 'jsdom') => {
 								timeout = true;
 							}, 30000);
 							await new Promise((resolve) => setTimeout(resolve, 10));
-							while (requestCount && !timeout) {
+							while (resources.requestCount && !timeout) {
 								await new Promise((resolve) => setTimeout(resolve, 10));
 							}
 							if (timeout) {

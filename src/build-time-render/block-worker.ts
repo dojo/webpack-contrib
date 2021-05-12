@@ -1,7 +1,8 @@
 import { add } from '@dojo/framework/core/has';
 import { isMainThread, parentPort, workerData } from 'worker_threads';
 import * as tsnode from 'ts-node';
-import { FeatureMap } from '../static-build-loader/getFeatures';
+
+export type FeatureMap = { [feature: string]: boolean };
 
 if (isMainThread) {
 	throw new Error('block worker should never be executed in the main thread');

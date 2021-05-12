@@ -1,6 +1,6 @@
 import { Worker } from 'worker_threads';
 import { join } from 'path';
-import { FeatureMap } from '../../../src/static-build-loader/getFeatures';
+import { FeatureMap } from '../../../src/build-time-render/block-worker';
 
 const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');

@@ -25,9 +25,24 @@ interface VisitorOptions {
 	sync: boolean;
 }
 
+const {
+	createSignatureDeclaration,
+	createCall,
+	createLiteral,
+	createToken,
+	createCallExpression,
+	createStringLiteral
+} =
+	(ts as any).factory || ts;
+
 function createArrowFuncForDefaultImport(modulePath: string) {
-	return ts.createCall((ts as any).createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
-		ts.createLiteral(`${modulePath}`)
+	if (createSignatureDeclaration) {
+		return createCall(createSignatureDeclaration(ts.SyntaxKind.ImportKeyword), undefined, [
+			createLiteral(`${modulePath}`)
+		]);
+	}
+	return createCallExpression(createToken(ts.SyntaxKind.ImportKeyword), undefined, [
+		createStringLiteral(`${modulePath}`)
 	]);
 }
 

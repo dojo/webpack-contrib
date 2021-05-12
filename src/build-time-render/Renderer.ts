@@ -15,25 +15,6 @@ export default (renderer: Renderer = 'jsdom') => {
 	}
 	return {
 		launch: (options: any) => {
-			let requestCount = 0;
-			class CustomResourceLoader extends ResourceLoader {
-				fetch(url: string, options: any) {
-					if (options.element && options.element.localName === 'iframe') {
-						return null;
-					}
-					requestCount++;
-					const response = super.fetch(url.replace(/#.*/, ''), options);
-					response.then(
-						() => {
-							requestCount--;
-						},
-						() => {
-							requestCount--;
-						}
-					);
-					return response;
-				}
-			}
 			return Promise.resolve({
 				close: () => {
 					return Promise.resolve();
@@ -41,7 +22,25 @@ export default (renderer: Renderer = 'jsdom') => {
 				newPage: () => {
 					const beforeParseFuncs: any[] = [];
 					let window: any;
-					requestCount = 0;
+					let requestCount = 0;
+					class CustomResourceLoader extends ResourceLoader {
+						fetch(url: string, options: any) {
+							if (options.element && options.element.localName === 'iframe') {
+								return null;
+							}
+							requestCount++;
+							const response = super.fetch(url.replace(/#.*/, ''), options);
+							response.then(
+								() => {
+									requestCount--;
+								},
+								() => {
+									requestCount--;
+								}
+							);
+							return response;
+						}
+					}
 					return {
 						evaluate: (func: () => any, ...args: any[]) => {
 							return new Promise((resolve) => {

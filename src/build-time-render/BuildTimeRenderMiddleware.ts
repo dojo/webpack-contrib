@@ -5,7 +5,7 @@ import webpack = require('webpack');
 
 export interface OnDemandBuildTimeRenderOptions {
 	buildTimeRenderOptions: any;
-	features: Record<string, boolean>;
+	features?: Record<string, boolean>;
 	scope: string;
 	base: string;
 	compiler: webpack.Compiler;
@@ -23,7 +23,7 @@ export class OnDemandBuildTimeRender {
 	private _base: string;
 	private _active = false;
 	private _entries: string[];
-	private _features: Record<string, boolean>;
+	private _features?: Record<string, boolean>;
 
 	constructor(options: OnDemandBuildTimeRenderOptions) {
 		this._btrArgs = options.buildTimeRenderOptions;

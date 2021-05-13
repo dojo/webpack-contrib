@@ -258,10 +258,20 @@ The plugin takes an options object with the following properties:
 | Property | Type | Optional | Description |
 | -------- | ---- | -------- | ----------- |
 | entries | `string[]` | No | The entry scripts to include in the generated HTML file |
-| paths | `string[]` or `{ path: string; match: string[] }` | Yes | An array of paths that will be matched against the URL hash, rendering the HTML associated with any matched path. If the path is a string, then it will be compared directly to `window.location.hash`. If the path is an object, then it should include a `path` string that will be used to resolve the HTML, and `match` string array that represents multiple paths that should trigger the `path` to be rendered. Defaults to an empty array ('[]'). |
+| paths | `string[]` or `PathOptions[]` | Yes | An array of paths that will be matched against the URL hash, rendering the HTML associated with any matched path. If the path is a string, then it will be compared directly to `window.location.hash`. If the path is an object see the `PathOptions` information below. Defaults to an empty array (`[]`). |
 | root | `string` | Yes | The ID for the root HTML element. If falsy, then no HTML will be generated. Defaults to an emtpy string (`''`). |
 | useManifest | `boolean` | Yes | Determines whether a manifest file should be used to resolve the entries. Defaults to `false`. |
 | static | `boolean` | Yes | Removes js and css scripts tags from generated `index.html` files for truly static sites. Not compatible with hash routing. Defaults to `false`. |
+
+**`PathOptions`**
+
+| Property | Type | Optional | Description |
+| -------- | ---- | -------- | ----------- |
+| path | `string` | No | Path value to match against the URL hash and render HTML for. |
+| match | `string[]` | Yes | Multiple paths that should trigger the `path` to be rendered. |
+| output | `string` | Yes | Override the path the HTML is output to. |
+| static | `boolean` | Yes | Override `options.static` for the path. |
+
 
 ### Usage
 

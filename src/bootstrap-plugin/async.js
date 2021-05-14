@@ -41,7 +41,8 @@ if (!has.default('dom-pointer-events')) {
 
 modules.push(cldrLoader);
 
+__MAIN_CSS_ENTRY && import(/* webpackChunkName: "main" */ __MAIN_CSS_ENTRY);
+
 module.exports = Promise.all(modules).then(function() {
-	__MAIN_CSS_ENTRY && import(/* webpackChunkName: "main" */ __MAIN_CSS_ENTRY);
 	return import(/* webpackChunkName: "main" */ __MAIN_ENTRY);
 });

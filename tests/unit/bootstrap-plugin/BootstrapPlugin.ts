@@ -15,6 +15,9 @@ let normalReplacementStub = stub();
 
 describe('bootstrap-plugin', () => {
 	beforeEach(() => {
+		defineStub.reset();
+		normalReplacementStub.reset();
+
 		mockModule = new MockModule('../../../src/bootstrap-plugin/BootstrapPlugin', require);
 		mockModule.dependencies(['wrapper-webpack-plugin']);
 
@@ -124,7 +127,7 @@ window.DojoHasEnvironment = { staticFeatures: shimFeatures };`
 
 		assert.isTrue(defineStub.calledOnce);
 		assert.deepEqual(defineStub.firstCall.args[0], {
-			__MAIN_CSS_ENTRY: null,
+			__MAIN_CSS_ENTRY: 'null',
 			__MAIN_ENTRY: '"main"',
 			__dojoframeworkshimIntersectionObserver: '"no-bootstrap"',
 			__dojoframeworkshimWebAnimations: '"no-bootstrap"',

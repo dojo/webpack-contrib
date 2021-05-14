@@ -1,3 +1,6 @@
+
+__MAIN_CSS_ENTRY && import(/* webpackChunkName: "main" */ __MAIN_CSS_ENTRY);
+
 var has = require('@dojo/framework/core/has');
 var cldrLoader = require('../cldr/bootstrap').default;
 require('./common');
@@ -40,8 +43,6 @@ if (!has.default('dom-pointer-events')) {
 }
 
 modules.push(cldrLoader);
-
-__MAIN_CSS_ENTRY && import(/* webpackChunkName: "main" */ __MAIN_CSS_ENTRY);
 
 module.exports = Promise.all(modules).then(function() {
 	return import(/* webpackChunkName: "main" */ __MAIN_ENTRY);

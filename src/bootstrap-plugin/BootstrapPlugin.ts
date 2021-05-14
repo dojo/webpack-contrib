@@ -8,7 +8,7 @@ export interface ShimModules {
 
 export interface BootstrapPluginOptions {
 	entryPath: string;
-	cssPath: string;
+	cssPath: string | null;
 	shimModules: ShimModules[];
 }
 
@@ -19,7 +19,7 @@ const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 export class BootstrapPlugin {
 	public flagMap: { [index: string]: boolean };
 	private _entryPath: string;
-	private _cssPath: string;
+	private _cssPath: string | null;
 	private _shimModules: ShimModules[];
 	private _defineConfiguration: { [index: string]: string } = {
 		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),

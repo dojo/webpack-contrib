@@ -8,6 +8,7 @@ export interface ShimModules {
 
 export interface BootstrapPluginOptions {
 	entryPath: string;
+	cssPath: string;
 	shimModules: ShimModules[];
 }
 
@@ -18,6 +19,7 @@ const shimModuleRegExp = /@dojo(\/|\\)framework(\/|\\)shim/;
 export class BootstrapPlugin {
 	public flagMap: { [index: string]: boolean };
 	private _entryPath: string;
+	private _cssPath: string;
 	private _shimModules: ShimModules[];
 	private _defineConfiguration: { [index: string]: string } = {
 		__dojoframeworkshimIntersectionObserver: JSON.stringify('no-bootstrap'),
@@ -29,8 +31,9 @@ export class BootstrapPlugin {
 	};
 
 	constructor(options: BootstrapPluginOptions) {
-		const { shimModules, entryPath } = options;
+		const { shimModules, entryPath, cssPath } = options;
 		this._entryPath = entryPath;
+		this._cssPath = cssPath;
 		this._shimModules = shimModules;
 		this.flagMap = shimModules.reduce(
 			(flags, module) => {
@@ -42,6 +45,7 @@ export class BootstrapPlugin {
 			} as any
 		);
 		this._defineConfiguration.__MAIN_ENTRY = JSON.stringify(this._entryPath);
+		this._defineConfiguration.__MAIN_CSS_ENTRY = JSON.stringify(this._cssPath);
 		shimModules.forEach((shimModule) => {
 			this._defineConfiguration[`__${shimModule.module.replace(/(\/|@)/g, '')}`] = JSON.stringify(
 				shimModule.has.toLowerCase()

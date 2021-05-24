@@ -1,7 +1,7 @@
 import getFeatures from './getFeatures';
 import * as webpack from 'webpack';
 import * as recast from 'recast';
-import { ExpressionStatement, BaseNode } from 'estree';
+import { ExpressionStatement, BaseNode, CallExpression } from 'estree';
 
 const { getOptions } = require('loader-utils');
 const types = recast.types;
@@ -60,6 +60,27 @@ function addCheck(addIdentifier: string, hasNamespaceIdentifier: string | undefi
 			callee.property.name === 'add' &&
 			(args.length === 3 || args.length === 2))
 	);
+}
+
+function unwrapCallee(init: CallExpression): { callee: any; arguments: any } {
+	const { callee, arguments: args } = init;
+	if (
+		namedTypes.MemberExpression.check(callee) &&
+		namedTypes.Identifier.check(callee.object) &&
+		callee.object.name.includes('tslib') &&
+		namedTypes.Identifier.check(callee.property) &&
+		(callee.property.name === '__importDefault' || callee.property.name === '__importStar') &&
+		args !== undefined &&
+		args.length === 1 &&
+		namedTypes.CallExpression.check(args[0]) &&
+		namedTypes.Identifier.check(args[0].callee) &&
+		args[0].callee.name === 'require' &&
+		args[0].arguments.length === 1
+	) {
+		return { callee: args[0].callee, arguments: args[0].arguments };
+	}
+
+	return { callee, arguments: args };
 }
 
 function getExpressionValue(node: ExpressionStatement): string | undefined {
@@ -166,16 +187,15 @@ export default function loader(
 					}
 				}
 
-				if (
-					namedTypes.CallExpression.check(node.expression) &&
-					namedTypes.Identifier.check(node.expression.callee)
-				) {
+				if (namedTypes.CallExpression.check(node.expression)) {
+					const { callee, arguments: args } = unwrapCallee(node.expression);
 					if (
-						node.expression.callee.name === 'require' &&
-						node.expression.arguments.length === 1 &&
+						namedTypes.Identifier.check(callee) &&
+						callee.name === 'require' &&
+						args.length === 1 &&
 						elideNextImport === true
 					) {
-						const [arg] = node.expression.arguments;
+						const [arg] = args;
 						if (namedTypes.Literal.check(arg)) {
 							comment = ` elided: import '${arg.value}'`;
 							elideNextImport = false;
@@ -263,15 +283,15 @@ export default function loader(
 							namedTypes.CallExpression.check(callExpression.init) &&
 							namedTypes.Identifier.check(callExpression.init.callee)
 						) {
-							if (
-								callExpression.init.callee.name === 'require' &&
-								callExpression.init.arguments.length === 1
-							) {
+							let init = callExpression.init;
+							let { callee, arguments: args } = unwrapCallee(init);
+
+							if (namedTypes.Identifier.check(callee) && callee.name === 'require' && args.length === 1) {
 								if (callExpression.id) {
 									identifier = callExpression.id;
 								}
 
-								const [arg] = callExpression.init.arguments;
+								const [arg] = args;
 								if (namedTypes.Literal.check(arg)) {
 									comment = ` elided: import '${arg.value}'`;
 									elideNextImport = false;
@@ -297,7 +317,7 @@ export default function loader(
 					declarations.forEach(({ id, init }) => {
 						if (!hasNamespaceIdentifier) {
 							if (namedTypes.Identifier.check(id) && init && namedTypes.CallExpression.check(init)) {
-								const { callee, arguments: args } = init;
+								const { callee, arguments: args } = unwrapCallee(init);
 								if (
 									namedTypes.Identifier.check(callee) &&
 									callee.name === 'require' &&
@@ -327,9 +347,8 @@ export default function loader(
 	if (hasIdentifier || hasNamespaceIdentifier || existsIdentifier || addIdentifier) {
 		types.visit(ast, {
 			visitCallExpression(path) {
-				const {
-					node: { arguments: args, callee }
-				} = path;
+				const { node } = path;
+				const { arguments: args, callee } = unwrapCallee(node);
 				const isHasCheck = hasCheck(hasIdentifier as string, hasNamespaceIdentifier, args, callee);
 				const isExistsCheck = existsCheck(
 					existsIdentifier as string,

@@ -187,12 +187,14 @@ export default function loader(
 					}
 				}
 
-				if (
-					namedTypes.CallExpression.check(node.expression) &&
-					namedTypes.Identifier.check(node.expression.callee)
-				) {
+				if (namedTypes.CallExpression.check(node.expression)) {
 					const { callee, arguments: args } = unwrapCallee(node.expression);
-					if (callee.name === 'require' && args.length === 1 && elideNextImport === true) {
+					if (
+						namedTypes.Identifier.check(callee) &&
+						callee.name === 'require' &&
+						args.length === 1 &&
+						elideNextImport === true
+					) {
 						const [arg] = args;
 						if (namedTypes.Literal.check(arg)) {
 							comment = ` elided: import '${arg.value}'`;
@@ -345,9 +347,8 @@ export default function loader(
 	if (hasIdentifier || hasNamespaceIdentifier || existsIdentifier || addIdentifier) {
 		types.visit(ast, {
 			visitCallExpression(path) {
-				const {
-					node: { arguments: args, callee }
-				} = path;
+				const { node } = path;
+				const { arguments: args, callee } = unwrapCallee(node);
 				const isHasCheck = hasCheck(hasIdentifier as string, hasNamespaceIdentifier, args, callee);
 				const isExistsCheck = existsCheck(
 					existsIdentifier as string,

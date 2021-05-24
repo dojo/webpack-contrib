@@ -81,6 +81,22 @@ registerSuite('static-build-loader', {
 			);
 		},
 
+		'static features legacy'() {
+			const code = loadCode('static-has-base-legacy');
+			mockLoaderUtils.getOptions.returns({
+				features: { qat: true, foo: false }
+			});
+
+			const context = {
+				callback: sandbox.stub()
+			};
+			const resultCode = loader.call(context, code).replace(/\r\n/g, '\n');
+			assert.equal(resultCode, loadCode('static-has-qat-true-legacy'));
+			assert.isFalse(mockGetFeatures.default.called, 'Should not have called getFeatures');
+			assert.strictEqual(logStub.callCount, 3, 'should have logged to console three time');
+			assert.strictEqual(logStub.secondCall.args[0], 'Dynamic features: bar, baz', 'should have logged properly');
+		},
+
 		'static features with es6 import'() {
 			const code = loadCode('has-es6');
 			mockLoaderUtils.getOptions.returns({

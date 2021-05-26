@@ -296,7 +296,10 @@ export default class BuildTimeRender {
 						return script1 === mainScript && !(script2 === mainScript) ? 1 : -1;
 					})
 					.forEach((additionalChunk: string) => {
-						additionalChunk = additionalChunk.replace(this._baseUrl.slice(1), '');
+						additionalChunk = additionalChunk
+							.replace(this._baseUrl.slice(1), '')
+							.replace(/runtime\/blocks\.(\w*)\.bundle\.js/g, this._manifest['runtime/blocks.js']);
+
 						writtenAssets.push(additionalChunk);
 
 						html = html.replace(

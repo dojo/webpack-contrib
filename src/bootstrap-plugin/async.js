@@ -1,3 +1,6 @@
+
+__MAIN_CSS_ENTRY && import(/* webpackChunkName: "main" */ __MAIN_CSS_ENTRY);
+
 var has = require('@dojo/framework/core/has');
 var cldrLoader = require('../cldr/bootstrap').default;
 require('./common');

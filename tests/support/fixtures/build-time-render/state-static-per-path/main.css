@@ -20,6 +20,10 @@
 	background: url(http://example.com);
 }
 
+.other~.another {
+	border-color: aqua;
+}
+
 span {
 	width: 100%;
 }

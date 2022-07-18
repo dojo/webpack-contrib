@@ -364,7 +364,9 @@ export default class BuildTimeRender {
 					parsedValue = parsedValue
 						.split('.')
 						.slice(0, 2)
-						.join('.');
+						.join('.')
+						.replace('+', '')
+						.replace('~', '');
 					const firstChar = parsedValue.substr(0, 1);
 					const noMatchingClass =
 						classes.indexOf(parsedValue) === -1 && classes.indexOf(parsedValue.replace('\\:', ':')) === -1;
